@@ -1,0 +1,30 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {PNG} from 'pngjs';
+import {Workbench} from '../core/workbench.mjs';
+import {looseFolder} from '../core/loose-files.mjs';
+import {sha256} from '../core/binary.mjs';
+import {mapFixture,textureFixture} from './helpers/map-fixture.mjs';
+
+for(const family of [1,2,3]) test(`selected MAP texture writes its family ${family} source and preserves geometry`,t=>{
+  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'sh3tools-map-texture-'));t.after(()=>{assert.ok(folder.startsWith(path.join(os.tmpdir(),'sh3tools-map-texture-')));fs.rmSync(folder,{recursive:true,force:true});});
+  const data=mapFixture({family});fs.writeFileSync(path.join(folder,'am11.map'),data);
+  if(family<3)fs.writeFileSync(path.join(folder,family===1?'amGB.tex':'am11TR.tex'),textureFixture());
+  const wb=new Workbench();wb.archives=[looseFolder(folder,'tmp')];const key=wb.snapshot().entries.find(e=>e.extension==='map').key;
+  const image=new PNG({width:7,height:5});for(let i=0;i<image.data.length;i+=4)image.data.set([40,70,90,255],i);const file=path.join(folder,'replacement.png');fs.writeFileSync(file,PNG.sync.write(image));
+  const originalModel=wb.worldAsset(key).model;
+  const texture=wb.worldAsset(key).textures[0];assert.equal(texture.sourceIndex,0);
+  wb.replaceMapTexture(key,sha256(data),0,file);
+  assert.equal(wb.changes.size,1);assert.ok(wb.changes.has(texture.sourceKey??key));
+  const after=wb.worldAsset(key);assert.deepEqual(after.model.meshes[0].positions,wb.worldAsset(key).model.meshes[1].positions);
+  assert.equal(after.textures[0].width,2);assert.deepEqual([...after.textures[0].rgba.slice(0,4)],[40,70,90,255]);
+  const edits=originalModel.meshes.map(mesh=>({part:mesh.name,translation:[.5,0,0],rotation:[0,0,0],scale:[.5,.5,1],uvOffset:[0,0],uvScale:[1,1],materialGroup:null}));
+  wb.editMap(key,sha256(wb.bytes(key)),edits);assert.equal(wb.mapHistory.get(key).length,2);
+  wb.worldAsset(key).model.meshes.forEach((mesh,i)=>assert.equal(mesh.positions[0],originalModel.meshes[i].positions[0]-.5));
+  wb.undoMap(key);assert.deepEqual(wb.worldAsset(key).model.meshes[0].positions,originalModel.meshes[0].positions);
+  wb.undoMap(key);assert.equal(wb.changes.size,0);assert.equal(wb.mapHistory.get(key).length,0);
+  if(family<3)assert.ok(wb.bytes(key).equals(data));else assert.ok(wb.bytes(key).subarray(0,data.readUInt32LE(16)).equals(data.subarray(0,data.readUInt32LE(16))));
+});

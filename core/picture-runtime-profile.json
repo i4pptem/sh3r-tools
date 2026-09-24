@@ -1,0 +1,65 @@
+{
+  "id": "sh3-picture-arena-16m-v1",
+  "status": "candidate-emulated-not-live-verified",
+  "imageBase": 4194304,
+  "slotCount": 5,
+  "slotBytes": 16777216,
+  "arenaBytes": 83886080,
+  "bookkeepingAddress": 12267732,
+  "pointerTableAddress": 12267752,
+  "originalHashes": [
+    "a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e",
+    "a8f02d3aae868bbc50433f42aa552aa01e95be7381c706376bf38da05f6c84b9"
+  ],
+  "patches": [
+    {
+      "address": 5096826,
+      "fileOffset": 902522,
+      "expected": "8bc881c1ff270400b8993d60f6f7e903d1c1fa128bc2c1e81f03d003d68bda83c404",
+      "replacement": "83c40483fe040f875701000048c1e8184001f083f8050f874701000089c390909090",
+      "purpose": "Bounded unsigned ceil(fileSize/16MiB), reject invalid slot or overrun"
+    },
+    {
+      "address": 5097214,
+      "fileOffset": 902910,
+      "expected": "0500c81400",
+      "replacement": "0500000005",
+      "purpose": "Pointer-based loader arena end"
+    },
+    {
+      "address": 5098564,
+      "fileOffset": 904260,
+      "expected": "6800c81400",
+      "replacement": "6800000005",
+      "purpose": "Single persistent malloc size"
+    },
+    {
+      "address": 5098574,
+      "fileOffset": 904270,
+      "expected": "8d8800280400",
+      "replacement": "8d8800000001",
+      "purpose": "Slot1 pointer displacement"
+    },
+    {
+      "address": 5098586,
+      "fileOffset": 904282,
+      "expected": "8d9000500800",
+      "replacement": "8d9000000002",
+      "purpose": "Slot2 pointer displacement"
+    },
+    {
+      "address": 5098592,
+      "fileOffset": 904288,
+      "expected": "8d8800780c00",
+      "replacement": "8d8800000003",
+      "purpose": "Slot3 pointer displacement"
+    },
+    {
+      "address": 5098603,
+      "fileOffset": 904299,
+      "expected": "0500a01000",
+      "replacement": "0500000004",
+      "purpose": "Slot4 pointer displacement"
+    }
+  ]
+}

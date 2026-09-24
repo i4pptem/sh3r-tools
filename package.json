@@ -1,0 +1,41 @@
+{
+  "name": "silent-hill-3-tools",
+  "version": "0.8.0",
+  "description": "Local archive and asset workbench for Silent Hill 3 PC",
+  "private": true,
+  "type": "module",
+  "main": "app/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "build": "node tools/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check:repo": "node tools/check-repository.mjs",
+    "setup:media": "node tools/setup-media.mjs",
+    "package": "node tools/package.mjs",
+    "release:zip": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/release.ps1",
+    "setup:electron": "node node_modules/electron/install.js"
+  },
+  "dependencies": {
+    "pngjs": "7.0.0",
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "44.4.3",
+    "esbuild": "0.28.2"
+  },
+  "author": "i4pptem",
+  "license": "GPL-3.0-only",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/i4pptem/sh3r-tools.git"
+  },
+  "homepage": "https://github.com/i4pptem/sh3r-tools#readme",
+  "bugs": {
+    "url": "https://github.com/i4pptem/sh3r-tools/issues"
+  }
+}

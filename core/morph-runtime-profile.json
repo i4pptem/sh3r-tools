@@ -1,0 +1,423 @@
+{
+  "originalHashes": [
+    "719b61d0faeb7e23c844ac0f2c5082634ee670a103f2dec721a3504bbc3132bf",
+    "a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e"
+  ],
+  "nodeStride": 24,
+  "references": [
+    {
+      "address": 4602673,
+      "bytes": "b92c6e8800",
+      "operand": 1,
+      "delta": 4
+    },
+    {
+      "address": 4603118,
+      "bytes": "d881286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4603124,
+      "bytes": "d999286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4603132,
+      "bytes": "d8812c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4603138,
+      "bytes": "d9992c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4603144,
+      "bytes": "d881306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4603150,
+      "bytes": "d999306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4603156,
+      "bytes": "d981346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4603166,
+      "bytes": "d999346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4603172,
+      "bytes": "d981386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4603182,
+      "bytes": "d999386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4603188,
+      "bytes": "d9813c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4603198,
+      "bytes": "d9993c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4603358,
+      "bytes": "d881286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4603364,
+      "bytes": "d999286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4603372,
+      "bytes": "d8812c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4603378,
+      "bytes": "d9992c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4603384,
+      "bytes": "d881306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4603390,
+      "bytes": "d999306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4603396,
+      "bytes": "d981346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4603406,
+      "bytes": "d999346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4603412,
+      "bytes": "d981386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4603422,
+      "bytes": "d999386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4603428,
+      "bytes": "d9813c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4603438,
+      "bytes": "d9993c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4603598,
+      "bytes": "d881286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4603604,
+      "bytes": "d999286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4603612,
+      "bytes": "d8812c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4603618,
+      "bytes": "d9992c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4603624,
+      "bytes": "d881306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4603630,
+      "bytes": "d999306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4603636,
+      "bytes": "d981346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4603646,
+      "bytes": "d999346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4603652,
+      "bytes": "d981386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4603662,
+      "bytes": "d999386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4603668,
+      "bytes": "d9813c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4603678,
+      "bytes": "d9993c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4603849,
+      "bytes": "d881286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4603855,
+      "bytes": "d999286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4603863,
+      "bytes": "d8812c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4603869,
+      "bytes": "d9992c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4603875,
+      "bytes": "d881306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4603881,
+      "bytes": "d999306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4603887,
+      "bytes": "d981346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4603897,
+      "bytes": "d999346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4603903,
+      "bytes": "d981386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4603913,
+      "bytes": "d999386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4603919,
+      "bytes": "d9813c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4603929,
+      "bytes": "d9993c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4604125,
+      "bytes": "d880286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4604131,
+      "bytes": "d998286e8800",
+      "operand": 2,
+      "delta": 0
+    },
+    {
+      "address": 4604139,
+      "bytes": "d8802c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4604145,
+      "bytes": "d9982c6e8800",
+      "operand": 2,
+      "delta": 4
+    },
+    {
+      "address": 4604151,
+      "bytes": "d880306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4604157,
+      "bytes": "d998306e8800",
+      "operand": 2,
+      "delta": 8
+    },
+    {
+      "address": 4604163,
+      "bytes": "d980346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4604173,
+      "bytes": "d998346e8800",
+      "operand": 2,
+      "delta": 12
+    },
+    {
+      "address": 4604179,
+      "bytes": "d980386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4604189,
+      "bytes": "d998386e8800",
+      "operand": 2,
+      "delta": 16
+    },
+    {
+      "address": 4604195,
+      "bytes": "d9803c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4604205,
+      "bytes": "d9983c6e8800",
+      "operand": 2,
+      "delta": 20
+    },
+    {
+      "address": 4604382,
+      "bytes": "8d04c5286e8800",
+      "operand": 3,
+      "delta": 0
+    },
+    {
+      "address": 4604604,
+      "bytes": "8d0ccd286e8800",
+      "operand": 3,
+      "delta": 0
+    },
+    {
+      "address": 4604929,
+      "bytes": "8d0ccd346e8800",
+      "operand": 3,
+      "delta": 12
+    }
+  ],
+  "patched": [
+    {
+      "hash": "a8f02d3aae868bbc50433f42aa552aa01e95be7381c706376bf38da05f6c84b9",
+      "report": {
+        "patch": "sh3-morph-buffer-v1",
+        "capacity": 32768,
+        "nodeStride": 24,
+        "bufferAddress": 119001088,
+        "bufferBytes": 786432,
+        "instructionCount": 64,
+        "sourceHash": "719b61d0faeb7e23c844ac0f2c5082634ee670a103f2dec721a3504bbc3132bf",
+        "outputHash": "a8f02d3aae868bbc50433f42aa552aa01e95be7381c706376bf38da05f6c84b9",
+        "runtimeVerified": false
+      }
+    },
+    {
+      "hash": "764be8884e7cc1088968f7ca8adb6e67ccaba49bd2f6e4cef1d4c4ae4bbd38f2",
+      "report": {
+        "patch": "sh3-morph-buffer-v1",
+        "capacity": 32768,
+        "nodeStride": 24,
+        "bufferAddress": 119001088,
+        "bufferBytes": 786432,
+        "instructionCount": 64,
+        "sourceHash": "a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e",
+        "outputHash": "764be8884e7cc1088968f7ca8adb6e67ccaba49bd2f6e4cef1d4c4ae4bbd38f2",
+        "runtimeVerified": false
+      }
+    }
+  ]
+}

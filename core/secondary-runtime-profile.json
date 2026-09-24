@@ -1,0 +1,437 @@
+{
+  "imageBase": 4194304,
+  "buffers": {
+    "vertices": {
+      "base": 8850976,
+      "stride": 32,
+      "stockCount": 1024,
+      "recommendedCount": 65536
+    },
+    "triangles": {
+      "base": 8887840,
+      "stride": 20,
+      "stockCount": 2048,
+      "recommendedCount": 131072
+    },
+    "indices": {
+      "base": 8928800,
+      "stride": 6,
+      "stockCount": 2048,
+      "recommendedCount": 131072
+    }
+  },
+  "references": [
+    {
+      "address": 4596642,
+      "bytes": "81c7200e8700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8850976,
+      "buffer": "vertices",
+      "function": 4596576,
+      "text": "add edi, 0x870e20",
+      "rawOffset": 402340,
+      "relative": 0
+    },
+    {
+      "address": 4597575,
+      "bytes": "8d34b5209e8700",
+      "operand": 3,
+      "operandSize": 4,
+      "value": 8887840,
+      "buffer": "triangles",
+      "function": 4596576,
+      "text": "lea esi, [esi*4 + 0x879e20]",
+      "rawOffset": 403274,
+      "relative": 0
+    },
+    {
+      "address": 4597992,
+      "bytes": "68209e8700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8887840,
+      "buffer": "triangles",
+      "function": 4597968,
+      "text": "push 0x879e20",
+      "rawOffset": 403689,
+      "relative": 0
+    },
+    {
+      "address": 4598007,
+      "bytes": "b8203e8800",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8928800,
+      "buffer": "indices",
+      "function": 4597968,
+      "text": "mov eax, 0x883e20",
+      "rawOffset": 403704,
+      "relative": 0
+    },
+    {
+      "address": 4598014,
+      "bytes": "b92e9e8700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8887854,
+      "buffer": "triangles",
+      "function": 4597968,
+      "text": "mov ecx, 0x879e2e",
+      "rawOffset": 403711,
+      "relative": 14
+    },
+    {
+      "address": 4598103,
+      "bytes": "be200e8700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8850976,
+      "buffer": "vertices",
+      "function": 4597968,
+      "text": "mov esi, 0x870e20",
+      "rawOffset": 403800,
+      "relative": 0
+    },
+    {
+      "address": 4598160,
+      "bytes": "be203e8800",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8928800,
+      "buffer": "indices",
+      "function": 4597968,
+      "text": "mov esi, 0x883e20",
+      "rawOffset": 403857,
+      "relative": 0
+    },
+    {
+      "address": 4598808,
+      "bytes": "bd209e8700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8887840,
+      "buffer": "triangles",
+      "function": 4597968,
+      "text": "mov ebp, 0x879e20",
+      "rawOffset": 404505,
+      "relative": 0
+    },
+    {
+      "address": 4598813,
+      "bytes": "8d1c9d209e8700",
+      "operand": 3,
+      "operandSize": 4,
+      "value": 8887840,
+      "buffer": "triangles",
+      "function": 4597968,
+      "text": "lea ebx, [ebx*4 + 0x879e20]",
+      "rawOffset": 404512,
+      "relative": 0
+    },
+    {
+      "address": 4599185,
+      "bytes": "81ef209e8700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8887840,
+      "buffer": "triangles",
+      "function": 4597968,
+      "text": "sub edi, 0x879e20",
+      "rawOffset": 404883,
+      "relative": 0
+    },
+    {
+      "address": 4599381,
+      "bytes": "bf209e8700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8887840,
+      "buffer": "triangles",
+      "function": 4597968,
+      "text": "mov edi, 0x879e20",
+      "rawOffset": 405078,
+      "relative": 0
+    },
+    {
+      "address": 4599500,
+      "bytes": "81ee209e8700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8887840,
+      "buffer": "triangles",
+      "function": 4597968,
+      "text": "sub esi, 0x879e20",
+      "rawOffset": 405198,
+      "relative": 0
+    },
+    {
+      "address": 4599668,
+      "bytes": "be209e8700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8887840,
+      "buffer": "triangles",
+      "function": 4597968,
+      "text": "mov esi, 0x879e20",
+      "rawOffset": 405365,
+      "relative": 0
+    },
+    {
+      "address": 4599768,
+      "bytes": "81ef209e8700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8887840,
+      "buffer": "triangles",
+      "function": 4597968,
+      "text": "sub edi, 0x879e20",
+      "rawOffset": 405466,
+      "relative": 0
+    }
+  ],
+  "preservedReferences": [
+    {
+      "address": 4596620,
+      "bytes": "8b3d18088700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8849432,
+      "buffer": "vertexCounter",
+      "function": 4596576,
+      "text": "mov edi, dword ptr [0x870818]",
+      "rawOffset": 402318
+    },
+    {
+      "address": 4596817,
+      "bytes": "d91c9d208e8700",
+      "operand": 3,
+      "operandSize": 4,
+      "value": 8883744,
+      "buffer": "depth",
+      "function": 4596576,
+      "text": "fstp dword ptr [ebx*4 + 0x878e20]",
+      "rawOffset": 402516
+    },
+    {
+      "address": 4597415,
+      "bytes": "d91c851c8e8700",
+      "operand": 3,
+      "operandSize": 4,
+      "value": 8883740,
+      "buffer": "depth",
+      "function": 4596576,
+      "text": "fstp dword ptr [eax*4 + 0x878e1c]",
+      "rawOffset": 403114
+    },
+    {
+      "address": 4597481,
+      "bytes": "8b3d18088700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8849432,
+      "buffer": "vertexCounter",
+      "function": 4596576,
+      "text": "mov edi, dword ptr [0x870818]",
+      "rawOffset": 403179
+    },
+    {
+      "address": 4597496,
+      "bytes": "893d18088700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8849432,
+      "buffer": "vertexCounter",
+      "function": 4596576,
+      "text": "mov dword ptr [0x870818], edi",
+      "rawOffset": 403194
+    },
+    {
+      "address": 4597556,
+      "bytes": "8b151c088700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8849436,
+      "buffer": "triangleCounter",
+      "function": 4596576,
+      "text": "mov edx, dword ptr [0x87081c]",
+      "rawOffset": 403254
+    },
+    {
+      "address": 4597643,
+      "bytes": "d904bd208e8700",
+      "operand": 3,
+      "operandSize": 4,
+      "value": 8883744,
+      "buffer": "depth",
+      "function": 4596576,
+      "text": "fld dword ptr [edi*4 + 0x878e20]",
+      "rawOffset": 403342
+    },
+    {
+      "address": 4597657,
+      "bytes": "d9049d208e8700",
+      "operand": 3,
+      "operandSize": 4,
+      "value": 8883744,
+      "buffer": "depth",
+      "function": 4596576,
+      "text": "fld dword ptr [ebx*4 + 0x878e20]",
+      "rawOffset": 403356
+    },
+    {
+      "address": 4597671,
+      "bytes": "d9048d208e8700",
+      "operand": 3,
+      "operandSize": 4,
+      "value": 8883744,
+      "buffer": "depth",
+      "function": 4596576,
+      "text": "fld dword ptr [ecx*4 + 0x878e20]",
+      "rawOffset": 403370
+    },
+    {
+      "address": 4597918,
+      "bytes": "a11c088700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8849436,
+      "buffer": "triangleCounter",
+      "function": 4596576,
+      "text": "mov eax, dword ptr [0x87081c]",
+      "rawOffset": 403615
+    },
+    {
+      "address": 4597932,
+      "bytes": "a31c088700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8849436,
+      "buffer": "triangleCounter",
+      "function": 4596576,
+      "text": "mov dword ptr [0x87081c], eax",
+      "rawOffset": 403629
+    },
+    {
+      "address": 4597947,
+      "bytes": "89151c088700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8849436,
+      "buffer": "triangleCounter",
+      "function": 4596576,
+      "text": "mov dword ptr [0x87081c], edx",
+      "rawOffset": 403645
+    },
+    {
+      "address": 4597975,
+      "bytes": "8b1d1c088700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8849436,
+      "buffer": "triangleCounter",
+      "function": 4597968,
+      "text": "mov ebx, dword ptr [0x87081c]",
+      "rawOffset": 403673
+    },
+    {
+      "address": 4598066,
+      "bytes": "8b3518088700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8849432,
+      "buffer": "vertexCounter",
+      "function": 4597968,
+      "text": "mov esi, dword ptr [0x870818]",
+      "rawOffset": 403764
+    },
+    {
+      "address": 4599198,
+      "bytes": "a118088700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8849432,
+      "buffer": "vertexCounter",
+      "function": 4597968,
+      "text": "mov eax, dword ptr [0x870818]",
+      "rawOffset": 404895
+    },
+    {
+      "address": 4599513,
+      "bytes": "a118088700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8849432,
+      "buffer": "vertexCounter",
+      "function": 4597968,
+      "text": "mov eax, dword ptr [0x870818]",
+      "rawOffset": 405210
+    },
+    {
+      "address": 4599781,
+      "bytes": "a118088700",
+      "operand": 1,
+      "operandSize": 4,
+      "value": 8849432,
+      "buffer": "vertexCounter",
+      "function": 4597968,
+      "text": "mov eax, dword ptr [0x870818]",
+      "rawOffset": 405478
+    },
+    {
+      "address": 4600220,
+      "bytes": "893518088700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8849432,
+      "buffer": "vertexCounter",
+      "function": 4599936,
+      "text": "mov dword ptr [0x870818], esi",
+      "rawOffset": 405918
+    },
+    {
+      "address": 4600226,
+      "bytes": "89351c088700",
+      "operand": 2,
+      "operandSize": 4,
+      "value": 8849436,
+      "buffer": "triangleCounter",
+      "function": 4599936,
+      "text": "mov dword ptr [0x87081c], esi",
+      "rawOffset": 405924
+    }
+  ],
+  "functions": [
+    {
+      "start": 4596576,
+      "end": 4597958,
+      "sha256": "89a76c68215221c268402633d7de2d1e3e0619cd70dfe1016dc38f4a8e7cc21f"
+    },
+    {
+      "start": 4597968,
+      "end": 4599871,
+      "sha256": "44a453889e99396c2e93306217eeab323f200ea1d637b72ce615530642100d39"
+    },
+    {
+      "start": 4599936,
+      "end": 4600330,
+      "sha256": "6129d9763ecae75305d03b1ccb576cb454fa98bf890880aaf3272046ab570d9a"
+    }
+  ],
+  "binaries": {
+    "sh3orig.exe": {
+      "sha256": "a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e",
+      "allSecondaryBytesMatch": true
+    },
+    "sh3.exe": {
+      "sha256": "a8f02d3aae868bbc50433f42aa552aa01e95be7381c706376bf38da05f6c84b9",
+      "allSecondaryBytesMatch": true
+    }
+  },
+  "requiredVertexAlignment": 16,
+  "requiredTriangleAlignment": 16,
+  "maximumAggregateVerticesFromUint16Indices": 65536,
+  "preservedPerMeshMorphedVertices": 682,
+  "gpuBuffersSizeDynamicallyFromSecondaryGeometry": true,
+  "runtimeVerified": false
+}

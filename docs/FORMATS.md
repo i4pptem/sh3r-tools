@@ -1,0 +1,30 @@
+# Format support
+
+Support below describes the implemented PC workflows. A file extension alone is not sufficient to identify every game resource; unsupported variants can still be exported/replaced as native bytes without a specialized editor.
+
+| Format / resource | Preview and export | Import / editing scope |
+| --- | --- | --- |
+| ARC catalog/subarchives | Asset tree, native export, converted archive/all-archive export | Stage native replacements; build separate archives with updated layout |
+| AFS, nested demo AFS | Container browsing and embedded file detection | Native replacements and supported converted audio exchange |
+| PC MDL | Textured model, skin/skeleton, morphs; GLB and FBX | GLB edits with unchanged topology; new geometry and morph rebuilding against original rig; per-texture PNG replacement |
+| ANM | Skeletal playback, range selection, FBX range export | FBX motion back into the supported existing ANM range/layout; original skeleton retained |
+| Facial PACK tracks | Supported cutscene facial playback linked to selected model | Native morph targets can be rebuilt; this is not a general cutscene/PACK timeline authoring system |
+| KG1 / KG2 | Shadow-geometry inspection where recognized | Native exchange; these are not ordinary skeletal animation clips |
+| TEX, texture-bearing DAT/TBN2, PIC | Decoded texture preview, pan/zoom, PNG | Format-aware replacement; optional full-size mode for supported paths, not a guarantee for every container |
+| `fontdata_*.bin` | Normal/Small glyph atlas, PNG | Native font editing and 2×/4× coverage extensions; expanded fonts need the runtime uploader |
+| MES | Parsed message inspection and JSON | Validated message JSON reimport |
+| MAP | Textured geometry; whole-map or selected-part GLB | Multi-select transforms, gizmo/undo, texture/UV/material edits, supported visibility edits, part rebuilding with new topology; explicit Apply stages output |
+| CLD / CAM | Recognized collision/camera structure inspection | Native export/replacement; not a complete collision or camera-sequence authoring tool |
+| DED / SDB | Lighting and sound-region/control structure inspection | Native export/replacement; no complete event scripting editor |
+| SBD | No verified sample in the research installation | Native export/replacement only; do not assume SDB support applies to SBD |
+| ADX / WAV and recognized audio BIN | Audio preview, WAV exchange | Supported ADX/native audio replacement; `.bin` in demo archives may be audio rather than a font |
+| HD / BD sound banks | Bank/sample inspection and decoded audio | Supported sample replacement/repacking; preserve paired resources and bank constraints |
+| AIX | Audio stream inspection/preview and export | Supported audio replacement and native rebuilding |
+| PC movies (`data/movie`, including `.000`) | Decryption, playable preview and video export | Conversion to the native MPEG-1/MP2 program-stream workflow and re-encryption |
+| Unknown BIN / other files | File information, native export | Native byte replacement only |
+
+Media conversion uses optional FFmpeg; FBX and `.blend` workflows use optional Blender. Raw export does not require a converter. Batch converted export can only convert formats supported by the corresponding exporter; inspect its result/report for skipped or failed entries.
+
+**Models:** current rebuilding templates use 48-byte skinned vertices. New skeletons, unlimited bone influences and automatic expression matching between unrelated faces are outside this release. FBX model export and FBX ANM exchange are distinct features; use GLB or a morph workspace for MDL geometry replacement.
+
+**Maps:** movement edits supported mesh data, not arbitrary gameplay triggers, portals, scripts or collision. Changed topology and visibility still need testing in the game. See [Workflows](WORKFLOWS.md) and [Executable patches](EXECUTABLE-PATCHES.md).

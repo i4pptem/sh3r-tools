@@ -1,0 +1,35 @@
+{
+  "id": "sh3-primary-index32-v1",
+  "patches": [
+    {
+      "address": 4578161,
+      "expected": "6a656a0803d2",
+      "replacement": "e92e01000090"
+    },
+    {
+      "address": 4578468,
+      "expected": "909090909090909090909090",
+      "replacement": "6a666a08c1e202e9c7feffff"
+    },
+    {
+      "address": 4578346,
+      "expected": "8d9b00000000",
+      "replacement": "d164243c9090"
+    },
+    {
+      "address": 4578352,
+      "expected": "668b1c8f",
+      "replacement": "8b1c8f90"
+    },
+    {
+      "address": 4578360,
+      "expected": "6603da",
+      "replacement": "03da90"
+    },
+    {
+      "address": 4578363,
+      "expected": "66895c4d00",
+      "replacement": "895c8d0090"
+    }
+  ]
+}

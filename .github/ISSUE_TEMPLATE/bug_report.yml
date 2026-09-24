@@ -1,0 +1,24 @@
+name: Bug report
+description: Report a reproducible problem in Silent Hill 3 Tools
+body:
+  - type: markdown
+    attributes:
+      value: Do not attach game executables, archives or proprietary assets. Remove personal paths from logs.
+  - type: input
+    id: version
+    attributes:
+      label: Tool version and Windows version
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps, expected result and actual result
+      description: Include the virtual asset path and whether the problem appears in preview or in the game.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Errors and relevant setup
+      description: Exact error, Blender version, external game fixes, input/output hashes or screenshots. Use a synthetic sample where possible.

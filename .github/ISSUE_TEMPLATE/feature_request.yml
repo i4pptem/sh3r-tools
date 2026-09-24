@@ -1,0 +1,15 @@
+name: Feature request
+description: Suggest an asset workflow or improvement
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What are you trying to do?
+      description: Describe the current limitation, asset format and desired workflow.
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References or examples
+      description: Link relevant public research. Do not upload game assets.
