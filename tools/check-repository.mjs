@@ -24,5 +24,8 @@ for (const relative of files) {
 const profile = JSON.parse(fs.readFileSync(path.join(root, 'core/font-runtime-profile.json'), 'utf8'));
 const hash = createHash('sha256').update(fs.readFileSync(path.join(root, 'tools/native/font-upload.c'))).digest('hex');
 if (hash !== profile.sourceSha256) errors.push('Font uploader source does not match its committed profile source hash.');
+const characterProfile = JSON.parse(fs.readFileSync(path.join(root, 'core/character-runtime-profile.json'), 'utf8'));
+const characterHash = createHash('sha256').update(fs.readFileSync(path.join(root, 'tools/native/character-arena.py'))).digest('hex');
+if (characterHash !== characterProfile.sourceSha256) errors.push('Character arena source does not match its patch profile.');
 if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
-else console.log(`Repository check passed: ${files.length} public files; links, source types and font source hash verified.`);
+else console.log(`Repository check passed: ${files.length} public files; links, source types and native source hashes verified.`);

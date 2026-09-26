@@ -1,0 +1,77 @@
+{
+  "id": "sh3-character-startup-layout-v1",
+  "blockBytes": 8192,
+  "stockArenaBytes": 41943040,
+  "stockArenaBase": 12637440,
+  "stockLeadingAlignmentBytes": 2816,
+  "expandedArenaBytes": 134217728,
+  "reservedCacheBytes": 41943040,
+  "maxExpandedStartupBytes": 92274688,
+  "groups": [
+    {
+      "id": "playerModels",
+      "operation": "max",
+      "nativeTable": 7411474,
+      "names": [
+        "data/pcchr/pl/chhaa.mdl",
+        "data/pcchr/pl/chhbb.mdl",
+        "data/pcchr/pl/chhdd.mdl",
+        "data/pcchr/pl/chhcc.mdl",
+        "data/pcchr/pl/chhww.mdl",
+        "data/pcchr/pl/chhss.mdl",
+        "data/pcchr/pl/chhrr.mdl",
+        "data/pcchr/pl/chhyy.mdl",
+        "data/pcchr/pl/chhtt.mdl",
+        "data/pcchr/pl/chhzz.mdl",
+        "data/pcchr/pl/chhvv.mdl",
+        "data/pcchr/pl/chhxx.mdl",
+        "data/pcchr/pl/chhuu.mdl",
+        "data/pcchr/pl/chfuda.mdl"
+      ]
+    },
+    {
+      "id": "playerAnimations",
+      "operation": "max",
+      "nativeTable": 7411704,
+      "names": [
+        "data/chr/pl/chhaa_basic1_none.anm",
+        "data/chr/pl/chhaa_basic1_knif.anm",
+        "data/chr/pl/chhaa_basic3_pipe.anm",
+        "data/chr/pl/chhaa_basic3_hamm.anm",
+        "data/chr/pl/chhaa_basic1_blad.anm",
+        "data/chr/pl/chhaa_basic1_sabe.anm",
+        "data/chr/pl/chhaa_basic2_flam.anm",
+        "data/chr/pl/chhaa_basic1_stun.anm",
+        "data/chr/pl/chhaa_basic1_hand.anm",
+        "data/chr/pl/chhaa_basic2_shot.anm",
+        "data/chr/pl/chhaa_basic2_mach.anm",
+        "data/chr/pl/htr_gameover_none.anm",
+        "data/chr/pl/htr_gameover_pipe.anm",
+        "data/chr/pl/htr_gameover_hamm.anm",
+        "data/chr/pl/htr_gameover_blad.anm",
+        "data/chr/pl/htr_gameover_mach.anm",
+        "data/chr/pl/htr_gameover_shot.anm"
+      ]
+    },
+    {
+      "id": "playerShadows",
+      "operation": "max",
+      "nativeTable": 7411476,
+      "names": [
+        "data/chr/pl/pl_htr_alh.kg1",
+        "data/chr/pl/chhdd.kg1",
+        "data/chr/pl/chhcc.kg1"
+      ]
+    },
+    {
+      "id": "jerkyModel",
+      "operation": "single",
+      "nativePointer": 7409396,
+      "names": [
+        "data/pcchr/it/it_jerky.mdl"
+      ]
+    }
+  ],
+  "formula": "startupBytes=sum(alignUp(max(group file sizes),8192)); stockFreeBlocks=floor((41943040-2816-startupBytes)/8192); expandedFreeBlocks=min(5120,floor((134217728-startupBytes)/8192))",
+  "missingSizes": "Require all listed sizes from the selected data catalog, using staged replacements when present; do not substitute stock defaults for missing groups."
+}

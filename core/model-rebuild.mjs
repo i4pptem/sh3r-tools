@@ -16,12 +16,20 @@ function primitives(doc) {
 }
 
 export function replacementInfo(buffer, glb) {
-  const model = parseModel(modelTemplate(buffer)), {doc, accessor} = readGlb(glb); validateRig(model, doc, accessor, true);
+  const templateData = modelTemplate(buffer), model = parseModel(templateData), {doc, accessor} = readGlb(glb), jointMap = validateRig(model, doc, accessor, true);
   const inputs = primitives(doc);
   requireThat(inputs.length > 0 && inputs.length <= 4096, 'GLB has no supported mesh primitives.');
-  return {sourceHash: model.sourceHash, limits: LIMITS, stockMorphNodes: STOCK_MORPH_NODES,
-    templates: model.meshes.map(m => ({name: m.name, texture: m.texture, group: m.group})),
+  const inputBones = input => {
+    const weights = accessor(input.primitive.attributes.WEIGHTS_0);
+    return [...new Set(accessor(input.primitive.attributes.JOINTS_0).filter((_, i) => weights[i] > 0).map(joint => jointMap[joint]))];
+  };
+  const boneVariants = model.bones.map(() => new Set());
+  for (const mesh of model.meshes) for (let i = 0; i < mesh.joints.length; i++) if (mesh.weights[i] > 0) boneVariants[mesh.joints[i]].add(templateData[mesh.layout.offset + 0x52]);
+  return {sourceHash: model.sourceHash, limits: LIMITS, stockMorphNodes: STOCK_MORPH_NODES, boneVariants: boneVariants.map(set => [...set]), textureSlots: [...new Set(model.meshes.map(mesh => mesh.texture))].sort((a,b) => a-b),
+    templates: model.meshes.map(m => ({name: m.name, texture: m.texture, group: m.group, visibility: templateData[m.layout.offset + 0x52]})),
     inputs: inputs.map((input, index) => ({index, name: input.name, targets: input.targets,
+      bones: inputBones(input),
+      image: doc.images?.[doc.textures?.[doc.materials?.[input.primitive.material]?.pbrMetallicRoughness?.baseColorTexture?.index]?.source]?.name || null,
       vertexCount: doc.accessors[input.primitive.attributes.POSITION]?.count || 0,
       template: model.meshes.findIndex(m => m.name === (input.mesh.extras?.sh3Template || input.name.replace(/_part_\d+$/, '')))})),
     morphs: model.morphNames, targetNames: [...new Set(inputs.flatMap(p => p.targets))]};
@@ -190,7 +198,7 @@ function encodeVertices(geometry, chunk, model, pool) {
   return {vertexData, refs, palette};
 }
 
-function buildMesh(buffer, template, geometry, chunk, model, pool, pairs) {
+function buildMesh(buffer, template, geometry, chunk, model, pool, pairs, materialReference) {
   requireThat(chunk.vertices.length <= 65535, 'A mesh partition exceeds the native morph-reference vertex range.');
   const {vertexData, refs, palette} = encodeVertices(geometry, chunk, model, pool);
   const primary = palette.filter(key => key.startsWith('b:')).map(key => Number(key.slice(2)));
@@ -213,7 +221,7 @@ function buildMesh(buffer, template, geometry, chunk, model, pool, pairs) {
   refs.forEach((ref, i) => ref.forEach((value, k) => result.writeUInt16LE(value, referenceOffset + i * 6 + k * 2)));
   primary.forEach((bone, i) => result.writeUInt16LE(bone, boneOffset + i * 2));
   pairMap.forEach((pair, i) => result.writeUInt16LE(pair, pairOffset + i * 2));
-  result.writeUInt16LE(buffer.readUInt16LE(source + buffer.readUInt32LE(source + 56)), materialOffset);
+  result.writeUInt16LE(materialReference, materialOffset);
   vertexData.copy(result, vertexOffset); indices.forEach((value, i) => result.writeUInt32LE(value, indexOffset + i * 4));
   return result;
 }
@@ -232,17 +240,29 @@ export function rebuildModel(buffer, glb, selection) {
   const textureStart = buffer.readUInt32LE(12);
   requireThat(textureStart === buffer.readUInt32LE(16) && textureStart >= h.base + 112 && textureStart <= buffer.length, 'Unsupported MDL texture-block layout.');
   const pool = new MorphPool(h.morphCount), pairs = [], groups = [[], []], identities = [[], []], partCounts = new Map();
-  for (const choice of [...selection.meshes].sort((a, b) => a.template - b.template || a.input - b.input)) {
+  const textureFor = choice => choice.texture ?? model.meshes[choice.template]?.texture;
+  for (const choice of [...selection.meshes].sort((a, b) => textureFor(a) - textureFor(b) || a.template - b.template || a.input - b.input)) {
     const input = inputs[choice.input], template = model.meshes[choice.template];
     requireThat(input && template, 'Choose a valid native mesh/material template for each part.');
     requireThat(template.layout.stride === 48, 'Choose a skinned (48-byte) mesh template. Rigid mesh conversion has not been validated.');
+    let materialReference = buffer.readUInt16LE(template.layout.offset + buffer.readUInt32LE(template.layout.offset + 56));
+    if (choice.texture !== undefined && choice.texture !== template.texture) {
+      requireThat(Number.isInteger(choice.texture) && choice.texture >= 0, 'Choose a valid texture slot.');
+      materialReference = Array.from({length: h.materialCount}, (_, i) => i).find(i => buffer.readUInt32LE(h.materialOffset + i * 8) === choice.texture);
+      requireThat(materialReference !== undefined, 'The selected texture has no native material binding.');
+    }
+    requireThat(materialReference < 32768, 'Material binding exceeds the native signed index range.');
     const geometry = readGeometry(input, doc, accessor, jointMap, selection.morphs, hierarchy);
     geometry.influences = orderInfluences(buffer, template, h, geometry.influences);
     for (const chunk of splitGeometry(geometry, template.group === 1 ? 682 : 65535)) {
       const part = partCounts.get(template.name) || 0; partCounts.set(template.name, part + 1);
       identities[template.group].push({name: template.name + (part ? '_part_' + part : ''), template: template.name});
-      groups[template.group].push(buildMesh(buffer, template, geometry, chunk, model, pool, pairs));
+      groups[template.group].push(buildMesh(buffer, template, geometry, chunk, model, pool, pairs, materialReference));
     }
+  }
+  for (const group of [0, 1]) {
+    const textures = new Set(selection.meshes.filter(choice => model.meshes[choice.template]?.group === group).map(textureFor));
+    requireThat(textures.size <= (group === 0 ? 5 : 1), group === 0 ? 'Primary parts exceed the five native texture runs.' : 'Transparent parts must share one native texture slot.');
   }
   const parts = [Buffer.from(buffer.subarray(0, textureStart))]; let offset = textureStart;
   const append = bytes => {const padding = align(offset, 16) - offset; if (padding) {parts.push(Buffer.alloc(padding)); offset += padding;} const start = offset; parts.push(bytes); offset += bytes.length; return start;};

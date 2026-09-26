@@ -4,7 +4,7 @@ Build mod can generate an extended **32-bit Silent Hill 3 PC executable** from a
 
 ## When an executable is included
 
-Requirements are calculated from **staged replacements**, not every asset in the installed game and not preview sliders. With no staged requirement, Build mod emits no executable at all. An executable already installed in your game stays as it is; reverting a staged asset does not uninstall a previous patch.
+Requirements are triggered by **staged replacements**, not preview sliders. Character-file memory additionally uses the effective sizes in the complete game data catalog, including staged changes. With no staged requirement, Build mod emits no executable at all. An executable already installed in your game stays as it is; reverting a staged asset does not uninstall a previous patch.
 
 | Patch | Required when | Result |
 | --- | --- | --- |
@@ -12,6 +12,7 @@ Requirements are calculated from **staged replacements**, not every asset in the
 | Primary INDEX32 | Primary group has more than 65,536 vertices | GPU index allocation, offsets and upload use 32-bit indices; six code patches. Serialized MDL indices are unchanged |
 | Secondary mesh buffers | Secondary group has more than 1,024 vertices or 2,048 triangles | Storage for 65,536 vertices and 131,072 triangles; the native index representation stays 16-bit |
 | Picture streaming | A recognized TEX replacement under `data/pic` is larger than `0x14C800` bytes (1,361,920 bytes) | Five 16 MiB slots, 80 MiB in total, with bounded slot assignment; seven patch spans, 67 modified code bytes |
+| Character file storage | Changed character files leave insufficient space in the stock 40 MiB file arena | Separate 128 MiB storage, preserving up to 40 MiB of character cache; three checked code redirects |
 | High-resolution fonts | A staged `fontdata_*.bin` contains a 2× or 4× font extension | An extended glyph uploader and a 2048×2048 glyph cache, retaining original logical text size and spacing |
 
 These are separate constraints. A large face can need morph scratch; subdivided hair can additionally need secondary storage; a model with many primary vertices can need INDEX32. The builder combines the required extensions.
@@ -27,6 +28,16 @@ Remaining format limits include three nonzero influences per vertex, sixteen pal
 ### Pictures
 
 Full-size import is an **optional texture workflow**. The picture patch covers the identified `data/pic` loading path; it is not a general replacement for every texture allocator in the game. Other texture containers still have their own layout, palette, mip and hardware constraints. A successful import or preview is not a universal compatibility guarantee.
+
+### Character files and embedded textures
+
+This is independent of the picture patch and the GPU texture-size limit. Three 2048×2048 BGRA textures occupy 48 MiB before geometry. The native startup allocator uses a 40 MiB shared character arena; an oversized player model can underflow its cache count and crash before the main window appears.
+
+Build mod calculates the largest player model, animation, shadow and jerky slots from the complete catalog, aligned to 8192 bytes. It includes the character patch when those reservations overflow stock storage or the remaining cache cannot fit a cataloged character asset. Open the complete data folder for these checks. This accounting does not predict every scene's simultaneous resource use.
+
+The patch adds executable code in RX section `.sh3char` and zero-initialized storage in RW section `.sh3cbuf`. It redirects only the initialized character segment's base/size getters. Other segments, the original 96 MiB shared pool and its guards stay intact. The cache count is bounded to 5120 blocks, matching the original occupancy array. Startup reservations must fit 88 MiB; an individual cached character asset must fit 40 MiB.
+
+The reproducible profile generator is [character-arena.py](../tools/native/character-arena.py). Separate code and data sections preserve page permissions. The native cache remains finite; the extension does not make arbitrary texture counts, dimensions or hardware formats safe.
 
 ### Fonts
 
@@ -47,7 +58,7 @@ a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e
 
 These hashes identify supported bytes; they are not a claim that every release from a particular region or distributor works. Unknown executables are rejected. Do not bypass the hash check by changing the allowlist.
 
-For an executable already patched by a recognized version of this tool, validation reverses the **exact known extensions in memory**, then authenticates the recovered base and verifies the expected bytes/section structure. Recognized existing morph, primary, secondary, picture and font extensions are retained while adding new requirements. Patch generation is designed to be idempotent.
+For an executable already patched by a recognized version of this tool, validation reverses the **exact known extensions in memory**, then authenticates the recovered base and verifies the expected bytes/section structure. Recognized existing morph, primary, secondary, picture, font and character extensions are retained while adding new requirements. Patch generation is designed to be idempotent.
 
 This recognition does not cover arbitrary executable modifications. External fixes installed as DLLs or configuration files are separate; their presence is not evidence that any EXE layout is supported.
 

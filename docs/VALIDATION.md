@@ -1,10 +1,10 @@
-# Validation for 0.8.0
+# Validation for 0.8.1
 
 Validation combines synthetic regression tests, local real-asset checks, exchange comparisons and selected user-confirmed game tests. Private game assets and development trace dumps are not redistributed. The source test suite is self-contained.
 
 ## Automated source checks
 
-The Node suite contains **162 tests** covering archive writes, native layouts, texture and font exchange, messages, model/morph rebuilding, map operations, animation channels, project behavior and runtime patch composition/authentication. The extracted native-layout validator lives under `tests/helpers`, so tests no longer depend on a private research directory. The production UI bundle is built with esbuild.
+The Node suite contains **170 tests** covering archive writes, native layouts, texture and font exchange, messages, model/morph rebuilding, map operations, animation channels, project behavior and runtime patch composition/authentication. The extracted native-layout validator lives under `tests/helpers`, so tests no longer depend on a private research directory. The production UI bundle is built with esbuild.
 
 ## Asset and exchange coverage
 
@@ -23,9 +23,9 @@ The measured position/deformation errors are below half the native 1/16 position
 
 ## UI and game checks
 
-Packaged UI checks covered model GLB/FBX export, GLB edit/revert, topology import controls, animation/morph playback, compact/focus layouts, panel persistence, map group movement/undo and high-resolution font build output. Picture patch validation included 725 native emulator checks. Model buffer and font uploader paths were also exercised with native emulation and patch-composition checks.
+Packaged UI checks covered model GLB/FBX export, GLB edit/revert, topology import controls, animation/morph playback, compact/focus layouts, panel persistence, map group movement/undo and high-resolution font build output. Picture patch validation included 725 native emulator checks. Model buffer and font uploader paths were also exercised with native emulation and patch-composition checks. The 0.8.1 character arena patch was checked across 32 combinations with previous extensions; a generated Windows PE launched against the oversized test model. The packaged replacement dialog was exercised with the affected GLB, including independent texture selection and bone warnings.
 
-The user confirmed in-game behavior for the tested subdivided Heather geometry, facial cutscenes after secondary/morph expansion, removal of large-model index distortions with INDEX32, nonstandard-size menu pictures and the new 4× Normal font uploader. This is selected game validation, not a guarantee for arbitrary replacement assets.
+The user also confirmed that corrected gameplay/cutscene model variants removed stretched geometry and preserved the original pose morphs with an enlarged character model. The updated atlas for retained original hair still needs an in-game check. The user confirmed in-game behavior for the tested subdivided Heather geometry, facial cutscenes after secondary/morph expansion, removal of large-model index distortions with INDEX32, nonstandard-size menu pictures and the new 4× Normal font uploader. This is selected game validation, not a guarantee for arbitrary replacement assets.
 
 The publication build additionally runs tests and UI compilation from the standalone source folder, verifies the portable ZIP contents, and checks launch/export behavior from the extracted archive. Release build records are kept outside the public source tree.
 

@@ -158,3 +158,22 @@ test('primary INDEX32 requirement counts the whole group, independently of morph
     assert.equal(report.requiresSecondaryPatch,false);
   }
 });
+
+
+test('texture assignment changes the material binding while preserving template render flags',()=>{
+  const source=fixture(),h=modelLayout(source);source.writeUInt32LE(2,h.base+56);source.writeUInt32LE(1,h.materialOffset+8);
+  const model=parseModel(source),selection=select(model);selection.meshes[0].texture=1;
+  const rebuilt=rebuildModel(source,exportGlb(model),selection).data,mesh=parseModel(rebuilt).meshes[0];
+  assert.equal(mesh.texture,1);
+  assert.deepEqual(rebuilt.subarray(mesh.layout.offset+80,mesh.layout.offset+160),source.subarray(model.meshes[0].layout.offset+80,model.meshes[0].layout.offset+160));
+  selection.meshes[0].texture=99;assert.throws(()=>rebuildModel(source,exportGlb(model),selection),/no native material binding/);
+});
+
+
+test('interleaved texture choices are grouped into bounded native runs',()=>{
+  const source=fixture(),h=modelLayout(source);source.writeUInt32LE(2,h.base+56);source.writeUInt32LE(1,h.materialOffset+8);
+  const model=parseModel(source);model.meshes=Array.from({length:6},(_,i)=>({...model.meshes[0],name:'Replacement_'+i}));
+  const selection={meshes:model.meshes.map((_,input)=>({input,template:0,texture:input%2})),morphs:model.morphNames};
+  const rebuilt=parseModel(rebuildModel(source,exportGlb(model),selection).data);
+  assert.deepEqual(rebuilt.meshes.map(m=>m.texture),[0,0,0,1,1,1]);assert.equal(rebuilt.triangleCount,6);
+});

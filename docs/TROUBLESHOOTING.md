@@ -43,3 +43,16 @@ Compare its hash with [the supported layouts](EXECUTABLE-PATCHES.md). Unknown by
 ## Reporting an issue
 
 Include the tool version, action, virtual asset path, dimensions/counts where relevant, exact error and whether it fails in preview or in the game. Mention external fixes and the build-report hashes. Remove personal filesystem paths from reports. Do not upload game executables, full archives or proprietary extracted assets to a public issue; a small synthetic reproduction is preferable.
+
+
+## Replaced character stretches in the game but previews correctly
+
+Original part templates carry visibility and rendering settings as well as texture assignments. Heather has separate gameplay, cutscene and equipment hand/head/hair variants. Some detailed bones are not updated in gameplay. Transferring weights from those bones to an always-visible part exposes stale transforms; a bind-pose fallback in the preview can hide the problem.
+
+The replacement dialog flags weights that cross the original model's visibility variants. Keep detailed weights on their detailed variants, and author compatible gameplay variants using active ancestors. Re-encode positions from model space when changing weights; changing native index bytes alone is incorrect. Keep the required hair and weapon-hand variants. Copying one hand shape across equipment variants does not create the correct grip for every weapon.
+
+Texture images embedded in GLB are not imported automatically. Choose the intended native texture slot independently of the visibility template, then import each PNG into that slot. Primary parts are grouped by texture to fit the native run table. Original morph meshes still need matching UVs and images when retained alongside replacement geometry.
+
+## The game exits before its window appears after high-resolution model textures
+
+Embedded textures enlarge the entire MDL. This can exceed the character file arena even when each image is a valid GPU texture. Use the complete data folder and rebuild with a version supporting the character arena patch; install the generated executable and archives together. See [Executable patches](EXECUTABLE-PATCHES.md). The picture/menu patch alone does not cover this allocator.

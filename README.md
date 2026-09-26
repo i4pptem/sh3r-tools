@@ -32,7 +32,7 @@ The preview workspace has collapsible Asset library and Inspector panels, a focu
 
 ## Get started
 
-1. Download `Silent-Hill-3-Tools-0.8.0-win-x64.zip` from [Releases](https://github.com/i4pptem/sh3r-tools/releases) and extract the **entire folder**.
+1. Download `Silent-Hill-3-Tools-0.8.1-win-x64.zip` from [Releases](https://github.com/i4pptem/sh3r-tools/releases) and extract the **entire folder**.
 2. Run **Silent Hill 3 Tools.exe**. No Node.js installation is needed.
 3. For movie/media conversion, run **Install media.cmd** once. It downloads the pinned FFmpeg build directly from its publisher and verifies its checksum. An internet connection is required for this step; normal asset processing is local.
 4. For FBX exchange and Blender morph workspaces, install **Blender 4.2 or newer**; version 5.2.2 was tested. Set `SH3TOOLS_BLENDER` to `blender.exe` if automatic detection does not find it.
@@ -50,6 +50,7 @@ Keep a clean copy of your game files. Install the generated files only after clo
 | Primary mesh GPU indices | More than 65,536 primary-group vertices |
 | Secondary mesh buffers | More than 1,024 vertices or 2,048 triangles in the secondary group |
 | Picture streaming buffer | A recognized TEX under `data/pic` exceeds `0x14C800` bytes |
+| Character file arena | Staged model/animation sizes exhaust the 40 MiB character arena or its cache |
 | High-resolution fonts | A font BIN contains a supported 2×/4× coverage extension |
 
 The source executable is authenticated and left untouched. A new executable is written into the mod output, and already recognized tool patches are preserved when composing it. The tool release contains **no game executable or game archives**.
@@ -58,7 +59,7 @@ The source executable is authenticated and left untouched. A new executable is w
 
 ## Current boundaries
 
-Version **0.8.0** is the first public preview. Native geometry/morph rebuilding, animation import, map rebuilding and expanded runtime buffers need testing with your own assets and scenes. Model replacement retains the original skeleton; unrelated facial expressions are not transferred automatically. The map tools edit supported geometry and texture structures, not the entire level scripting system. FBX model export does not imply direct FBX-to-MDL model replacement.
+Version **0.8.1** fixes the character-file memory overflow and improves model replacement checks. Native geometry/morph rebuilding, animation import, map rebuilding and expanded runtime buffers need testing with your own assets and scenes. Model replacement retains the original skeleton; unrelated facial expressions are not transferred automatically. The map tools edit supported geometry and texture structures, not the entire level scripting system. FBX model export does not imply direct FBX-to-MDL model replacement.
 
 [Supported formats](docs/FORMATS.md) · [Validation](docs/VALIDATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Roadmap](docs/ROADMAP.md)
 

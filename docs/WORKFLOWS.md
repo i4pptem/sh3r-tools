@@ -1,10 +1,10 @@
 # Workflows
 
-A local Windows workbench for Silent Hill 3 PC assets. English interface. Developed by **i4pptem**. Version 0.8.0 adds model FBX export and a redesigned, configurable preview workspace.
+A local Windows workbench for Silent Hill 3 PC assets. English interface. Developed by **i4pptem**. Version 0.8.1 adds character-file memory expansion and safer model texture and visibility mapping.
 
 ## Run
 
-Open **dist/0.8.0/Silent Hill 3 Tools-win32-x64/Silent Hill 3 Tools.exe**. Keep the executable with its surrounding files. The portable build includes Electron. Run Install media.cmd once for optional FFmpeg media conversion; no system codec or Node.js installation is needed. Morph workspace and FBX exchange additionally use an installed Blender 4.2+ (tested with 5.2.2). Set SH3TOOLS_BLENDER to its executable if automatic detection does not find it.
+Open **dist/0.8.1/Silent Hill 3 Tools-win32-x64/Silent Hill 3 Tools.exe**. Keep the executable with its surrounding files. The portable build includes Electron. Run Install media.cmd once for optional FFmpeg media conversion; no system codec or Node.js installation is needed. Morph workspace and FBX exchange additionally use an installed Blender 4.2+ (tested with 5.2.2). Set SH3TOOLS_BLENDER to its executable if automatic detection does not find it.
 
 Choose **Open data folder** and select the game's data directory. Selecting the game root or opening data/arc.arc also discovers the same complete workspace. Keep the catalog beside its archives.
 
@@ -36,8 +36,8 @@ The vector emblem, app/window icon and restrained charcoal/copper palette share 
 1. Select the original PC MDL and **Export GLB** to obtain its rig and named native morph slots.
 2. In a GLB-capable editor, bind the replacement mesh to that original rig. Preserve bone names and bind transforms, apply mesh object transforms, export triangles, and use at most three nonzero bone influences per vertex. New topology is supported; new skeletons are not.
 3. Author the replacement model's shape keys to match the meaning of each original morph. The tool does not infer facial correspondence or automatically transfer expressions between unrelated faces.
-4. In **Import model**, choose **New topology & morphs**, then **Import GLB…**. For every included part, select an original mesh/material template. Map every native morph slot to a new shape key, or explicitly select Neutral. Matching names are preselected.
-5. **Build & stage replacement** rebuilds native geometry, skin palettes, morph bases, deltas and vertex references. The original target order stays intact so existing facial tracks address the replacement shapes. Original textures are retained; replace them separately through PNG import.
+4. In **Import model**, choose **New topology & morphs**, then **Import GLB…**. For every included part, select an original visibility/render template and, when needed, a separate native texture slot. Review the bone-visibility warnings. Map every native morph slot to a new shape key, or explicitly select Neutral. Matching names are preselected.
+5. **Build & stage replacement** rebuilds native geometry, skin palettes, morph bases, deltas and vertex references. The original target order stays intact so existing facial tracks address the replacement shapes. Original texture images are retained; GLB images are not imported automatically. Replace intended native texture slots separately through PNG import.
 6. Inspect the result with its original ANM and cutscene morph clips. Save the project, then **Build mod** to produce separate game-format files.
 
 GLB export converts rounded native bone matrices to TRS-representable exchange matrices. Import matches bones by name and hierarchy, measures inverse-bind/rest-pose drift over the original and replacement geometry bounds, and accepts only drift below half a native position step (1/32 local unit) and half a native normal step (1/8192). The native skeleton is retained exactly. Identity armature wrapper nodes are accepted; transformed mesh coordinates and larger rig changes are rejected.
@@ -86,7 +86,7 @@ The installed game contains .sdb files; no .sbd sample was available to establis
 
 Select an MDL with **Keep model open**, then choose an ANM. Compatible motion starts automatically. **Open motion file…** accepts the cutscene AFS files under data/sound/demo_afs; amcm.afs includes Heather's facial performances. Native model IDs, skeletons and target counts filter compatibility. Arbitrary gameplay and facial clips are not automatically synchronized to a matching scene. Preview FPS is adjustable because ANM does not contain the playback rate.
 
-**Save project** stores staged payloads and source hashes in a new .sh3project. Original archives/movies remain referenced. **Build mod** creates a new SH3-Build timestamped folder with changed archives or movies and a verified integrity manifest. Models or pictures requiring expanded storage include sh3.exe and runtime-buffers.json at the build root. The output folder opens after a successful build. Existing compatible morph, primary-index, transparent-mesh, font and picture patches are preserved and composed on later builds. It does not install into the game. Original files and existing exports are preserved. Test built assets in a separate game copy before deployment; file integrity is not an in-game behavior guarantee.
+**Save project** stores staged payloads and source hashes in a new .sh3project. Original archives/movies remain referenced. **Build mod** creates a new SH3-Build timestamped folder with changed archives or movies and a verified integrity manifest. Models or pictures requiring expanded storage include sh3.exe and runtime-buffers.json at the build root. The output folder opens after a successful build. Existing compatible morph, primary-index, transparent-mesh, font, picture and character-file patches are preserved and composed on later builds. It does not install into the game. Original files and existing exports are preserved. Test built assets in a separate game copy before deployment; file integrity is not an in-game behavior guarantee.
 
 ## Validation and remaining work
 

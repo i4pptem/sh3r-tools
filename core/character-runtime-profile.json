@@ -1,0 +1,50 @@
+{
+  "id": "sh3-character-arena-128m-v1",
+  "imageBase": 4194304,
+  "descriptor": 7476588,
+  "arenaBytes": 134217728,
+  "arenaAlignment": 8192,
+  "maxCacheBlocks": 5120,
+  "base": 268435456,
+  "arena": 268443648,
+  "code": "3d6c1572000f8516000000837808000f840c000000b80020001033d2e9d4605ff08b400833d2e9ca605ff081f96c1572000f8515000000837908000f840b0000008b5108b80000000885d2c38b510833c0e9bf605ff085c00f890200000033c0c1e80d3d001400000f8605000000b8001400006a08e900d359f0",
+  "arenaPointerRelocations": [
+    22
+  ],
+  "externalRelativeBranches": [
+    29,
+    39,
+    82,
+    118
+  ],
+  "entries": {
+    "base": 0,
+    "base_original": 33,
+    "size": 43,
+    "size_original": 76,
+    "blocks": 86,
+    "blocks_nonnegative": 96,
+    "blocks_ready": 115
+  },
+  "patches": [
+    {
+      "address": 6250736,
+      "expected": "8b400833d2",
+      "replacement": "e90b9fa00f",
+      "entry": 0
+    },
+    {
+      "address": 6250768,
+      "expected": "8b510833c0",
+      "replacement": "e9169fa00f",
+      "entry": 43
+    },
+    {
+      "address": 5886837,
+      "expected": "c1e80d6a08",
+      "replacement": "e9dc2ca60f",
+      "entry": 86
+    }
+  ],
+  "sourceSha256": "0ea34a15b7c7cee932499332d09d64a23f56ff6292151f1a356d243544eb1bee"
+}

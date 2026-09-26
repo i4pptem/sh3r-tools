@@ -1,3 +1,4 @@
+import {characterRequirements, isCharacterAsset} from './character-requirements.mjs';
 import {animationExchange,replaceAnimation} from './animation-exchange.mjs';
 import {blenderExchange} from './blender-bridge.mjs';
 import {exportMapPart, importMapPart} from './map-part.mjs';
@@ -348,9 +349,16 @@ export class Workbench {
     const requiresFontPatch = fontScale > 1;
     const requiresPrimaryIndexPatch = primaryVertices > PRIMARY_LIMITS.stockVertices;
     const requiresMorphPatch = morphNodes > STOCK_MORPH_NODES, requiresSecondaryPatch = secondaryVertices > 1024 || secondaryTriangles > 2048, requiresPicturePatch = pictureBytes > PICTURE_LIMITS.stockBytes;
+    let character = {requiresCharacterPatch: false};
+    if ([...this.changes.keys()].some(key => isCharacterAsset(this.get(key).entry.name))) {
+      const workspace = this.dataRoot || !this.catalogPath ? this : openWorkspace(this.catalogPath);
+      const staged = new Map([...this.changes].map(([key, change]) => [this.get(key).entry.name.toLowerCase(), change.data.length]));
+      const entries = workspace.archives.flatMap(archive => archive.entries.map(entry => ({name: entry.name, size: staged.get(entry.name.toLowerCase()) ?? entry.size})));
+      character = characterRequirements(entries);
+    }
     const executable = this.dataRoot ? path.join(path.dirname(this.dataRoot), 'sh3.exe') : null;
-    return {fontScale, requiresFontPatch, morphNodes, primaryVertices, requiresPrimaryIndexPatch, secondaryVertices, secondaryTriangles, pictureBytes, requiresMorphPatch, requiresSecondaryPatch, requiresPicturePatch,
-      requiresRuntimePatch: requiresFontPatch || requiresPrimaryIndexPatch || requiresMorphPatch || requiresSecondaryPatch || requiresPicturePatch, executable: executable && fs.existsSync(executable) ? executable : null};
+    return {...character, fontScale, requiresFontPatch, morphNodes, primaryVertices, requiresPrimaryIndexPatch, secondaryVertices, secondaryTriangles, pictureBytes, requiresMorphPatch, requiresSecondaryPatch, requiresPicturePatch,
+      requiresRuntimePatch: character.requiresCharacterPatch || requiresFontPatch || requiresPrimaryIndexPatch || requiresMorphPatch || requiresSecondaryPatch || requiresPicturePatch, executable: executable && fs.existsSync(executable) ? executable : null};
   }
   build(folder, gameExecutable) {
     requireThat(this.changes.size, 'No replacements are staged.');

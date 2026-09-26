@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1 — 2026-09-26
+
+- Fixed startup crashes from oversized character MDLs by calculating the complete character-file memory budget and conditionally expanding its arena from 40 MiB to 128 MiB.
+- Added visibility/bone compatibility warnings and separate texture-slot selection for model parts so replacement materials can follow the GLB while preserving native gameplay/cutscene templates.
+- Grouped rebuilt primary parts by texture to fit the native render-info table and preserve draw bindings.
+
+
 ## 0.8.0 — 2026-09-24
 
 First public preview, bringing the existing asset workflows into a standalone repository.
