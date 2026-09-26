@@ -90,7 +90,7 @@ def make_profile():
 
 if __name__ == '__main__':
     generated = make_profile()
-    generated['sourceSha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    generated['sourceSha256'] = hashlib.sha256(Path(__file__).read_bytes().replace(b'\r\n', b'\n').replace(b'\r', b'\n')).hexdigest()
     if '--check' in sys.argv:
         stored = json.loads((Path(__file__).resolve().parents[2] / 'core/character-runtime-profile.json').read_text())
         if generated != stored:
