@@ -70,6 +70,17 @@ async function operation(action, args) {
     return file ? call('modelTemplates',args.key,args.token,file) : null;
   }
   if (action === 'editMap') return remember(await call('editMap', args.key, args.hash, args.edits));
+  if (action === 'textureCatalog') return call('textureCatalog', !!args.force);
+  if (action === 'textureThumbnails') return call('textureThumbnails', args.ids);
+  if (action === 'texturePreview') return call('texturePreview', args.id);
+  if (action === 'replaceLibraryTexture') {
+    const file = await pickFile([{name: 'Replacement texture', extensions: ['png']}]);
+    return file ? remember(await call('replaceLibraryTexture', args.id, args.hash, file, args.mode)) : null;
+  }
+  if (action === 'exportLibraryTexture') {
+    const file = await chooseNewFile(path.basename(args.name || 'Texture') + '.png', ['png']);
+    return file ? call('exportLibraryTexture', args.id, args.hash, file) : null;
+  }
   if (action === 'replaceMapTexture') {
     const file = await pickFile([{name:'Map material image',extensions:['png']}]);
     return file ? remember(await call('replaceMapTexture',args.key,args.hash,args.textureIndex,file)) : null;
@@ -137,8 +148,8 @@ async function operation(action, args) {
 }
 async function execute(event, action, args) {
   validateSender(event);
-  if (busy && !['preview', 'snapshot', 'bootstrap', 'motionList', 'motionClip', 'mapDraftCount'].includes(action)) throw new Error('Wait for the current operation.');
-  const exclusive = !['preview', 'snapshot', 'bootstrap', 'motionList', 'motionClip', 'mapDraftCount'].includes(action);
+  if (busy && !['preview', 'snapshot', 'bootstrap', 'motionList', 'motionClip', 'mapDraftCount', 'texturePreview', 'textureThumbnails'].includes(action)) throw new Error('Wait for the current operation.');
+  const exclusive = !['preview', 'snapshot', 'bootstrap', 'motionList', 'motionClip', 'mapDraftCount', 'texturePreview', 'textureThumbnails'].includes(action);
   if (exclusive) busy = true;
   try { return await operation(action, args); }
   finally {if (exclusive) busy = false;}

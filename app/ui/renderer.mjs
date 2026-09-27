@@ -1,3 +1,4 @@
+import {textureInspector} from './texture-inspector.mjs';
 import {MapDrafts} from './map-drafts.mjs';
 import {mapEditor} from './map-editor.mjs';
 import {ImageViewport} from './image-viewport.mjs';
@@ -16,12 +17,14 @@ const sectionTitles = {assets: 'All archives', movie: 'All movies', pic: 'All pi
 const layout = workspaceLayout();
 const motion = motionControls(state, notify, run);
 const imageViewport = new ImageViewport($('#image-preview'), scale => {$('#image-zoom').textContent = Math.round(scale * 100) + '%';});
+const textureBrowser = textureInspector(state, run, notify, key => {page('library'); selectAsset(key);});
 const icons = {world: '▦', video: '▶', model: '◇', texture: '▧', audio: '♫', animation: '⌁', text: '≡', binary: '▤'};
 const basename = file => file.replaceAll('\\', '/').split('/').pop();
 const pretty = value => value >= 1024 ** 3 ? `${(value / 1024 ** 3).toFixed(2)} GB` : value >= 1024 ** 2 ? `${(value / 1024 ** 2).toFixed(1)} MB` : value >= 1024 ? `${(value / 1024).toFixed(1)} KB` : `${value} B`;
 function el(tag, className, text) {const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node;}
 function button(text, handler, className = '') {const node = el('button', className, text); node.onclick = handler; return node;}
 function refreshButtons() {
+  textureBrowser.setBusy(state.busy);
   $$('[data-action], [data-section], #inspector button, .archive-menu button, .archive-more').forEach(button => {button.disabled = state.busy || button.dataset.unavailable === 'true';});
   $$('#inspector input, #inspector select').forEach(input => {input.disabled = state.busy || input.dataset.unavailable === 'true';});
   $$('.requires-library').forEach(b => {b.disabled = state.busy || !state.library;});
@@ -46,7 +49,7 @@ async function run(action, args = {}, label = 'Working…') {
     if (result?.folderWarning) notify('Build saved, but the folder could not be opened: ' + result.folderWarning);
     return result;
   } catch (error) {notify(error.message.replace(/^Error invoking remote method '[^']+': Error: /, ''));}
-  finally {state.busy = false; state.viewport?.setEditingEnabled?.(true); $('#status').textContent = 'Ready'; $('#progress').classList.add('hidden'); refreshButtons();}
+  finally {state.busy = false; state.viewport?.setEditingEnabled?.(true); $('#status').textContent = 'Ready'; $('#progress').classList.add('hidden'); refreshButtons(); textureBrowser.refreshIfVisible();}
 }
 function filteredEntries() {
   const q = state.query.toLowerCase();
@@ -54,8 +57,9 @@ function filteredEntries() {
 }
 function page(name) {
   state.page = name; $$('.nav').forEach(b => b.classList.toggle('active', b.dataset.section ? name === 'library' && b.dataset.section === state.section : b.dataset.page === name));
-  for (const id of ['welcome', 'library', 'changes', 'support']) $('#' + id).classList.toggle('hidden', id !== (name === 'library' && !state.library ? 'welcome' : name));
+  for (const id of ['welcome', 'library', 'textures', 'changes', 'support']) $('#' + id).classList.toggle('hidden', id !== (name === 'library' && !state.library ? 'welcome' : name));
   if (name === 'changes') renderChanges();
+  if (name === 'textures') textureBrowser.show();
   state.viewport?.resize();
 }
 $$('[data-page]').forEach(b => {b.onclick = () => page(b.dataset.page);});
@@ -70,6 +74,7 @@ function resetFilters() {
   $$('[data-kind]').forEach(button => button.classList.toggle('active', button.dataset.kind === 'all'));
 }
 function resetWorkspaceView() {
+  textureBrowser.reset();
   state.mapSelections?.clear(); for(const key of [...state.mapDrafts.maps.keys(),...state.mapDrafts.histories.keys()])state.mapDrafts.clear(key);
   clearPreview(); resetFilters(); state.section = state.library.archives[0]?.section || 'assets'; state.page = 'library';
 }
@@ -150,7 +155,7 @@ document.addEventListener('keydown', event => {
     event.preventDefault(); state.mapUndo?.();
   }
 });
-document.addEventListener('keydown', event => {if (event.ctrlKey && event.key.toLowerCase() === 'f') {event.preventDefault(); page('library'); layout.showLibrary(); $('#search').focus();}});
+document.addEventListener('keydown', event => {if (event.ctrlKey && event.key.toLowerCase() === 'f') {event.preventDefault(); if (state.page === 'textures') {$('#texture-search').focus(); return;} page('library'); layout.showLibrary(); $('#search').focus();}});
 
 document.addEventListener('keydown', event => {
   if (state.busy || state.page !== 'library' || !state.library || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || document.querySelector('dialog[open]') || archiveMenu) return;

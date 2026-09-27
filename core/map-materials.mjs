@@ -3,11 +3,16 @@ import {parseMap} from './world-formats.mjs';
 import {readTextures} from './textures.mjs';
 
 /** Resolve native GB, TR and embedded material references using catalog virtual paths. */
+export function mapTextureNames(virtualPath) {
+  const stem = path.posix.basename(virtualPath.replaceAll('\\', '/'), '.map');
+  return [[1, stem.slice(0, 2) + 'GB.tex'], [2, stem.startsWith('cc') ? 'cc01TR.tex' : stem + 'TR.tex'], [3, null]];
+}
+
 export function mapAsset(data, virtualPath, findCompanion) {
-  const world = parseMap(data), stem = path.posix.basename(virtualPath.replaceAll('\\', '/'), '.map');
+  const world = parseMap(data);
   const textures = [], families = new Map(), warnings = [], companions = [];
   const needed = new Set(world.groups.map(group => group.textureSource));
-  for (const [family, name] of [[1, stem.slice(0, 2) + 'GB.tex'], [2, stem.startsWith('cc') ? 'cc01TR.tex' : stem + 'TR.tex'], [3, null]]) {
+  for (const [family, name] of mapTextureNames(virtualPath)) {
     if (!needed.has(family)) continue;
     const source = name ? findCompanion(name) : world.textureOffset ? {name: virtualPath, data: data.subarray(world.textureOffset)} : null;
     if (!source) {warnings.push(`Missing ${name || 'embedded texture batch'}.`); families.set(family, []); continue;}

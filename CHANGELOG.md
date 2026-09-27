@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.8.3 (unreleased)
+## 0.8.4 (unreleased)
+
+- Added Texture Inspector beside Asset library: one searchable catalog for texture files, embedded MDL/MAP textures, font atlases and supported BMP pictures.
+- Added paged thumbnails, source filters, a modified-source filter, zoom/pan, PNG export and direct PNG replacement without opening the owning model or map first.
+- Shared map TEX files appear once per source, with links to referencing maps. Replacements update the original container and all previews, and remain staged until Build mod.
+- Texture selections are verified against the current source hash; rebuilding or reverting a model/map invalidates its cached slots and thumbnails.
+- Embedded MAP textures use Fit to original to preserve native offsets. Optional full-size import remains available for supported model/standalone textures, with the existing conditional runtime patches.
+- Added PNG exchange for uncompressed 24/32-bit BMP pictures while retaining dimensions, row layout and opaque file data.
+
+## 0.8.3
 
 - Fixed false ANM scale-channel errors after editing and re-exporting FBX animation in Blender. The importer now checks the authored Pose Mode scale instead of scale noise from reconstructed bone matrices.
 - Unified GLB model import: compatible attribute edits stage directly; topology, morph, skinning and material changes open the native rebuild setup. Blender material names retain their native texture-slot identity when image indices are reordered or names gain a .001 suffix.

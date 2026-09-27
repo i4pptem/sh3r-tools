@@ -1,12 +1,14 @@
-# Validation for 0.8.3
+# Validation for 0.8.4
 
 Validation combines synthetic regression tests, local real-asset checks, exchange comparisons and selected user-confirmed game tests. Private game assets and development trace dumps are not redistributed. The source test suite is self-contained.
 
 ## Automated source checks
 
-The Node suite contains **171 tests** covering archive writes, native layouts, texture and font exchange, messages, model/morph rebuilding, map operations, animation channels, project behavior and runtime patch composition/authentication. The extracted native-layout validator lives under `tests/helpers`, so tests no longer depend on a private research directory. The production UI bundle is built with esbuild.
+The Node suite contains **182 tests** covering archive writes, native layouts, texture and font exchange, messages, model/morph rebuilding, map operations, animation channels, project behavior and runtime patch composition/authentication. The extracted native-layout validator lives under `tests/helpers`, so tests no longer depend on a private research directory. The production UI bundle is built with esbuild.
 
 The 0.8.3 regression checks cover one-click GLB import of unchanged geometry and automatic rebuild setup when a mesh changes material slots. A real Heather archive was also previewed before and after an in-memory PNG replacement: only the selected slot's decoded image changed, while all other slots stayed byte-identical. This does not substitute for testing the installed mod in the game.
+
+The 0.8.4 regressions additionally cover catalog ownership and shared-map references, MDL and MAP texture replacement, unchanged container geometry/suffix bytes, stale source rejection, incremental cache invalidation, metadata-only parsing and BMP row/padding preservation.
 
 ## Asset and exchange coverage
 
@@ -23,7 +25,11 @@ FBX export was independently reimported and compared with the source GLB:
 
 The measured position/deformation errors are below half the native 1/16 position step. This supports the tested Blender bridge path, not every DCC/FBX configuration.
 
+The 0.8.4 catalog scan found **2,820 images** in the development installation: 328 MDL images, 1,862 embedded MAP images, 624 standalone images (including archived and loose BMP copies), and six font atlases. All images in 896 nonempty sources decoded successfully; 19 additional supported sources were empty. PNG replacements in a real MDL, MAP, shared TEX and BMP survived project save/load and a verified three-archive build; original source hashes remained unchanged. These are installation-specific counts, not coverage claims for every regional variant.
+
 ## UI and game checks
+
+The 0.8.4 Texture Inspector UI check covered catalog search/filtering, real MDL PNG import/export, embedded MAP replacement, live preview refresh, shared-map references, source navigation and the 1120 × 720 layout, with no renderer errors. These tests stage files locally; the newly authored test mod has not been scene-tested in game.
 
 Packaged UI checks covered model GLB/FBX export, GLB edit/revert, topology import controls (0.8.1), animation/morph playback, compact/focus layouts, panel persistence, map group movement/undo and high-resolution font build output. Picture patch validation included 725 native emulator checks. Model buffer and font uploader paths were also exercised with native emulation and patch-composition checks. The 0.8.1 character arena patch was checked across 32 combinations with previous extensions; a generated Windows PE launched against the oversized test model. The packaged replacement dialog was exercised with the affected GLB, including independent texture selection and bone warnings.
 

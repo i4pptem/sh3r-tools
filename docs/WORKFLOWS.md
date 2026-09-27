@@ -157,3 +157,15 @@ Choose **Replace ANM range from FBX…** with the same model and bank selected. 
 This mode edits only existing rotation/translation channels. It rejects authored Pose Mode scale, missing channels, a changed skeleton, object-level armature animation and changed duration. Blender may bake Scale keys near 1.0 into the FBX; those keys are allowed when the bone scale itself remains unchanged. It does not author PACK cutscenes, facial curves, action/event tables or new channels. Export ranges are limited to 500,000 bone samples. Installed Blender performs the FBX conversion. Small conversion residuals within a float32 roundoff envelope retain the exported native sample; changed poses are transferred as deltas from the measured FBX baseline. Source native quaternion/sign bytes remain intact for unchanged channels.
 
 Blender round trips and native channel decoding have been verified. Authored ANM changes still need an in-game test, particularly transitions, root motion and procedural/IK behavior.
+
+## Texture Inspector
+
+1. Open the game **data** folder, then select **Texture Inspector** beside Asset library. Opening a single archive limits the catalog to that source.
+2. Search by filename, path, archive or referencing map. Filter by models, embedded map textures, texture files or font atlases. **Modified sources** shows textures belonging to staged assets; it does not mean every image in that container was edited.
+3. Select a thumbnail, then use arrow keys to move through the grid. Zoom with the mouse wheel, drag to pan, or use **Fit** / **1:1**. The source path and texture slot identify the exact image. **Open source asset** returns to the owning model/map/file.
+4. Use **Export PNG…**, edit the image, then **Import PNG…**. **Fit to original** resizes and converts to the existing native format. Shared palette variants retain their shared indices and require consistent recoloring. BMP pictures require an opaque PNG.
+5. For supported model/standalone textures, **Full size · experimental** retains the imported dimensions and rebuilds direct-color storage. Embedded MAP textures currently offer Fit to original only. Font atlases have separate original/high-resolution modes; keep glyph layout intact.
+6. A shared GB/TR TEX is a single source: its **Used by** list shows the maps affected by the replacement. To change only one surface, use the map material tools and an appropriate separate texture slot.
+7. Replacements immediately update previews and appear in **Staged changes**. Save a project to continue later, or **Build mod** to write the updated native containers and any required executable patch. Original game files are not overwritten. Reverting a staged source restores that entire asset, including its other edits.
+
+Use **Refresh catalog** after external source changes. Apply or discard pending map preview transforms before importing a texture. Unknown/unsupported texture sources appear under the scan-issues list; this is not an arbitrary binary texture extractor.

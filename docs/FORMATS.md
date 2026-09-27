@@ -12,6 +12,7 @@ Support below describes the implemented PC workflows. A file extension alone is 
 | KG1 / KG2 | Shadow-geometry inspection where recognized | Native exchange; these are not ordinary skeletal animation clips |
 | TEX, texture-bearing DAT/TBN2, PIC | Decoded texture preview, pan/zoom, PNG | Format-aware replacement; optional full-size mode for supported paths, not a guarantee for every container |
 | `fontdata_*.bin` | Normal/Small glyph atlas, PNG | Native font editing and 2×/4× coverage extensions; expanded fonts need the runtime uploader |
+| BMP / PNG pictures | Texture Inspector preview and PNG export | PNG replacement; uncompressed 24/32-bit BMP retains its dimensions and requires opaque artwork |
 | MES | Parsed message inspection and JSON | Validated message JSON reimport |
 | MAP | Textured geometry; whole-map or selected-part GLB | Multi-select transforms, gizmo/undo, texture/UV/material edits, supported visibility edits, part rebuilding with new topology; explicit Apply stages output |
 | CLD / CAM | Recognized collision/camera structure inspection | Native export/replacement; not a complete collision or camera-sequence authoring tool |
@@ -28,3 +29,5 @@ Media conversion uses optional FFmpeg; FBX and `.blend` workflows use optional B
 **Models:** current rebuilding templates use 48-byte skinned vertices. New skeletons, unlimited bone influences and automatic expression matching between unrelated faces are outside this release. FBX model export and FBX ANM exchange are distinct features; use GLB or a morph workspace for MDL geometry replacement.
 
 **Maps:** movement edits supported mesh data, not arbitrary gameplay triggers, portals, scripts or collision. Changed topology and visibility still need testing in the game. See [Workflows](WORKFLOWS.md) and [Executable patches](EXECUTABLE-PATCHES.md).
+
+**Texture Inspector:** indexes recognized TEX/DAT/TBN2/PIC containers, PC MDL batches, embedded MAP batches, font atlases and supported BMP/PNG files in the opened workspace. Shared GB/TR map companions are listed under Texture files, with their referencing maps. Embedded MAP imports fit the original dimensions and preserve offsets; they do not resize the map texture batch. Unsupported variants are reported in the catalog rather than silently omitted. This is staged file editing, not live injection into a running game.

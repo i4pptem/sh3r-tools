@@ -24,6 +24,7 @@ This is an independent modding project for the **PC version** of Silent Hill 3. 
 - **Replace geometry and morphs.** Import new topology against the original rig; map replacement shape keys to native morph slots. Export a Blender workspace with separate base/pose meshes, subdivide them consistently and rebuild their native morph data.
 - **Exchange skeletal animation.** Export a selected ANM range to FBX and import edited motion into the supported original animation layout.
 - **Edit maps.** Preview textured MAP geometry, select and move several meshes with a gizmo, undo with Ctrl+Z, replace textures, edit UV/material settings and exchange an individual part as GLB, including new topology. Apply the edits to stage a new MAP.
+- **Find textures anywhere.** Texture Inspector gathers standalone textures, embedded MDL/MAP images, font atlases and supported BMP pictures into one searchable catalog. Preview, export PNG or stage a replacement directly; shared map textures show which maps use them.
 - **Update textures and fonts.** Pan and zoom texture previews, export PNG and import replacements. Optional full-size texture replacement and 2×/4× font coverage support higher-resolution artwork.
 - **Inspect text, sound and movies.** MES/JSON exchange, native sound-bank decoding, WAV exchange, AIX handling and encrypted PC FMV preview/export/reimport. See the [format matrix](docs/FORMATS.md) for each format's actual editing scope.
 - **Keep changes organized.** Save a project, review staged replacements and build game-format output into a separate folder. The output folder opens after a successful build.
@@ -59,7 +60,7 @@ The source executable is authenticated and left untouched. A new executable is w
 
 ## Current boundaries
 
-Version **0.8.3** adds automatic GLB import routing, keeps the last export/import folder, and makes each mesh's native texture slot easier to inspect. The 0.8.1 character-file memory fix remains included. Native geometry/morph rebuilding, animation import, map rebuilding and expanded runtime buffers need testing with your own assets and scenes. Model replacement retains the original skeleton; unrelated facial expressions are not transferred automatically. The map tools edit supported geometry and texture structures, not the entire level scripting system. FBX model export does not imply direct FBX-to-MDL model replacement.
+Version **0.8.4** adds Texture Inspector for supported texture sources throughout the opened workspace. Embedded MAP images retain their native size; supported model/standalone textures keep the optional full-size mode. Automatic GLB import routing and remembered file-dialog folders remain included. The 0.8.1 character-file memory fix remains included. Native geometry/morph rebuilding, animation import, map rebuilding and expanded runtime buffers need testing with your own assets and scenes. Model replacement retains the original skeleton; unrelated facial expressions are not transferred automatically. The map tools edit supported geometry and texture structures, not the entire level scripting system. FBX model export does not imply direct FBX-to-MDL model replacement.
 
 [Supported formats](docs/FORMATS.md) · [Validation](docs/VALIDATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Roadmap](docs/ROADMAP.md)
 

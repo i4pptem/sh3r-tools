@@ -1,3 +1,4 @@
+import {TextureLibrary} from './texture-library.mjs';
 import {characterRequirements, isCharacterAsset} from './character-requirements.mjs';
 import {animationExchange,replaceAnimation} from './animation-exchange.mjs';
 import {blenderExchange} from './blender-bridge.mjs';
@@ -43,10 +44,10 @@ export function assetKind(extension) {
 }
 
 export class Workbench {
-  constructor(progress = () => {}, cacheFolder = path.join(os.tmpdir(), 'sh3tools-media-cache')) { this.archives = []; this.changes = new Map(); this.input = null; this.catalogPath = null; this.dataRoot = null; this.progress = progress; this.motion = new MotionLibrary(this); this.cacheFolder = cacheFolder; this.modelPlan = null; this.mapHistory = new Map(); }
+  constructor(progress = () => {}, cacheFolder = path.join(os.tmpdir(), 'sh3tools-media-cache')) { this.archives = []; this.changes = new Map(); this.input = null; this.catalogPath = null; this.dataRoot = null; this.progress = progress; this.motion = new MotionLibrary(this); this.cacheFolder = cacheFolder; this.modelPlan = null; this.mapHistory = new Map(); this.textureLibrary = new TextureLibrary(this); }
   open(input) {
     const workspace = openWorkspace(input);
-    Object.assign(this, workspace); this.mapHistory.clear(); this.changes.clear(); this.modelPlan = null; this.motion = new MotionLibrary(this);
+    Object.assign(this, workspace); this.textureLibrary.reset(); this.mapHistory.clear(); this.changes.clear(); this.modelPlan = null; this.motion = new MotionLibrary(this);
     return this.snapshot();
   }
   get(key) {
@@ -58,6 +59,11 @@ export class Workbench {
   bytes(key) {const {archive, entry} = this.get(key); return this.changes.get(key)?.data || this.originalBytes(archive, entry);}
   format(key) {const {entry} = this.get(key), changed = this.changes.get(key); return changed ? assetFormat(changed.data, entry.extension) : entry.detectedFormat || entry.extension;}
   textureOptions(key) {return {picture: /(?:^|\/)data\/pic\//i.test(this.get(key).entry.name.replaceAll('\\', '/'))};}
+  textureCatalog(force) {return this.textureLibrary.catalog(force);}
+  textureThumbnails(ids) {return this.textureLibrary.thumbnailBatch(ids);}
+  texturePreview(id) {return this.textureLibrary.preview(id);}
+  replaceLibraryTexture(id, hash, file, mode) {return this.textureLibrary.replace(id, hash, file, mode);}
+  exportLibraryTexture(id, hash, file) {return this.textureLibrary.export(id, hash, file);}
   textureAsset(key) {return readTextures(this.bytes(key), ['mdl', 'mdl_'].includes(this.get(key).entry.extension), this.textureOptions(key));}
   worldAsset(key) {
     const {entry} = this.get(key), data = this.bytes(key);
@@ -73,7 +79,7 @@ export class Workbench {
   exportArchive(id, folder, mode) {return exportArchive(this, id, folder, mode);}
   exportAllArchives(folder, mode) {return exportAllArchives(this, folder, mode);}
   snapshot() {
-    return {input: this.input, dataRoot: this.dataRoot, archiveCount: this.archives.length,
+    return {textureRevision: this.textureLibrary.revision, input: this.input, dataRoot: this.dataRoot, archiveCount: this.archives.length,
       archives: this.archives.map((a, i) => ({id: i, section: a.section, name: a.name, format: a.format, size: a.size, count: a.entries.length})),
       entries: this.archives.flatMap((a, i) => a.entries.map(e => ({key: `${i}:${e.index}`, archive: i, section: a.section, archiveName: a.name, index: e.index, name: e.name,
         extension: e.extension, detectedFormat: this.format(`${i}:${e.index}`), kind: assetKind(this.format(`${i}:${e.index}`)), size: e.size, offset: e.offset, fileId: e.fileId,
@@ -233,6 +239,7 @@ export class Workbench {
     const original = this.originalBytes(archive, entry);
     if (data.equals(original)) this.changes.delete(key);
     else this.changes.set(key, {data, label, originalHash: sha256(original)});
+    this.textureLibrary.invalidate(key);
     return this.snapshot();
   }
   replace(key, file, mode = 'native', textureIndex = 0) {
@@ -263,7 +270,7 @@ export class Workbench {
     for (const delta of doc.targets[target].deltas) for (const attr of ['position', 'normal']) delta[attr] = delta[attr].map(v => Math.round(v * factor));
     return this.stage(key, replaceMorphs(data, doc), `Morph ${target}: intensity ×${factor}`);
   }
-  undo(key) {this.get(key); this.changes.delete(key); this.mapHistory.delete(key); return this.snapshot();}
+  undo(key) {this.get(key); this.changes.delete(key); this.mapHistory.delete(key); this.textureLibrary.invalidate(key); return this.snapshot();}
   async exportModelFbx(key, file) {
     requireThat(!fs.existsSync(file), 'Output already exists. Choose a new filename.');
     requireThat(['mdl', 'mdl_'].includes(this.get(key).entry.extension), 'FBX model export requires a PC MDL.');
@@ -327,7 +334,7 @@ export class Workbench {
       candidate.stage(key, Buffer.from(change.data, 'base64'), String(change.label));
       if (change.rebuildReport && candidate.changes.has(key)) candidate.changes.get(key).rebuildReport = change.rebuildReport;
     }
-    this.mapHistory.clear(); this.archives = candidate.archives; this.changes = candidate.changes; this.input = candidate.input; this.catalogPath = candidate.catalogPath; this.dataRoot = candidate.dataRoot; this.modelPlan = null; this.motion = new MotionLibrary(this);
+    this.textureLibrary.reset(); this.mapHistory.clear(); this.archives = candidate.archives; this.changes = candidate.changes; this.input = candidate.input; this.catalogPath = candidate.catalogPath; this.dataRoot = candidate.dataRoot; this.modelPlan = null; this.motion = new MotionLibrary(this);
     return this.snapshot();
   }
   buildRequirements() {

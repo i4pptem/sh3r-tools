@@ -17,7 +17,7 @@ function paletteAddress(start, index, bank = 0) {
   const raw = (index & 0xe7) | ((index & 8) << 1) | ((index & 16) >> 1);
   return start + (raw >> 4) * 256 + (raw & 15) * 4;
 }
-function parsePic(data) {
+function parsePic(data, decode = true) {
   range(data, 0, 108, 'PIC header');
   requireThat(data.toString('ascii', 88, 92) === 'PICT', 'Invalid Softimage PIC header.');
   const width = data.readUInt16BE(92), height = data.readUInt16BE(94); dimensions(width, height);
@@ -28,6 +28,7 @@ function parsePic(data) {
     requireThat(bits === 8 && type <= 2 && mask && !(mask & 15), 'Unsupported PIC packet.');
     packets.push({type, mask, channels: [0, 1, 2, 3].filter(c => mask & (0x80 >> c))});
   }
+  if (!decode) return {width, height, format: 'Softimage PIC', editable: true, layout: {kind: 'pic', packets}};
   const rgba = Buffer.alloc(width * height * 4, 255);
   const pixel = channels => {range(data, cursor, channels.length, 'PIC pixel'); const result = data.subarray(cursor, cursor + channels.length); cursor += channels.length; return result;};
   for (let y = 0; y < height; y++) for (const packet of packets) {
@@ -58,26 +59,26 @@ function indexedValue(data, layout, x, y, width) {
 function colorAddress(layout, index) {
   return paletteAddress(layout.palette, index + (layout.kind === 'indexed4' ? (layout.paletteBank & 15) * 16 : 0), layout.kind === 'indexed4' ? layout.paletteBank >> 4 : layout.paletteBank);
 }
-function indexedImage(data, texture, bank) {
-  const {width, height} = texture, layout = {...texture.layout, paletteBank: bank}, rgba = Buffer.alloc(width * height * 4);
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+function indexedImage(data, texture, bank, decode = true) {
+  const {width, height} = texture, layout = {...texture.layout, paletteBank: bank}, rgba = decode ? Buffer.alloc(width * height * 4) : undefined;
+  if (decode) for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
     const p = colorAddress(layout, indexedValue(data, layout, x, y, width)), dest = (y * width + x) * 4;
     data.copy(rgba, dest, p, p + 3); rgba[dest + 3] = Math.min(255, data[p + 3] * 2);
   }
   return {...texture, layout, rgba, format: (layout.kind === 'indexed4' ? 'Indexed 4-bit' : 'Indexed 8-bit') + (texture.paletteBanks.length > 1 ? ' · palette ' + (bank + 1) : '')};
 }
-function readRecord(data, start, picture = false) {
+function readRecord(data, start, picture = false, decode = true) {
   range(data, start, 32, 'Texture header');
   requireThat(data.readUInt32LE(start) === 0xffffffff && data.readUInt16LE(start + 30) === 0x9999, 'Unsupported texture record.');
   const width = data.readUInt16LE(start + 8), height = data.readUInt16LE(start + 10), size = data.readUInt32LE(start + 16), total = data.readUInt32LE(start + 20);
   dimensions(width, height); requireThat(total >= size + 32, 'Invalid texture record size.'); range(data, start, total, 'Texture pixels');
-  const pixelOffset = start + total - size, rgba = Buffer.alloc(width * height * 4); let end = start + total;
+  const pixelOffset = start + total - size, rgba = decode ? Buffer.alloc(width * height * 4) : undefined; let end = start + total;
   const layout = {kind: 'bgra', pixelOffset, start, picture}; let format = picture ? 'RGBA32 · picture alpha' : 'BGRA32';
   if (size === width * height * 4) {
-    for (let i = 0; i < width * height; i++) {const p = pixelOffset + i * 4; rgba[i * 4] = data[p + (picture ? 0 : 2)]; rgba[i * 4 + 1] = data[p + 1]; rgba[i * 4 + 2] = data[p + (picture ? 2 : 0)]; rgba[i * 4 + 3] = picture ? Math.min(255, data[p + 3] * 2) : data[p + 3];}
+    if (decode) for (let i = 0; i < width * height; i++) {const p = pixelOffset + i * 4; rgba[i * 4] = data[p + (picture ? 0 : 2)]; rgba[i * 4 + 1] = data[p + 1]; rgba[i * 4 + 2] = data[p + (picture ? 2 : 0)]; rgba[i * 4 + 3] = picture ? Math.min(255, data[p + 3] * 2) : data[p + 3];}
   } else if (size === width * height * 2 && data[start + 12] === 16) {
     layout.kind = 'rgba5551'; format = 'RGBA5551';
-    for (let i = 0; i < width * height; i++) {
+    if (decode) for (let i = 0; i < width * height; i++) {
       const value = data.readUInt16LE(pixelOffset + i * 2);
       for (let channel = 0; channel < 3; channel++) rgba[i * 4 + channel] = Math.round(((value >> (channel * 5)) & 31) * 255 / 31);
       rgba[i * 4 + 3] = value & 0x8000 ? 255 : 0;
@@ -89,10 +90,12 @@ function readRecord(data, start, picture = false) {
     range(data, end, 48, 'Palette header'); const paletteSize = data.readUInt32LE(end), banks = data[end + 12];
     requireThat([4, 8, 16].includes(banks) && paletteSize === banks * 1024 && data[end + 14] === 64, 'Unsupported palette layout.');
     const palette = end + 48; range(data, palette, paletteSize, 'Palette');
-    const addresses = new Uint8Array(width * height);
-    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-      const address = bits === 8 ? indexAddress(x, y, width) : indexed4Address(x, y, width);
-      requireThat(address < addresses.length && !addresses[address], 'Invalid texture swizzle.'); addresses[address] = 1;
+    if (decode) {
+      const addresses = new Uint8Array(width * height);
+      for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+        const address = bits === 8 ? indexAddress(x, y, width) : indexed4Address(x, y, width);
+        requireThat(address < addresses.length && !addresses[address], 'Invalid texture swizzle.'); addresses[address] = 1;
+      }
     }
     Object.assign(layout, {kind: bits === 8 ? 'indexed8' : 'indexed4', palette, paletteBank: 0, colorCount: 1 << bits});
     const paletteBanks = [];
@@ -102,15 +105,15 @@ function readRecord(data, start, picture = false) {
     }
     layout.sharedPalette = paletteBanks.length > 1; end = palette + paletteSize; format = 'Indexed ' + bits + '-bit';
     const texture = {width, height, format, editable: true, layout, end, paletteBanks};
-    return indexedImage(data, texture, 0);
+    return indexedImage(data, texture, 0, decode);
   }
   return {width, height, rgba, format, editable: true, layout, end, paletteBanks: [0]};
 }
 
-export function readTextures(data, model = false, {picture = false} = {}) {
+export function readTextures(data, model = false, {picture = false, decode = true} = {}) {
   range(data, 0, 4);
   if (!model && data.readUInt32BE(0) === 0x5380f634) {
-    const image = parsePic(data); return [{...image, index: 0, png: png(image.width, image.height, image.rgba)}];
+    const image = parsePic(data, decode); return [{...image, index: 0, ...(decode ? {png: png(image.width, image.height, image.rgba)} : {})}];
   }
   let start = 0, count = 1, batchOffset = null;
   if (model) {range(data, 0, 16); start = data.readUInt32LE(12); count = data.readUInt32LE(8); if (!count) return [];}
@@ -124,11 +127,11 @@ export function readTextures(data, model = false, {picture = false} = {}) {
   if (!model && count === 0 && start + 32 <= data.length && data.readUInt32LE(start) === 0xffffffff && data.readUInt16LE(start + 30) === 0x9999) count = 1;
   requireThat(count <= 1024, 'Too many textures.'); const records = [], variants = [];
   for (let index = 0; index < count; index++) {
-    const texture = readRecord(data, start, picture); start = texture.end; records.push(texture);
-    for (const bank of texture.paletteBanks.slice(1)) variants.push(indexedImage(data, texture, bank));
+    const texture = readRecord(data, start, picture, decode); start = texture.end; records.push(texture);
+    for (const bank of texture.paletteBanks.slice(1)) variants.push(indexedImage(data, texture, bank, decode));
     if (!model && index + 1 === count && start + 32 <= data.length && data.readUInt32LE(start) === 0xffffffff && data.readUInt16LE(start + 30) === 0x9999) {requireThat(count < 1024, 'Too many textures.'); count++;}
   }
-  return [...records, ...variants].map((texture, index) => ({...texture, layout: {...texture.layout, batchOffset}, index, png: png(texture.width, texture.height, texture.rgba)}));
+  return [...records, ...variants].map((texture, index) => ({...texture, layout: {...texture.layout, batchOffset}, index, ...(decode ? {png: png(texture.width, texture.height, texture.rgba)} : {})}));
 }
 
 export function replaceTexture(data, index, inputPng, model = false, options = {}) {
