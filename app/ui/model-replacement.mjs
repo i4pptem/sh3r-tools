@@ -2,8 +2,8 @@ import {modelCompatibility} from '../../core/model-compatibility.mjs';
 const node = (tag, text) => {const result = document.createElement(tag); if (text !== undefined) result.textContent = text; return result;};
 
 /** Collect explicit mesh templates and semantic morph mappings before staging a rebuild. */
-export async function modelReplacement(state, run, notify, preparedInfo = null) {
-  const key = state.selected, info = preparedInfo || await run('prepareModel', {key}, 'Reading replacement model…');
+export async function modelReplacement(state, run, notify, preparedInfo) {
+  const key = state.selected, info = preparedInfo;
   if (!info || state.selected !== key) return;
   const dialog = node('dialog'), form = node('form'); dialog.className = 'replacement-dialog'; form.method = 'dialog';
   const header = node('div'); header.className = 'replacement-heading';
@@ -18,13 +18,14 @@ export async function modelReplacement(state, run, notify, preparedInfo = null) 
   const meshTable = node('div'); meshTable.className = 'replacement-table'; const meshes = [];
   for (const input of info.inputs) {
     const row = node('label'), include = node('input'); include.type = 'checkbox'; include.checked = true;
-    const description = node('span', `${input.name} · ${input.vertexCount.toLocaleString('en-US')} vertices${input.image ? ' · GLB image: ' + input.image : ''}`), select = node('select');
+    const description = node('span', `${input.name} · ${input.vertexCount.toLocaleString('en-US')} vertices${input.material ? ' · GLB material: ' + input.material : ''}`), select = node('select');
     select.add(new Option('Choose visibility / render template…', ''));
     info.templates.forEach((template, index) => select.add(new Option(`${template.name} · visibility ${template.visibility} · texture ${template.texture}`, index)));
     select.value = input.template >= 0 ? String(input.template) : ''; select.setAttribute('aria-label', `Template for ${input.name}`);
     const texture = node('select'); texture.setAttribute('aria-label', 'Texture slot for ' + input.name);
-    texture.add(new Option('Keep template texture', ''));
+    texture.add(new Option('Use template texture', ''));
     info.textureSlots.forEach(slot => texture.add(new Option('Texture ' + slot, slot)));
+    texture.value = input.texture !== null && input.texture !== info.templates[input.template]?.texture ? String(input.texture) : '';
     const controls = node('div'); controls.append(select, texture);
     row.append(include, description, controls); meshTable.append(row); meshes.push({input: input.index, include, select, texture});
   }

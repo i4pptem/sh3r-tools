@@ -108,6 +108,11 @@ export function importGlb(buffer, glb) {
     const mesh = doc.meshes.find(m => m.name === source.name);
     requireThat(mesh && mesh.primitives.length === 1, `Keep mesh ${source.name} and its single material slot.`);
     const p = mesh.primitives[0], base = exported.doc.meshes[index].primitives[0];
+    if (original.textureCount || doc.textures?.length) {
+      const material = doc.materials?.[p.material];
+      const slot = /^Texture_(\d+)(?:\.\d{3})?$/.exec(material?.name || '');
+      requireThat((source.texture < 0 && !material?.pbrMetallicRoughness?.baseColorTexture) || (!!material?.pbrMetallicRoughness?.baseColorTexture && Number(slot?.[1]) === source.texture), `${source.name}: material or texture slot changed.`);
+    }
     requireThat((p.mode ?? 4) === 4 && p.indices !== undefined && equal(accessor(p.indices), source.indices), `${source.name}: triangle order or vertex topology changed.`);
     requireThat(!p.extensions, 'Compressed glTF meshes are unsupported.');
     for (const attr of ['JOINTS_0', 'WEIGHTS_0']) if (base.attributes[attr] !== undefined) requireThat(p.attributes[attr] !== undefined && equal(accessor(p.attributes[attr]), exported.accessor(base.attributes[attr])), 'Keep original skin weights and joints in this import mode.');

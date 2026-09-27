@@ -14,7 +14,7 @@ export class ModelViewport {
     this.onSelect = onSelect; this.onTransform = onTransform; this.onGesture = onGesture; this.selectedParts = [];
     this.pointerDown = event => {this.pickStart = [event.clientX, event.clientY]; this.gizmoPointer = !!this.gizmo?.axis;};
     this.pointerUp = event => {
-      if (this.editingEnabled === false || this.gizmoPointer || this.gizmo?.dragging || !this.editable || event.button !== 0 || !this.pickStart || Math.hypot(event.clientX-this.pickStart[0],event.clientY-this.pickStart[1]) > 4) return;
+      if (this.editingEnabled === false || this.gizmoPointer || this.gizmo?.dragging || event.button !== 0 || !this.pickStart || Math.hypot(event.clientX-this.pickStart[0],event.clientY-this.pickStart[1]) > 4) return;
       const rect = this.renderer.domElement.getBoundingClientRect(), ray = new THREE.Raycaster();
       ray.setFromCamera(new THREE.Vector2((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2),this.camera);
       const hit = ray.intersectObjects(this.meshes.filter(m => m.visible),false)[0]; if (hit) this.onSelect?.(hit.object.name, event.ctrlKey || event.shiftKey || event.metaKey);

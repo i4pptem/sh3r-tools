@@ -6,6 +6,11 @@ import {parseModel,modelLayout,morphDocument} from '../core/model.mjs';
 import {exportGlb} from '../core/gltf.mjs';
 import {rebuildModel,triangleStrip,replacementInfo} from '../core/model-rebuild.mjs';
 import {validateNativeLayout} from './helpers/native-layout.mjs';
+import {Workbench} from '../core/workbench.mjs';
+import {importGlb} from '../core/gltf.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 function fixture(boneCount=1) {
   const base=96,bones=224,parents=bones+boneCount*64,pairs=align(parents+boneCount,16),textureTable=pairs,
@@ -176,4 +181,36 @@ test('interleaved texture choices are grouped into bounded native runs',()=>{
   const selection={meshes:model.meshes.map((_,input)=>({input,template:0,texture:input%2})),morphs:model.morphNames};
   const rebuilt=parseModel(rebuildModel(source,exportGlb(model),selection).data);
   assert.deepEqual(rebuilt.meshes.map(m=>m.texture),[0,0,0,1,1,1]);assert.equal(rebuilt.triangleCount,6);
+});
+
+function editGlbJson(glb, change) {
+  const jsonLength=glb.readUInt32LE(12), doc=JSON.parse(glb.subarray(20,20+jsonLength).toString());
+  change(doc);
+  const raw=Buffer.from(JSON.stringify(doc)), json=Buffer.alloc(align(raw.length,4),32);raw.copy(json);
+  const result=Buffer.concat([glb.subarray(0,20),json,glb.subarray(20+jsonLength)]);
+  result.writeUInt32LE(result.length,8);result.writeUInt32LE(json.length,12);return result;
+}
+
+test('one GLB import stages compatible edits and opens rebuild for a changed material slot',()=>{
+  const source=fixture(),h=modelLayout(source);
+  source.writeUInt32LE(2,h.base+56);source.writeUInt32LE(1,h.materialOffset+8);
+  const model=parseModel(source),glb=exportGlb(model,[{png:Buffer.alloc(4)},{png:Buffer.alloc(4)}]);
+  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'sh3-model-import-')),file=path.join(folder,'edited.glb');
+  try {
+    const workbench=new Workbench();workbench.bytes=()=>source;
+    workbench.stage=(_key,data)=>({entries:[],data});
+    fs.writeFileSync(file,glb);
+    const direct=workbench.importModel('0:0',file);
+    assert.equal(direct.modelImport,'attributes');assert.deepEqual(direct.data,source);
+    const reordered=editGlbJson(glb,doc=>{doc.materials[0].name='Texture_0.001';doc.materials[0].pbrMetallicRoughness.baseColorTexture.index=1;});
+    fs.writeFileSync(file,reordered);
+    assert.equal(workbench.importModel('0:0',file).modelImport,'attributes');
+    const changed=editGlbJson(glb,doc=>{doc.meshes[0].primitives[0].material=1;});
+    assert.throws(()=>importGlb(source,changed),/material or texture slot changed/);
+    fs.writeFileSync(file,changed);
+    const prepared=workbench.importModel('0:0',file);
+    assert.equal(prepared.modelImport,'rebuild');
+    assert.equal(prepared.inputs[0].texture,1);
+    assert.deepEqual(prepared.textureSlots,[0,1]);
+  } finally {fs.rmSync(folder,{recursive:true,force:true});}
 });

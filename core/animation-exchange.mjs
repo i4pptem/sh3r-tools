@@ -16,6 +16,7 @@ export function animationExchange(model,data,start,end,fps) {
     const pose=structuredClone(rest),r=(frame*parents.length+bone)*4,t=(frame*parents.length+bone)*3;
     if(Number.isFinite(clip.rotations[r])) {const q=new Quaternion().fromArray(clip.rotations,r);if(parents[bone]<0)q.premultiply(flip);pose.rotation=q.toArray();}
     if(Number.isFinite(clip.translations[t])) {pose.translation=Array.from(clip.translations.slice(t,t+3));if(parents[bone]<0){pose.translation[0]*=-1;pose.translation[1]*=-1;}}
+    pose.poseScale=[1,1,1];
     return pose;
   }));
   const bones=model.bones.map((bone,i)=>({name:bone.name,parent:bone.parent,world:rig.worlds[i].toArray()}));
@@ -40,7 +41,7 @@ export function replaceAnimation(model,source,exchange) {
     requireThat(samples[f]?.length===bones&&baseline[f]?.length===bones,'Missing FBX bones.');
     const changes=samples[f].map((pose,b)=>{
       const base=baseline[f][b],changed={};
-      for(const [field,size] of [['translation',3],['rotation',4],['scale',3]]) {
+      for(const [field,size] of [['translation',3],['rotation',4]]) {
         requireThat(Array.isArray(pose[field])&&pose[field].length===size&&pose[field].every(Number.isFinite)&&base[field]?.length===size&&base[field].every(Number.isFinite),'Invalid FBX transform.');
         // Two affine products and FBX Euler/TRS conversion use float32 intermediates.
         // Their roundoff envelope is 32 machine epsilons, scaled by the rest-coordinate magnitude.
@@ -53,7 +54,10 @@ export function replaceAnimation(model,source,exchange) {
         else if(field==='translation')pose[field]=values.map((v,k)=>original[f][b][field][k]+v-base[field][k]);
         else if(field==='rotation')pose[field]=new Quaternion().fromArray(values).multiply(new Quaternion().fromArray(base[field]).invert()).multiply(new Quaternion().fromArray(original[f][b][field])).normalize().toArray();
       }
-      requireThat(!changed.scale,`${model.bones[b].name}: ANM has no scale channel. Keep the exported scale.`);
+      const poseScale=pose.poseScale;
+      requireThat(Array.isArray(poseScale)&&poseScale.length===3&&poseScale.every(Number.isFinite),'Invalid FBX pose-bone scale.');
+      const scaleBound=32*2**-23*Math.max(1,...poseScale.map(Math.abs));
+      requireThat(poseScale.every(value=>Math.abs(value-1)<=scaleBound),`${model.bones[b].name}: ANM has no scale channel. Keep Pose Mode scale at 1.`);
       return changed;
     });
     let offset=4+(metadata.start+f)*header.stride,group=0;

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.3 (unreleased)
+
+- Fixed false ANM scale-channel errors after editing and re-exporting FBX animation in Blender. The importer now checks the authored Pose Mode scale instead of scale noise from reconstructed bone matrices.
+- Unified GLB model import: compatible attribute edits stage directly; topology, morph, skinning and material changes open the native rebuild setup. Blender material names retain their native texture-slot identity when image indices are reordered or names gain a .001 suffix.
+- Preserved the last file-dialog folder and selected texture slot across import/preview refresh. Meshes show their native texture slot in the Inspector.
+- Removed the redundant Compact workspace action; exported morph workspaces already use the compact layout.
+
 ## 0.8.1 — 2026-09-26
 
 - Fixed startup crashes from oversized character MDLs by calculating the complete character-file memory budget and conditionally expanding its arena from 40 MiB to 128 MiB.

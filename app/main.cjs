@@ -7,7 +7,7 @@ const {pathToFileURL} = require('node:url');
 protocol.registerSchemesAsPrivileged([{scheme: 'sh3tools', privileges: {standard: true, secure: true, supportFetchAPI: true, stream: true}}]);
 if (process.env.SH3TOOLS_USER_DATA) app.setPath('userData', path.resolve(process.env.SH3TOOLS_USER_DATA));
 let mapDraftCount = 0;
-let window, worker, nextId = 1, changed = 0, opening, busy = false;
+let window, worker, nextId = 1, changed = 0, opening, busy = false, lastDialogDirectory;
 const mediaFiles = new Map(); let mediaId = 0;
 const pending = new Map(), root = path.join(__dirname, '..');
 function call(method, ...args) {
@@ -26,12 +26,16 @@ function remember(snapshot) {
   return snapshot;
 }
 async function pickFile(filters, properties = ['openFile']) {
-  const result = await dialog.showOpenDialog(window, {properties, filters}); return result.canceled ? null : result.filePaths[0];
+  const result = await dialog.showOpenDialog(window, {properties, filters, defaultPath: lastDialogDirectory});
+  if (result.canceled) return null;
+  lastDialogDirectory = properties.includes('openDirectory') ? result.filePaths[0] : path.dirname(result.filePaths[0]);
+  return result.filePaths[0];
 }
 async function chooseNewFile(defaultPath, extensions) {
-  const result = await dialog.showSaveDialog(window, {defaultPath, filters: [{name: 'Output file', extensions}], properties: ['createDirectory', 'showOverwriteConfirmation']});
+  const result = await dialog.showSaveDialog(window, {defaultPath: lastDialogDirectory ? path.join(lastDialogDirectory, defaultPath) : defaultPath, filters: [{name: 'Output file', extensions}], properties: ['createDirectory', 'showOverwriteConfirmation']});
   if (result.canceled) return null;
   if (fs.existsSync(result.filePath)) throw new Error('Choose a new filename. Existing exports are preserved.');
+  lastDialogDirectory = path.dirname(result.filePath);
   return result.filePath;
 }
 async function operation(action, args) {
@@ -54,16 +58,12 @@ async function operation(action, args) {
   if (action === 'exportMorphWorkspace') {
     const file=await chooseNewFile('Morph workspace.blend',['blend']);return file?call('exportMorphWorkspace',args.key,file):null;
   }
-  if (action === 'compactMorphWorkspace') {
-    const input=await pickFile([{name:'SH3 morph workspace',extensions:['blend']}]);if(!input)return null;
-    const file=await chooseNewFile('Morph workspace compact.blend',['blend']);return file?call('compactMorphWorkspace',args.key,input,file):null;
-  }
   if (action === 'prepareMorphWorkspace') {
     const file=await pickFile([{name:'SH3 morph workspace',extensions:['blend']}]);return file?call('prepareMorphWorkspace',args.key,file):null;
   }
-  if (action === 'prepareModel') {
+  if (action === 'importModel') {
     const file = await pickFile([{name: 'Replacement model with rig and shape keys', extensions: ['glb']}]);
-    return file ? call('prepareModel', args.key, file) : null;
+    return file ? remember(await call('importModel', args.key, file)) : null;
   }
   if (action === 'modelTemplates') {
     const file=await pickFile([{name:'Original model templates',extensions:['mdl','mdl_']}]);
@@ -104,7 +104,7 @@ async function operation(action, args) {
   if (action === 'undo') return remember(await call('undo', args.key));
   if (action === 'morph') return remember(await call('bakeMorph', args.key, args.target, args.factor));
   if (action === 'replace') {
-    const formats = {mapGlb: ['glb'], messages: ['json'], font: ['png'], fontHires: ['png'], movie: ['mpg', 'mpeg', 'mp4', 'mkv', 'avi', 'mov', 'webm', '000'], audio: ['wav', 'flac', 'mp3', 'ogg'], glb: ['glb'], morph: ['json'], texture: ['png'], textureExperimental: ['png'], native: ['*']};
+    const formats = {mapGlb: ['glb'], messages: ['json'], font: ['png'], fontHires: ['png'], movie: ['mpg', 'mpeg', 'mp4', 'mkv', 'avi', 'mov', 'webm', '000'], audio: ['wav', 'flac', 'mp3', 'ogg'], morph: ['json'], texture: ['png'], textureExperimental: ['png'], native: ['*']};
     if (!formats[args.mode]) throw new Error('Invalid import mode.');
     const file = await pickFile([{name: 'Replacement asset', extensions: formats[args.mode]}]);
     return file ? remember(await call('replace', args.key, file, args.mode, args.textureIndex || 0)) : null;

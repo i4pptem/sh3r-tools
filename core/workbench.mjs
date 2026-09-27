@@ -125,15 +125,17 @@ export class Workbench {
     const result=await blenderExchange({script:'morph_workspace',mode:'export',outputType:'blend',metadata:this.morphWorkspaceMetadata(key)},exportGlb(model,readTextures(data,true)),this.cacheFolder,this.progress);
     writeNew(file,result.data);return {file,...result.report};
   }
-  async compactMorphWorkspace(key,input,file) {
-    const result=await blenderExchange({script:'morph_workspace',mode:'compact',input:path.resolve(input),outputType:'blend',metadata:this.morphWorkspaceMetadata(key)},null,this.cacheFolder,this.progress);
-    writeNew(file,result.data);return {file,...result.report};
-  }
   async prepareMorphWorkspace(key,file) {
     const result=await blenderExchange({script:'morph_workspace',mode:'import',input:path.resolve(file),outputType:'glb',metadata:this.morphWorkspaceMetadata(key)},null,this.cacheFolder,this.progress);
     return this.prepareModelBytes(key,result.data);
   }
-  prepareModel(key, file) {return this.prepareModelBytes(key,readRange(file,0,fs.statSync(file).size));}
+  importModel(key, file) {
+    const glb = readRange(file, 0, fs.statSync(file).size);
+    let edited;
+    try {edited = importGlb(this.bytes(key), glb);}
+    catch {return {...this.prepareModelBytes(key, glb), modelImport: 'rebuild'};}
+    return {...this.stage(key, edited, 'Model attributes: ' + path.basename(file)), modelImport: 'attributes'};
+  }
   prepareModelBytes(key,glb) {
     const data=this.bytes(key),info=replacementInfo(data,glb);
     const token = sha256(Buffer.concat([Buffer.from(key + Date.now()), glb]));
@@ -249,7 +251,6 @@ export class Workbench {
       result = data;
     } else if (mode === 'messages') result = replaceMessages(this.bytes(key), JSON.parse(data.toString('utf8')));
     else if (mode === 'font' || mode === 'fontHires') result = replaceFont(this.bytes(key), textureIndex, data, {highResolution:mode === 'fontHires'});
-    else if (mode === 'glb') result = importGlb(this.bytes(key), data);
     else if (mode === 'morph') result = replaceMorphs(this.bytes(key), JSON.parse(data.toString('utf8')));
     else if (mode === 'textureExperimental') result = rebuildTexture(this.bytes(key), textureIndex, data, ['mdl', 'mdl_'].includes(this.get(key).entry.extension), this.textureOptions(key));
     else if (mode === 'texture') result = replaceTexture(this.bytes(key), textureIndex, data, this.get(key).entry.extension === 'mdl', {...this.textureOptions(key), adapt: true});

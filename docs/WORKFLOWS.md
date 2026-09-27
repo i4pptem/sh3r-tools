@@ -36,7 +36,7 @@ The vector emblem, app/window icon and restrained charcoal/copper palette share 
 1. Select the original PC MDL and **Export GLB** to obtain its rig and named native morph slots.
 2. In a GLB-capable editor, bind the replacement mesh to that original rig. Preserve bone names and bind transforms, apply mesh object transforms, export triangles, and use at most three nonzero bone influences per vertex. New topology is supported; new skeletons are not.
 3. Author the replacement model's shape keys to match the meaning of each original morph. The tool does not infer facial correspondence or automatically transfer expressions between unrelated faces.
-4. In **Import model**, choose **New topology & morphs**, then **Import GLB…**. For every included part, select an original visibility/render template and, when needed, a separate native texture slot. Review the bone-visibility warnings. Map every native morph slot to a new shape key, or explicitly select Neutral. Matching names are preselected.
+4. In **Import model**, choose **Import GLB…**. The tool applies compatible attribute edits directly; changed topology, shape keys, skinning or materials opens the native rebuild setup. For every included part, select an original visibility/render template and, when needed, a separate native texture slot. Review the bone-visibility warnings. Map every native morph slot to a new shape key, or explicitly select Neutral. Matching names are preselected.
 5. **Build & stage replacement** rebuilds native geometry, skin palettes, morph bases, deltas and vertex references. The original target order stays intact so existing facial tracks address the replacement shapes. Original texture images are retained; GLB images are not imported automatically. Replace intended native texture slots separately through PNG import.
 6. Inspect the result with its original ANM and cutscene morph clips. Save the project, then **Build mod** to produce separate game-format files.
 
@@ -46,7 +46,7 @@ Native rebuilding remains experimental. The user confirmed the subdivided Heathe
 
 Primary geometry has a separate aggregate limit: the stock game converts all primary-part indices to 16 bits, so models above 65,536 primary vertices wrap into earlier meshes even if each part is small. Build mod now emits the primary INDEX32 patch when needed and preserves it in later builds. It changes GPU index allocation and upload; the MDL index format, materials, part visibility and morph slots stay intact. The user confirmed that it removes the gameplay/cutscene distortions in the 90,971-primary-vertex Heather workspace. Automatic `_part_` chunks remain necessary for palette and transparent-mesh limits; they do not rename the native material or visibility identity.
 
-**Import model → Positions, normals & UVs only** remains available for position, normal and UV edits with unchanged topology. Native morph JSON edits existing sparse deltas. Preview sliders and playback never stage changes; **Bake intensity** does.
+The same **Import GLB…** action applies position, normal and UV edits directly when topology, skinning, morphs and material assignments are unchanged. Native morph JSON edits existing sparse deltas. Preview sliders and playback never stage changes; **Bake intensity** does.
 
 ## Supported workflows
 
@@ -144,8 +144,6 @@ Special parts carrying auxiliary native payloads support preserved-topology attr
 4. Save the `.blend`, then choose **Morph workspace → Import workspace…**. Review the preselected part/material and shape-key mappings, then **Build & stage replacement**.
 5. Preview the native morphs and **Build mod**. Install its data and required runtime patch together, as for GLB rebuilding.
 
-For an existing edited workspace, select the matching model and choose **Morph workspace → Compact workspace…**. Select the .blend and save a new compact copy. This moves the display layout while retaining geometry, UVs, groups, materials, pose correspondence and unapplied modifiers. Import the compact copy normally.
-
 Assembly uses the BASE modifier stack for all poses; it supports Armature and Subdivision Surface, not arbitrary modifiers. Skin weights are limited to the strongest three influences and normalized for the game. Unrelated replacement faces still need authored expression correspondence. Source blend files are opened with script auto-execution disabled and are never overwritten.
 
 ## ANM range exchange through FBX (experimental, 0.7)
@@ -156,6 +154,6 @@ In Blender, import the FBX with animation offset 0. Edit bones in Pose Mode. Exp
 
 Choose **Replace ANM range from FBX…** with the same model and bank selected. It stages the native ANM and reloads the edited range for playback. Save/build the mod normally. A repeated import does not accumulate conversion changes; frames outside the exported range remain byte-identical.
 
-This mode edits only existing rotation/translation channels. It rejects scale, missing channels, a changed skeleton, object-level armature animation and changed duration. It does not author PACK cutscenes, facial curves, action/event tables or new channels. Export ranges are limited to 500,000 bone samples. Installed Blender performs the FBX conversion. Small conversion residuals within a float32 roundoff envelope retain the exported native sample; changed poses are transferred as deltas from the measured FBX baseline. Source native quaternion/sign bytes remain intact for unchanged channels.
+This mode edits only existing rotation/translation channels. It rejects authored Pose Mode scale, missing channels, a changed skeleton, object-level armature animation and changed duration. Blender may bake Scale keys near 1.0 into the FBX; those keys are allowed when the bone scale itself remains unchanged. It does not author PACK cutscenes, facial curves, action/event tables or new channels. Export ranges are limited to 500,000 bone samples. Installed Blender performs the FBX conversion. Small conversion residuals within a float32 roundoff envelope retain the exported native sample; changed poses are transferred as deltas from the measured FBX baseline. Source native quaternion/sign bytes remain intact for unchanged channels.
 
 Blender round trips and native channel decoding have been verified. Authored ANM changes still need an in-game test, particularly transitions, root motion and procedural/IK behavior.

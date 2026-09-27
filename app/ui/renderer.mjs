@@ -35,11 +35,12 @@ async function run(action, args = {}, label = 'Working…') {
   try {
     const result = await window.studio.request(action, args);
     if (result?.entries) {
+      if (result.modelImport === 'attributes') notify('Model geometry updated. Native topology, morphs and material slots were retained.', true);
       if (action === 'editMap') state.mapDrafts.clear(args.key);
       const previousInput = state.library?.input; state.library = result;
       if (result.input !== previousInput || ['open', 'openGame', 'openProject'].includes(action)) resetWorkspaceView();
       updateLibrary();
-      if (state.selected) await selectAsset(state.selected);
+      if (state.selected) await selectAsset(state.selected, 0, {preserveView: true});
       if (mapView && state.selected === mapKey) state.viewport?.restoreView(mapView);
     } else if (result?.file || result?.folder) notify(`${action === 'build' ? `Verified ${result.changes} replacement(s) in ${result.archives} source(s).${result.runtimePatch ? " Patched sh3.exe included; install it with the built data folder." : ""}` : result.converted !== undefined ? `Exported ${result.count} assets: ${result.converted} converted, ${result.native} native, ${result.failed} conversion errors. See export-report.json.` : 'Saved successfully.'}\n${result.file || result.folder}`, !result.failed);
     if (result?.folderWarning) notify('Build saved, but the folder could not be opened: ' + result.folderWarning);
@@ -163,12 +164,12 @@ document.addEventListener('keydown', event => {
   if (entry.key !== state.selected && !motion.select(entry)) selectAsset(entry.key);
 });
 
-async function selectAsset(key, audioIndex = 0) {
+async function selectAsset(key, audioIndex = 0, {preserveView = false} = {}) {
   const entry = state.library.entries.find(e => e.key === key); if (!entry) return;
   if (entry.section !== state.section) browseSection(entry.section);
   motion.detach(); state.mapSelect = null; state.mapTransform = null; state.mapGesture = null; state.mapUndo = null; state.mapRefresh = null;
   $$('video, audio').forEach(media => media.pause());
-  state.selected = key; state.preview = null; state.texture = 0; state.tab = 'preview';
+  state.selected = key; state.preview = null; if (!preserveView) {state.texture = 0; state.tab = 'preview';}
   state.viewport?.dispose(); state.viewport = null;
   const id = ++state.previewRequest;
   $$('.file-row').forEach(row => {const active = row.dataset.key === key; row.classList.toggle('selected', active); row.setAttribute('aria-selected', String(active));});
@@ -179,7 +180,7 @@ async function selectAsset(key, audioIndex = 0) {
   $('#other-preview').replaceChildren(el('p', '', 'Reading asset…')); setPreviewVisibility('other'); renderInspector(entry, null);
   try {
     const preview = await window.studio.request('preview', {key, audioIndex}); if (id !== state.previewRequest) return;
-    state.preview = preview; renderInspector(entry, preview); await renderPreview();
+    state.preview = preview; state.texture = Math.min(state.texture, Math.max(0, preview.textures.length - 1)); renderInspector(entry, preview); await renderPreview();
   } catch (error) {if (id === state.previewRequest) {$('#other-preview').replaceChildren(el('p', '', error.message)); setPreviewVisibility('other');}}
 }
 function setPreviewVisibility(type) {for (const name of ['viewer', 'image-preview', 'other-preview', 'hex-preview']) $('#' + name).classList.toggle('hidden', name !== ({model: 'viewer', image: 'image-preview', other: 'other-preview', hex: 'hex-preview'}[type]));}
@@ -207,7 +208,16 @@ async function renderPreview() {
     setPreviewVisibility('model');
     if (!state.viewport) {
       try {
-        const viewport = new ModelViewport($('#viewer'), (name,toggle) => state.mapSelect?.(name,toggle), edit => state.mapTransform?.(edit), active => state.mapGesture?.(active)); state.viewport = viewport;
+        const viewport = new ModelViewport($('#viewer'), (name,toggle) => {
+          if (preview.world?.editable) {state.mapSelect?.(name,toggle); return;}
+          const mesh = preview.model.meshes.find(part => part.name === name);
+          viewport.selectParts([name]);
+          if (mesh?.texture >= 0 && mesh.texture < preview.textures.length) {
+            state.texture = mesh.texture;
+            const select = $('#inspector select[aria-label="Embedded texture"]');
+            if (select) {select.value = String(mesh.texture); select.closest('details').open = true;}
+          }
+        }, edit => state.mapTransform?.(edit), active => state.mapGesture?.(active)); state.viewport = viewport;
         await viewport.load(preview.model, preview.textures);
         if (preview.world?.editable && state.mapPart) state.mapRefresh?.(); if (state.preview !== preview) return;
         $('#wireframe').classList.remove('active'); $('#bones').classList.remove('active'); $('#vertex-colors').classList.add('active');
@@ -289,7 +299,7 @@ function renderInspector(entry, preview) {
     const textureRoot = el('details', 'inspector-section'); textureRoot.open = !preview.model; textureRoot.append(el('summary', '', `Textures (${preview.textures.length})`)); root.append(textureRoot);
     const select = el('select'); select.setAttribute('aria-label', 'Embedded texture');
     preview.textures.forEach((t, i) => {const option = el('option', '', `${i} · ${t.width} × ${t.height} · ${t.format}`); option.value = i; select.append(option);});
-    select.onchange = () => {state.texture = Number(select.value); state.tab = 'textures'; renderPreview();}; textureRoot.append(select);
+    select.value = String(state.texture); select.onchange = () => {state.texture = Number(select.value); state.tab = 'textures'; renderPreview();}; textureRoot.append(select);
     const group = el('div', 'action-stack'); group.append(button('View texture', () => {state.tab = 'textures'; renderPreview();}),
       button('Export PNG', () => run('export', {key: entry.key, mode: preview.font ? 'font' : preview.world ? 'worldTexture' : 'texture', textureIndex: state.texture}, 'Exporting PNG…')));
     if (!preview.world) group.append(button('Import PNG', () => run('replace', {key: entry.key, mode: preview.font ? 'font' : 'texture', textureIndex: state.texture}, 'Encoding and verifying texture…')));
@@ -298,8 +308,8 @@ function renderInspector(entry, preview) {
     textureRoot.append(el('p', 'hint', preview.world ? 'Edit the source TEX asset in the library to replace external map textures.' : preview.font ? 'High-resolution import accepts a 2× or 4× atlas in the exported cell order. Grayscale and alpha become 8-bit coverage. The original drawable area stays 20 × 30 (Normal) or 16 × 24 (Small); pixels outside it are cropped. Text size and spacing stay unchanged. Build mod includes the required font patch. Native-resolution PNGs retain the original seven-level palette.' : 'Import PNG fits the original dimensions and palette. Import PNG at full size is experimental: it keeps PNG resolution and writes direct color, with an expanded picture-loader patch included by Build mod when required. Install the built executable with the textures. Other texture paths still require in-game testing. Shared palettes cannot be collapsed.'));
   }
   if (preview?.model) {
-    const meshes = el('details', 'inspector-section'), summary = el('summary', '', `Meshes (${preview.model.meshes.length})`); meshes.append(summary);
-    for (const mesh of preview.model.meshes) {const label = el('label', 'mesh-item'), box = el('input'); box.type = 'checkbox'; box.checked = true; box.onchange = () => state.viewport?.visible(mesh.name, box.checked); label.append(box, document.createTextNode(mesh.name)); meshes.append(label);} root.append(meshes);
+    const meshes = el('details', 'inspector-section'), summary = el('summary', '', `Meshes (${preview.model.meshes.length})`); meshes.append(summary, el('p', 'hint', preview.model.world ? 'Select map parts to edit them.' : 'Click a mesh in the 3D view to find its native texture slot.'));
+    for (const mesh of preview.model.meshes) {const label = el('label', 'mesh-item'), box = el('input'); box.type = 'checkbox'; box.checked = true; box.onchange = () => state.viewport?.visible(mesh.name, box.checked); label.append(box, document.createTextNode(`${mesh.name} · ${mesh.texture >= 0 ? 'texture ' + mesh.texture : 'no texture'}`)); if (mesh.texture >= 0 && mesh.texture < preview.textures.length) label.append(button('View', event => {event.preventDefault(); state.texture = mesh.texture; state.tab = 'textures'; const selected = $('#inspector select[aria-label="Embedded texture"]'); if (selected) selected.value = String(state.texture); renderPreview();})); meshes.append(label);} root.append(meshes);
   }
   nativeSection.open = !!preview && !(preview.model || preview.textures.length || preview.audio || preview.messages || preview.mediaInfo || preview.world);
   root.append(nativeSection, assetDetails);

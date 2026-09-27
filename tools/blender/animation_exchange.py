@@ -76,7 +76,7 @@ def sample(rig, metadata):
             local = local_rest[i] @ rig.pose.bones[bone['name']].matrix_basis @ corrections[i]
             local = corrections[bone['parent']].inverted() @ local if bone['parent'] >= 0 else inverse @ local
             position, rotation, scale = local.decompose()
-            poses.append({'translation': list(position), 'rotation': [rotation.x, rotation.y, rotation.z, rotation.w], 'scale': list(scale)})
+            poses.append({'translation': list(position), 'rotation': [rotation.x, rotation.y, rotation.z, rotation.w], 'scale': list(scale), 'poseScale': list(rig.pose.bones[bone['name']].scale)})
         samples.append(poses)
     return samples
 

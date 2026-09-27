@@ -10,7 +10,7 @@ Install Blender 4.2+ or set `SH3TOOLS_BLENDER` to the full executable path, then
 
 ## “Skeleton edits are not supported by this import mode”
 
-The model must retain the original rig, hierarchy and bind transforms. Export from this tool, edit geometry/shape keys and use **New topology & morphs** when vertex counts changed. Check that the DCC did not alter the armature, apply a nonidentity wrapper transform or drop skin data. The tool compares meaningful bind-pose drift; it does not simply ignore skeleton differences.
+The model must retain the original rig, hierarchy and bind transforms. Export from this tool, edit geometry/shape keys and use **Import GLB…**. The tool opens the rebuild setup when needed. Check that the DCC did not alter the armature, apply a nonidentity wrapper transform or drop skin data. The tool compares meaningful bind-pose drift; it does not simply ignore skeleton differences.
 
 ## Subdivision and pose morphs
 

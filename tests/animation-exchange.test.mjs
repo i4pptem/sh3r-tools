@@ -43,14 +43,14 @@ test('ANM edits stay inside the exported interval and preserve presence and high
 test('ANM rejects absent channels, scale animation, wrong skeleton and frame count',()=>{
   for(const [change,pattern] of [
     [e=>e.samples[0][2].translation[0]+=1,/no writable/],
-    [e=>e.samples[0][0].scale[0]+=.01,/no scale/],
+    [e=>e.samples[0][0].poseScale[0]+=.01,/no scale/],
     [e=>e.metadata.skeletonHash='wrong',/skeleton/],
     [e=>e.metadata.frameCount++,/bank layout/],
     [e=>e.samples[0][0].rotation[0]=NaN,/Invalid FBX/],
   ]) {const {data,model,exchange}=fixture();change(exchange);assert.throws(()=>replaceAnimation(model,data,exchange),pattern);}
 });
 test('FBX float32 conversion noise preserves source while meaningful local edits survive',()=>{
-  const {data,model,exchange}=fixture();exchange.samples[0][0].translation[2]+=.0001;exchange.samples[0][0].scale[1]+=2**-22;
+  const {data,model,exchange}=fixture();exchange.samples[0][0].translation[2]+=.0001;exchange.samples[0][0].scale[0]+=4.3e-6;exchange.samples[0][0].poseScale[1]+=2**-22;
   assert.deepEqual(replaceAnimation(model,data,exchange).data,data);
   exchange.samples[0][0].translation[2]+=.0625;assert.notDeepEqual(replaceAnimation(model,data,exchange).data,data);
 });

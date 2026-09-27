@@ -32,7 +32,7 @@ The preview workspace has collapsible Asset library and Inspector panels, a focu
 
 ## Get started
 
-1. Download `Silent-Hill-3-Tools-0.8.1-win-x64.zip` from [Releases](https://github.com/i4pptem/sh3r-tools/releases) and extract the **entire folder**.
+1. Download the latest `Silent-Hill-3-Tools-*-win-x64.zip` from [Releases](https://github.com/i4pptem/sh3r-tools/releases) and extract the **entire folder**.
 2. Run **Silent Hill 3 Tools.exe**. No Node.js installation is needed.
 3. For movie/media conversion, run **Install media.cmd** once. It downloads the pinned FFmpeg build directly from its publisher and verifies its checksum. An internet connection is required for this step; normal asset processing is local.
 4. For FBX exchange and Blender morph workspaces, install **Blender 4.2 or newer**; version 5.2.2 was tested. Set `SH3TOOLS_BLENDER` to `blender.exe` if automatic detection does not find it.
@@ -59,7 +59,7 @@ The source executable is authenticated and left untouched. A new executable is w
 
 ## Current boundaries
 
-Version **0.8.1** fixes the character-file memory overflow and improves model replacement checks. Native geometry/morph rebuilding, animation import, map rebuilding and expanded runtime buffers need testing with your own assets and scenes. Model replacement retains the original skeleton; unrelated facial expressions are not transferred automatically. The map tools edit supported geometry and texture structures, not the entire level scripting system. FBX model export does not imply direct FBX-to-MDL model replacement.
+Version **0.8.3** adds automatic GLB import routing, keeps the last export/import folder, and makes each mesh's native texture slot easier to inspect. The 0.8.1 character-file memory fix remains included. Native geometry/morph rebuilding, animation import, map rebuilding and expanded runtime buffers need testing with your own assets and scenes. Model replacement retains the original skeleton; unrelated facial expressions are not transferred automatically. The map tools edit supported geometry and texture structures, not the entire level scripting system. FBX model export does not imply direct FBX-to-MDL model replacement.
 
 [Supported formats](docs/FORMATS.md) · [Validation](docs/VALIDATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Roadmap](docs/ROADMAP.md)
 

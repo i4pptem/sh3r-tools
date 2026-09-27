@@ -18,6 +18,8 @@ function primitives(doc) {
 export function replacementInfo(buffer, glb) {
   const templateData = modelTemplate(buffer), model = parseModel(templateData), {doc, accessor} = readGlb(glb), jointMap = validateRig(model, doc, accessor, true);
   const inputs = primitives(doc);
+  const layout = modelLayout(templateData);
+  const nativeSlots = new Set(Array.from({length: layout.materialCount}, (_, index) => templateData.readUInt32LE(layout.materialOffset + index * 8)));
   requireThat(inputs.length > 0 && inputs.length <= 4096, 'GLB has no supported mesh primitives.');
   const inputBones = input => {
     const weights = accessor(input.primitive.attributes.WEIGHTS_0);
@@ -25,11 +27,12 @@ export function replacementInfo(buffer, glb) {
   };
   const boneVariants = model.bones.map(() => new Set());
   for (const mesh of model.meshes) for (let i = 0; i < mesh.joints.length; i++) if (mesh.weights[i] > 0) boneVariants[mesh.joints[i]].add(templateData[mesh.layout.offset + 0x52]);
-  return {sourceHash: model.sourceHash, limits: LIMITS, stockMorphNodes: STOCK_MORPH_NODES, boneVariants: boneVariants.map(set => [...set]), textureSlots: [...new Set(model.meshes.map(mesh => mesh.texture))].sort((a,b) => a-b),
+  return {sourceHash: model.sourceHash, limits: LIMITS, stockMorphNodes: STOCK_MORPH_NODES, boneVariants: boneVariants.map(set => [...set]), textureSlots: [...nativeSlots].sort((a,b) => a-b),
     templates: model.meshes.map(m => ({name: m.name, texture: m.texture, group: m.group, visibility: templateData[m.layout.offset + 0x52]})),
     inputs: inputs.map((input, index) => ({index, name: input.name, targets: input.targets,
+      material: doc.materials?.[input.primitive.material]?.name || null,
+      texture: (() => {const name = doc.materials?.[input.primitive.material]?.name || ''; const match = /^Texture_(\d+)(?:\.\d{3})?$/.exec(name); const slot = match ? Number(match[1]) : null; return nativeSlots.has(slot) ? slot : null;})(),
       bones: inputBones(input),
-      image: doc.images?.[doc.textures?.[doc.materials?.[input.primitive.material]?.pbrMetallicRoughness?.baseColorTexture?.index]?.source]?.name || null,
       vertexCount: doc.accessors[input.primitive.attributes.POSITION]?.count || 0,
       template: model.meshes.findIndex(m => m.name === (input.mesh.extras?.sh3Template || input.name.replace(/_part_\d+$/, '')))})),
     morphs: model.morphNames, targetNames: [...new Set(inputs.flatMap(p => p.targets))]};

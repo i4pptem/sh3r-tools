@@ -115,26 +115,6 @@ def frame_active():
                     area.spaces.active.region_3d.view_distance = max(active.dimensions) * 2
 
 
-def compact_workspace(job, root):
-    bpy.ops.wm.open_mainfile(filepath=job['input'], load_ui=False)
-    stored = bpy.context.scene.get('sh3_morph_workspace')
-    if not stored:
-        raise ValueError('Choose a .blend exported with Export morph workspace.')
-    metadata = json.loads(stored)
-    if metadata.get('version') != 1 or metadata.get('templateHash') != job['metadata']['templateHash']:
-        raise ValueError('This workspace belongs to another model template.')
-    objects = list(bpy.context.scene.objects)
-    for obj in objects:
-        if obj.get('sh3_role') in {'base', 'pose'}:
-            check_transform(obj)
-    result = compact_layout(metadata, objects)
-    metadata['layout'] = 'compact-front-v1'
-    bpy.context.scene['sh3_morph_workspace'] = json.dumps(metadata)
-    frame_active()
-    bpy.ops.wm.save_as_mainfile(filepath=str(root / 'result.blend'))
-    return result
-
-
 def check_transform(obj):
     expected = Matrix([obj['sh3_layout_matrix'][i:i + 4] for i in range(0, 16, 4)])
     if any(abs(obj.matrix_world[r][c] - expected[r][c]) > 1e-5 for r in range(4) for c in range(4)):
@@ -229,7 +209,7 @@ def main():
     job = json.loads(Path(sys.argv[sys.argv.index('--') + 1]).read_text(encoding='utf-8'))
     root = Path(job['folder'])
     try:
-        report = {'export': export_workspace, 'import': import_workspace, 'compact': compact_workspace}[job['mode']](job, root)
+        report = {'export': export_workspace, 'import': import_workspace}[job['mode']](job, root)
     except Exception as error:
         (root / 'report.json').write_text(json.dumps({'error': str(error), 'traceback': traceback.format_exc()}), encoding='utf-8')
         raise
