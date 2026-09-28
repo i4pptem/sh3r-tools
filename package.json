@@ -1,6 +1,6 @@
 {
   "name": "silent-hill-3-tools",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "Local archive and asset workbench for Silent Hill 3 PC",
   "private": true,
   "type": "module",
@@ -16,6 +16,7 @@
     "setup:electron": "node node_modules/electron/install.js"
   },
   "dependencies": {
+    "jpeg-js": "0.4.4",
     "pngjs": "7.0.0",
     "three": "0.186.0"
   },

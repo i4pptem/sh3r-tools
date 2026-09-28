@@ -6,7 +6,7 @@ Support below describes the implemented PC workflows. A file extension alone is 
 | --- | --- | --- |
 | ARC catalog/subarchives | Asset tree, native export, converted archive/all-archive export | Stage native replacements; build separate archives with updated layout |
 | AFS, nested demo AFS | Container browsing and embedded file detection | Native replacements and supported converted audio exchange |
-| PC MDL | Textured model, skin/skeleton, morphs; GLB and FBX | GLB edits with unchanged topology; new geometry and morph rebuilding against original rig; per-texture PNG replacement |
+| PC MDL | Textured model, skin/skeleton, morphs; GLB and FBX | GLB / GLTF / FBX import with base-color images; compatible edits or native geometry/morph rebuilding against the original rig; new slots up to native limits; per-texture PNG replacement |
 | ANM | Skeletal playback, range selection, FBX range export | FBX motion back into the supported existing ANM range/layout; original skeleton retained |
 | Facial PACK tracks | Supported cutscene facial playback linked to selected model | Native morph targets can be rebuilt; this is not a general cutscene/PACK timeline authoring system |
 | KG1 / KG2 | Shadow-geometry inspection where recognized | Native exchange; these are not ordinary skeletal animation clips |
@@ -26,7 +26,7 @@ Support below describes the implemented PC workflows. A file extension alone is 
 
 Media conversion uses optional FFmpeg; FBX and `.blend` workflows use optional Blender. Raw export does not require a converter. Batch converted export can only convert formats supported by the corresponding exporter; inspect its result/report for skipped or failed entries.
 
-**Models:** current rebuilding templates use 48-byte skinned vertices. New skeletons, unlimited bone influences and automatic expression matching between unrelated faces are outside this release. FBX model export and FBX ANM exchange are distinct features; use GLB or a morph workspace for MDL geometry replacement.
+**Models:** current rebuilding templates use 48-byte skinned vertices. New skeletons, unlimited bone influences and automatic expression matching between unrelated faces are outside this release. GLB/GLTF/FBX model import and FBX ANM exchange are separate actions. Model textures accept PNG/JPEG base-color images; 32 image slots and 32 texture groups per mesh group are supported with a conditional executable extension beyond the stock tables. PBR normal/metallic/roughness shading is not converted.
 
 **Maps:** movement edits supported mesh data, not arbitrary gameplay triggers, portals, scripts or collision. Changed topology and visibility still need testing in the game. See [Workflows](WORKFLOWS.md) and [Executable patches](EXECUTABLE-PATCHES.md).
 

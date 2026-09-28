@@ -62,7 +62,7 @@ async function operation(action, args) {
     const file=await pickFile([{name:'SH3 morph workspace',extensions:['blend']}]);return file?call('prepareMorphWorkspace',args.key,file):null;
   }
   if (action === 'importModel') {
-    const file = await pickFile([{name: 'Replacement model with rig and shape keys', extensions: ['glb']}]);
+    const file = await pickFile([{name: 'Model with rig, shape keys and textures (GLB / GLTF / FBX)', extensions: ['glb', 'gltf', 'fbx']}]);
     return file ? remember(await call('importModel', args.key, file)) : null;
   }
   if (action === 'modelTemplates') {

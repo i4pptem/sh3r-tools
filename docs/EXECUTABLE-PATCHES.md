@@ -8,6 +8,7 @@ Requirements are triggered by **staged replacements**, not preview sliders. Char
 
 | Patch | Required when | Result |
 | --- | --- | --- |
+| Model texture tables | More than six model images, five primary texture runs or one secondary run | 32 image slots per model, expanded run/auxiliary tables and 1,120 global texture descriptors; 14 checked redirects |
 | Morph scratch | A model has more than 1,536 pooled morph nodes | 32,768 nodes × 24 bytes; a separate 768 KiB writable allocation in the PE image; 64 native references redirected |
 | Primary INDEX32 | Primary group has more than 65,536 vertices | GPU index allocation, offsets and upload use 32-bit indices; six code patches. Serialized MDL indices are unchanged |
 | Secondary mesh buffers | Secondary group has more than 1,024 vertices or 2,048 triangles | Storage for 65,536 vertices and 131,072 triangles; the native index representation stays 16-bit |
@@ -39,6 +40,16 @@ The patch adds executable code in RX section `.sh3char` and zero-initialized sto
 
 The reproducible profile generator is [character-arena.py](../tools/native/character-arena.py). Separate code and data sections preserve page permissions. The native cache remains finite; the extension does not make arbitrary texture counts, dimensions or hardware formats safe.
 
+### Model texture slots
+
+The model-texture patch adds RX code in `.sh3tex1` and zero-initialized RW storage in `.sh3tbuf` (about 1.18 MiB). It keeps the original 176-byte model records and their 32-record pool, with separate expanded tables for each record. Slot lookup, auxiliary material tables and run tables use those expanded records. Cleanup releases the actual number of uploaded image resources, including unused image slots, once each. Global texture reset clears ownership before models can be reused.
+
+The original texture-descriptor pool has 96 records. The extension appends 1,024 records, supporting all 32 model records with 32 images each plus the original descriptor reserve. This is a CPU metadata limit; GPU memory and image-size limits are unchanged. Serialized MDL image/material tables keep their original format.
+
+Build mod validates matching model/batch image counts and material slot bounds. Requirement detection includes direct MDL replacements, not only imported GLB/GLTF/FBX. The extension is added only when the staged model needs it, or retained when the supplied executable already contains this recognized extension and another runtime requirement causes an EXE build. No requirements means no generated EXE.
+
+Source: [model-textures.c](../tools/native/model-textures.c). Build/profile tools are supplied beside it; source hashes and exact patched spans are checked. Unknown or modified executable layouts are rejected.
+
 ### Fonts
 
 The BIN keeps its native font data and appends a `SH3FNT1\0` extension, referenced by the field at header offset 12. The extension stores higher-resolution glyph coverage. Normal and Small are independent choices; the unedited size keeps its original glyph data.
@@ -58,7 +69,7 @@ a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e
 
 These hashes identify supported bytes; they are not a claim that every release from a particular region or distributor works. Unknown executables are rejected. Do not bypass the hash check by changing the allowlist.
 
-For an executable already patched by a recognized version of this tool, validation reverses the **exact known extensions in memory**, then authenticates the recovered base and verifies the expected bytes/section structure. Recognized existing morph, primary, secondary, picture, font and character extensions are retained while adding new requirements. Patch generation is designed to be idempotent.
+For an executable already patched by a recognized version of this tool, validation reverses the **exact known extensions in memory**, then authenticates the recovered base and verifies the expected bytes/section structure. Recognized existing morph, primary, secondary, picture, font, character and model-texture extensions are retained while adding new requirements. Patch generation is designed to be idempotent.
 
 This recognition does not cover arbitrary executable modifications. External fixes installed as DLLs or configuration files are separate; their presence is not evidence that any EXE layout is supported.
 

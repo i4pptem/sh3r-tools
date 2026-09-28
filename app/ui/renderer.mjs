@@ -38,7 +38,7 @@ async function run(action, args = {}, label = 'Working…') {
   try {
     const result = await window.studio.request(action, args);
     if (result?.entries) {
-      if (result.modelImport === 'attributes') notify('Model geometry updated. Native topology, morphs and material slots were retained.', true);
+      if (result.modelImport === 'attributes') notify('Model and supplied color textures updated. Native topology, morphs and material slots were retained.', true);
       if (action === 'editMap') state.mapDrafts.clear(args.key);
       const previousInput = state.library?.input; state.library = result;
       if (result.input !== previousInput || ['open', 'openGame', 'openProject'].includes(action)) resetWorkspaceView();
@@ -299,7 +299,7 @@ function renderInspector(entry, preview) {
     const actions = el('div', 'action-stack'); actions.append(button('Export original MPEG', () => run('export', {key: entry.key, mode: 'movie'}, 'Decrypting movie…')), button('Export WebM', () => run('export', {key: entry.key, mode: 'webm'}, 'Converting movie…')), button('Import edited video', () => run('replace', {key: entry.key, mode: 'movie'}, 'Encoding and verifying movie…'))); root.append(actions);
     root.append(el('p', 'hint', 'Keep the original duration and include audio. Import restores the native resolution, frame rate, codecs and encrypted .000 wrapper.'));
   }
-  if (preview?.rebuildReport) {root.append(el('hr'), el('h3', '', 'Rebuilt native model'), el('p', 'hint', ((preview.rebuildReport.requiresMorphPatch || preview.rebuildReport.requiresSecondaryPatch || preview.rebuildReport.requiresPrimaryIndexPatch) ? 'Requires the patched sh3.exe included by Build mod. ' : '') + preview.rebuildReport.morphNodes + ' morph nodes · ' + preview.rebuildReport.morphTargets + ' target slots. File validation passed; in-game testing is still required.'));}
+  if (preview?.rebuildReport) {root.append(el('hr'), el('h3', '', 'Rebuilt native model'), el('p', 'hint', ((preview.rebuildReport.requiresModelTexturePatch || preview.rebuildReport.requiresMorphPatch || preview.rebuildReport.requiresSecondaryPatch || preview.rebuildReport.requiresPrimaryIndexPatch) ? 'Requires the patched sh3.exe included by Build mod. ' : '') + preview.rebuildReport.morphNodes + ' morph nodes · ' + preview.rebuildReport.morphTargets + ' target slots. File validation passed; in-game testing is still required.'));}
   if (preview?.textures.length) {
     const textureRoot = el('details', 'inspector-section'); textureRoot.open = !preview.model; textureRoot.append(el('summary', '', `Textures (${preview.textures.length})`)); root.append(textureRoot);
     const select = el('select'); select.setAttribute('aria-label', 'Embedded texture');

@@ -21,10 +21,10 @@ This is an independent modding project for the **PC version** of Silent Hill 3. 
 
 - **Explore the whole game.** ARC and AFS archives, nested sound archives, pictures and movies appear in a single library. Search, filter, navigate with the keyboard and export one archive or all archives, as native files or supported interchange formats.
 - **Work with characters.** Preview PC MDL models, skeletons, textures and pose morphs. Play skeletal ANM and supported facial clips. Export models as **GLB or FBX**, including skin weights and shape keys.
-- **Replace geometry and morphs.** Import new topology against the original rig; map replacement shape keys to native morph slots. Export a Blender workspace with separate base/pose meshes, subdivide them consistently and rebuild their native morph data.
+- **Replace geometry and morphs.** Import **GLB, GLTF or FBX** with base-color textures and additional native texture slots against the original rig; map replacement shape keys to native morph slots. Export a Blender workspace with separate base/pose meshes, subdivide them consistently and rebuild their native morph data.
 - **Exchange skeletal animation.** Export a selected ANM range to FBX and import edited motion into the supported original animation layout.
 - **Edit maps.** Preview textured MAP geometry, select and move several meshes with a gizmo, undo with Ctrl+Z, replace textures, edit UV/material settings and exchange an individual part as GLB, including new topology. Apply the edits to stage a new MAP.
-- **Find textures anywhere.** Texture Inspector gathers standalone textures, embedded MDL/MAP images, font atlases and supported BMP pictures into one searchable catalog. Preview, export PNG or stage a replacement directly; shared map textures show which maps use them.
+- **Find textures anywhere.** Texture Inspector gathers standalone textures, embedded MDL/MAP images, font atlases and supported BMP pictures into one searchable catalog. Choose 10, 20, 50 or 100 thumbnails per page, preview, export PNG or stage a replacement directly; shared map textures show which maps use them.
 - **Update textures and fonts.** Pan and zoom texture previews, export PNG and import replacements. Optional full-size texture replacement and 2×/4× font coverage support higher-resolution artwork.
 - **Inspect text, sound and movies.** MES/JSON exchange, native sound-bank decoding, WAV exchange, AIX handling and encrypted PC FMV preview/export/reimport. See the [format matrix](docs/FORMATS.md) for each format's actual editing scope.
 - **Keep changes organized.** Save a project, review staged replacements and build game-format output into a separate folder. The output folder opens after a successful build.
@@ -60,7 +60,7 @@ The source executable is authenticated and left untouched. A new executable is w
 
 ## Current boundaries
 
-Version **0.8.4** adds Texture Inspector for supported texture sources throughout the opened workspace. Embedded MAP images retain their native size; supported model/standalone textures keep the optional full-size mode. Automatic GLB import routing and remembered file-dialog folders remain included. The 0.8.1 character-file memory fix remains included. Native geometry/morph rebuilding, animation import, map rebuilding and expanded runtime buffers need testing with your own assets and scenes. Model replacement retains the original skeleton; unrelated facial expressions are not transferred automatically. The map tools edit supported geometry and texture structures, not the entire level scripting system. FBX model export does not imply direct FBX-to-MDL model replacement.
+Version **0.8.5** adds a unified GLB/GLTF/FBX model importer, automatic base-color texture replacement, new native texture slots and selectable Texture Inspector page sizes. FBX import/export uses installed Blender. Model rebuilding retains the original skeleton and supports up to 32 image slots (Texture_0–Texture_31) and 32 texture groups per mesh group; Build mod conditionally expands the executable when the original six-slot/run tables are exceeded. Native geometry/morph rebuilding, animation import, map rebuilding and runtime extensions still need testing with your own assets and scenes. Unrelated facial expressions are not transferred automatically; map tools do not edit the entire level scripting system.
 
 [Supported formats](docs/FORMATS.md) · [Validation](docs/VALIDATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Roadmap](docs/ROADMAP.md)
 
@@ -80,6 +80,6 @@ pnpm start
 
 ## Credits and license
 
-Built with Electron, Three.js and pngjs, with optional Blender and FFmpeg workflows. The research community made understanding these formats possible: SH3_chr, sh3redux, memory-of-alessa, fontsh234, ShiningHill, Misc-Game-Research and many others are credited with their specific contributions in [CREDITS.md](CREDITS.md).
+Built with Electron, Three.js, pngjs and jpeg-js, with optional Blender and FFmpeg workflows. The research community made understanding these formats possible: SH3_chr, sh3redux, memory-of-alessa, fontsh234, ShiningHill, Misc-Game-Research and many others are credited with their specific contributions in [CREDITS.md](CREDITS.md).
 
 Original project source and artwork: **Copyright © 2026 i4pptem**, licensed under [GNU GPL v3.0 only](LICENSE). Third-party components retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Silent Hill 3 and the game imagery shown in screenshots belong to their respective rights holders. This project is not affiliated with or endorsed by Konami.

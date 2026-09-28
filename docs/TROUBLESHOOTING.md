@@ -4,13 +4,13 @@
 
 Run **Install media.cmd** from the extracted application folder and restart the app. It needs write access to that folder and an internet connection for the one-time verified download. A checksum mismatch is an error: do not replace the expected checksum with the hash of an unknown download. Developer setup uses `pnpm setup:media`.
 
-## FBX export or a morph workspace cannot find Blender
+## FBX exchange or a morph workspace cannot find Blender
 
 Install Blender 4.2+ or set `SH3TOOLS_BLENDER` to the full executable path, then restart the tool. Exporting a model to GLB works without Blender. Blender 5.2.2 was tested; other releases can differ in FBX import/export behavior.
 
 ## “Skeleton edits are not supported by this import mode”
 
-The model must retain the original rig, hierarchy and bind transforms. Export from this tool, edit geometry/shape keys and use **Import GLB…**. The tool opens the rebuild setup when needed. Check that the DCC did not alter the armature, apply a nonidentity wrapper transform or drop skin data. The tool compares meaningful bind-pose drift; it does not simply ignore skeleton differences.
+The model must retain the original rig, hierarchy and bind transforms. Export from this tool, edit geometry/shape keys and use **Import model…**. The tool opens the rebuild setup when needed. Check that the DCC did not alter the armature, apply a nonidentity wrapper transform or drop skin data. The tool compares meaningful bind-pose drift; it does not simply ignore skeleton differences.
 
 ## Subdivision and pose morphs
 
@@ -51,8 +51,14 @@ Original part templates carry visibility and rendering settings as well as textu
 
 The replacement dialog flags weights that cross the original model's visibility variants. Keep detailed weights on their detailed variants, and author compatible gameplay variants using active ancestors. Re-encode positions from model space when changing weights; changing native index bytes alone is incorrect. Keep the required hair and weapon-hand variants. Copying one hand shape across equipment variants does not create the correct grip for every weapon.
 
-Texture images embedded in GLB are not imported automatically. Choose the intended native texture slot independently of the visibility template, then import each PNG into that slot. Primary parts are grouped by texture to fit the native run table. Original morph meshes still need matching UVs and images when retained alongside replacement geometry.
+Base-color images in GLB/GLTF/FBX are imported automatically. Match Texture_N material names to native slots, and supply consecutive names for added slots. Choose the native texture independently of the visibility template in the rebuild dialog. Missing external images must be restored beside the GLTF or at the saved FBX path; GLTF companion files must remain inside its model directory. Primary parts are grouped by texture to fit the native run table. Original morph meshes still need matching UVs and images when retained alongside replacement geometry.
 
 ## The game exits before its window appears after high-resolution model textures
 
 Embedded textures enlarge the entire MDL. This can exceed the character file arena even when each image is a valid GPU texture. Use the complete data folder and rebuild with a version supporting the character arena patch; install the generated executable and archives together. See [Executable patches](EXECUTABLE-PATCHES.md). The picture/menu patch alone does not cover this allocator.
+
+## ANM reports no writable channel even though FBX has keys
+
+ANM stores a fixed set of bone channels. FBX export can bake keys for every bone, including bones with no local track in the original bank. A bone can also move through its parent without having its own channel. More FBX keys do not allocate a new native channel. Version 0.8.5 ignores absent-bone rotation residuals only when they encode to the same native rotation; actual unsupported motion is rejected with its source frame.
+
+ANM exchange transfers Location and Rotation only. Version 0.8.5 removes Scale animation tracks from exported FBX and ignores incoming bone Scale keys before converting to native transforms. This prevents baked FBX scale residuals from blocking import; no manual key cleanup is required. Deliberate Scale animation is also ignored, so it will not appear in the game. Static rest-bone and armature transforms are still checked: preserve the original skeleton and frame range.

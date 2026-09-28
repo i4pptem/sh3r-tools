@@ -13,8 +13,8 @@ export function modelInspector(root, entry, preview, {state, run, notify, el, bu
   }
   output.append(formats, el('p', 'hint compact-hint', 'FBX uses installed Blender 4.2+.'));
   const input = section('Import model');
-  const hint = el('p', 'hint', 'Choose a GLB with the original rig. Simple geometry edits are applied directly; changed topology, morphs or materials open the native rebuild setup.');
-  const load = button('Import GLB…', async () => {
+  const hint = el('p', 'hint', 'Choose GLB, GLTF or FBX with the original rig. Color textures import together with the model; new slots are detected automatically. FBX requires Blender 4.2+. Topology and morph changes open the rebuild setup.');
+  const load = button('Import model…', async () => {
     const result = await run('importModel', {key: entry.key}, 'Checking model and morphs…');
     if (result?.modelImport === 'rebuild') modelReplacement(state, run, notify, result);
   }, 'primary');

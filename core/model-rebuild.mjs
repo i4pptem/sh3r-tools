@@ -1,3 +1,6 @@
+import {rebuildModelTextures} from './texture-rebuild.mjs';
+import {modelTextureRequirements} from './model-texture-requirements.mjs';
+import {MODEL_TEXTURE_LIMITS} from './model-limits.mjs';
 import {PRIMARY_LIMITS, SECONDARY_LIMITS} from './runtime-buffers.mjs';
 import {modelTemplate, encodeModelProvenance} from './model-provenance.mjs';
 import {Matrix4, Matrix3, Vector3} from 'three';
@@ -15,11 +18,11 @@ function primitives(doc) {
   })));
 }
 
-export function replacementInfo(buffer, glb) {
+export function replacementInfo(buffer, glb, textureCount) {
   const templateData = modelTemplate(buffer), model = parseModel(templateData), {doc, accessor} = readGlb(glb), jointMap = validateRig(model, doc, accessor, true);
   const inputs = primitives(doc);
   const layout = modelLayout(templateData);
-  const nativeSlots = new Set(Array.from({length: layout.materialCount}, (_, index) => templateData.readUInt32LE(layout.materialOffset + index * 8)));
+  const nativeSlots = new Set(Array.from({length: textureCount ?? layout.textureCount}, (_, index) => index));
   requireThat(inputs.length > 0 && inputs.length <= 4096, 'GLB has no supported mesh primitives.');
   const inputBones = input => {
     const weights = accessor(input.primitive.attributes.WEIGHTS_0);
@@ -60,6 +63,8 @@ function readGeometry(input, doc, accessor, jointMap, mapping, hierarchy) {
   requireThat(indices.length > 0 && indices.length % 3 === 0 && indices.every(i => Number.isInteger(i) && i >= 0 && i < count), 'Invalid replacement triangle indices.');
   const normals = attributes.NORMAL === undefined ? normalsFor(positions, indices) : accessor(attributes.NORMAL);
   const uv = attributes.TEXCOORD_0 === undefined ? new Array(count * 2).fill(0) : accessor(attributes.TEXCOORD_0);
+  for (const [name, index] of Object.entries(attributes)) if (/^WEIGHTS_[1-9]\d*$/.test(name))
+    requireThat(accessor(index).every(weight => weight === 0), 'Additional skin weight channels are not supported. Limit each vertex to three influences before export.');
   const joints = accessor(attributes.JOINTS_0), weights = accessor(attributes.WEIGHTS_0);
   requireThat(normals.length === count * 3 && uv.length === count * 2 && joints.length === count * 4 && weights.length === count * 4, 'Replacement attributes have inconsistent vertex counts.');
   requireThat([positions, normals, uv, weights].every(a => a.every(Number.isFinite)), 'Non-finite replacement geometry.');
@@ -230,8 +235,8 @@ function buildMesh(buffer, template, geometry, chunk, model, pool, pairs, materi
 }
 
 /** Rebuild geometry and native morph mappings while preserving model identity, rig and materials. */
-export function rebuildModel(buffer, glb, selection) {
-  const originalSize = buffer.length; buffer = modelTemplate(buffer);
+export function rebuildModel(buffer, glb, selection, texturePlan = {replacements: [], summary: []}) {
+  const originalSize = buffer.length; buffer = rebuildModelTextures(modelTemplate(buffer), texturePlan.replacements);
   const model = parseModel(buffer), h = modelLayout(buffer), {doc, accessor} = readGlb(glb), inputs = primitives(doc);
   const jointMap = validateRig(model, doc, accessor, true);
   const hierarchy = gltfHierarchy(doc);
@@ -243,6 +248,7 @@ export function rebuildModel(buffer, glb, selection) {
   const textureStart = buffer.readUInt32LE(12);
   requireThat(textureStart === buffer.readUInt32LE(16) && textureStart >= h.base + 112 && textureStart <= buffer.length, 'Unsupported MDL texture-block layout.');
   const pool = new MorphPool(h.morphCount), pairs = [], groups = [[], []], identities = [[], []], partCounts = new Map();
+  const materialRecords = Array.from({length: h.materialCount}, (_, index) => Buffer.from(buffer.subarray(h.materialOffset + index * 8, h.materialOffset + (index + 1) * 8)));
   const textureFor = choice => choice.texture ?? model.meshes[choice.template]?.texture;
   for (const choice of [...selection.meshes].sort((a, b) => textureFor(a) - textureFor(b) || a.template - b.template || a.input - b.input)) {
     const input = inputs[choice.input], template = model.meshes[choice.template];
@@ -250,9 +256,11 @@ export function rebuildModel(buffer, glb, selection) {
     requireThat(template.layout.stride === 48, 'Choose a skinned (48-byte) mesh template. Rigid mesh conversion has not been validated.');
     let materialReference = buffer.readUInt16LE(template.layout.offset + buffer.readUInt32LE(template.layout.offset + 56));
     if (choice.texture !== undefined && choice.texture !== template.texture) {
-      requireThat(Number.isInteger(choice.texture) && choice.texture >= 0, 'Choose a valid texture slot.');
-      materialReference = Array.from({length: h.materialCount}, (_, i) => i).find(i => buffer.readUInt32LE(h.materialOffset + i * 8) === choice.texture);
-      requireThat(materialReference !== undefined, 'The selected texture has no native material binding.');
+      requireThat(Number.isInteger(choice.texture) && choice.texture >= 0 && choice.texture < h.textureCount, 'Choose an available texture slot.');
+      requireThat(materialRecords[materialReference], 'Invalid native material template.');
+      const record = Buffer.from(materialRecords[materialReference]); record.writeUInt32LE(choice.texture);
+      materialReference = materialRecords.findIndex(existing => existing.equals(record));
+      if (materialReference < 0) {materialReference = materialRecords.length; materialRecords.push(record);}
     }
     requireThat(materialReference < 32768, 'Material binding exceeds the native signed index range.');
     const geometry = readGeometry(input, doc, accessor, jointMap, selection.morphs, hierarchy);
@@ -265,11 +273,12 @@ export function rebuildModel(buffer, glb, selection) {
   }
   for (const group of [0, 1]) {
     const textures = new Set(selection.meshes.filter(choice => model.meshes[choice.template]?.group === group).map(textureFor));
-    requireThat(textures.size <= (group === 0 ? 5 : 1), group === 0 ? 'Primary parts exceed the five native texture runs.' : 'Transparent parts must share one native texture slot.');
+    requireThat(textures.size <= (group === 0 ? MODEL_TEXTURE_LIMITS.primaryRuns : MODEL_TEXTURE_LIMITS.secondaryRuns), 'Model parts exceed the expanded ' + MODEL_TEXTURE_LIMITS.slots + ' texture groups.');
   }
   const parts = [Buffer.from(buffer.subarray(0, textureStart))]; let offset = textureStart;
   const append = bytes => {const padding = align(offset, 16) - offset; if (padding) {parts.push(Buffer.alloc(padding)); offset += padding;} const start = offset; parts.push(bytes); offset += bytes.length; return start;};
   const header = parts[0], field = (at, value) => header.writeUInt32LE(value, h.base + at);
+  if (materialRecords.length !== h.materialCount) {field(56, materialRecords.length); field(60, append(Buffer.concat(materialRecords)) - h.base);}
   const pairData = Buffer.from(pairs.flat()); field(20, pairs.length); field(24, append(pairData) - h.base);
   const storedPairs = new Map(Array.from({length: h.pairCount}, (_, i) => [`${buffer[h.pairOffset + i * 2]}:${buffer[h.pairOffset + i * 2 + 1]}`, i]));
   const originalHelpers = h.base + buffer.readUInt32LE(h.base + 28), helpers = Buffer.alloc(pairs.length * 64);
@@ -300,7 +309,7 @@ export function rebuildModel(buffer, glb, selection) {
   requireThat(secondaryVertices <= SECONDARY_LIMITS.vertices && secondaryTriangles <= SECONDARY_LIMITS.triangles, 'Secondary geometry exceeds the expanded native index or sorting capacity.');
   return {data: output, report: {vertices: decoded.vertexCount, triangles: decoded.triangleCount, meshes: decoded.meshes.length,
     morphTargets: h.morphCount, morphNodes: pool.nodes.length, bonePairs: pairs.length, maximumPalette: Math.max(...decoded.meshes.map(m => m.layout.boneMap.length)),
-    preservedTextureBytes: buffer.length - textureStart, originalSize, newSize: output.length,
+    ...modelTextureRequirements(decoded), importedTextures: texturePlan.summary, textureBytes: buffer.length - textureStart, originalSize, newSize: output.length,
     primaryVertices, requiresPrimaryIndexPatch: primaryVertices > PRIMARY_LIMITS.stockVertices,
     requiresMorphPatch: pool.nodes.length > STOCK_MORPH_NODES, secondaryVertices, secondaryTriangles, requiresSecondaryPatch: secondaryVertices > 1024 || secondaryTriangles > 2048, runtimeVerified: false, limits: LIMITS}};
 }

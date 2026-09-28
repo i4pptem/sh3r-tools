@@ -4,7 +4,9 @@ import traceback
 from pathlib import Path
 
 import bpy
-from mathutils import Matrix
+from mathutils import Matrix, Quaternion, Vector
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from fbx_animation import remove_scale_tracks
 
 PROPERTY = 'sh3_anm_exchange'
 # glTF Y-up coordinates to Blender Z-up coordinates.
@@ -42,6 +44,15 @@ def check_bind(rig, metadata):
             raise ValueError('FBX rest skeleton changed. Edit the action in Pose Mode; keep the original rest bones and armature transform.')
 
 
+def pose_rotation(pose):
+    if pose.rotation_mode == 'QUATERNION':
+        return pose.rotation_quaternion.copy()
+    if pose.rotation_mode == 'AXIS_ANGLE':
+        angle, x, y, z = pose.rotation_axis_angle
+        return Quaternion((x, y, z), angle)
+    return pose.rotation_euler.to_quaternion()
+
+
 def sample(rig, metadata):
     bones = metadata['bones']
     if set(rig.data.bones.keys()) != {bone['name'] for bone in bones}:
@@ -73,10 +84,12 @@ def sample(rig, metadata):
             raise ValueError('Animate bones in Pose Mode; object-level armature animation is unsupported.')
         poses = []
         for i, bone in enumerate(bones):
-            local = local_rest[i] @ rig.pose.bones[bone['name']].matrix_basis @ corrections[i]
+            pose = rig.pose.bones[bone['name']]
+            basis = Matrix.LocRotScale(pose.location, pose_rotation(pose), Vector((1, 1, 1)))
+            local = local_rest[i] @ basis @ corrections[i]
             local = corrections[bone['parent']].inverted() @ local if bone['parent'] >= 0 else inverse @ local
-            position, rotation, scale = local.decompose()
-            poses.append({'translation': list(position), 'rotation': [rotation.x, rotation.y, rotation.z, rotation.w], 'scale': list(scale), 'poseScale': list(rig.pose.bones[bone['name']].scale)})
+            position, rotation, _scale = local.decompose()
+            poses.append({'translation': list(position), 'rotation': [rotation.x, rotation.y, rotation.z, rotation.w]})
         samples.append(poses)
     return samples
 
@@ -86,6 +99,7 @@ def write_fbx(file):
         use_custom_props=True, add_leaf_bones=False, bake_anim=True, bake_anim_use_all_bones=True,
         bake_anim_use_nla_strips=False, bake_anim_use_all_actions=False, bake_anim_force_startend_keying=True,
         bake_anim_step=1.0, bake_anim_simplify_factor=0.0, mesh_smooth_type='FACE', path_mode='COPY', embed_textures=True)
+    remove_scale_tracks(file)
 
 
 def export_animation(job, root):
@@ -143,7 +157,7 @@ def main():
     try:
         report = export_animation(job, root) if job['mode'] == 'export' else import_animation(job, root)
     except Exception as error:
-        (root / 'report.json').write_text(json.dumps({'error': str(error), 'traceback': traceback.format_exc()}), encoding='utf-8')
+        (root / 'report.json').write_text(json.dumps({'error': str(error) or type(error).__name__, 'traceback': traceback.format_exc()}), encoding='utf-8')
         raise
     (root / 'report.json').write_text(json.dumps(report), encoding='utf-8')
 

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {Matrix4,Quaternion,Vector3} from 'three';
 import {animationExchange,replaceAnimation} from '../core/animation-exchange.mjs';
 import {decodeNativeShort,encodeNativeShort,encodePackedQuaternion} from '../core/anm-codec.mjs';
+import {exportGlb,readGlb} from '../core/gltf.mjs';
 import {parseAnimation} from '../core/animation.mjs';
 
 function fixture() {
@@ -40,17 +41,62 @@ test('ANM edits stay inside the exported interval and preserve presence and high
   assert.equal(result.report.changedRotations,1);assert.equal(result.report.changedTranslations,1);
   assert.deepEqual(replaceAnimation(model,after,exchange).data,after,'repeat import is stable');
 });
-test('ANM rejects absent channels, scale animation, wrong skeleton and frame count',()=>{
+test('ANM rejects absent channels, wrong skeleton and frame count',()=>{
   for(const [change,pattern] of [
     [e=>e.samples[0][2].translation[0]+=1,/no writable/],
-    [e=>e.samples[0][0].poseScale[0]+=.01,/no scale/],
     [e=>e.metadata.skeletonHash='wrong',/skeleton/],
     [e=>e.metadata.frameCount++,/bank layout/],
     [e=>e.samples[0][0].rotation[0]=NaN,/Invalid FBX/],
   ]) {const {data,model,exchange}=fixture();change(exchange);assert.throws(()=>replaceAnimation(model,data,exchange),pattern);}
 });
 test('FBX float32 conversion noise preserves source while meaningful local edits survive',()=>{
-  const {data,model,exchange}=fixture();exchange.samples[0][0].translation[2]+=.0001;exchange.samples[0][0].scale[0]+=4.3e-6;exchange.samples[0][0].poseScale[1]+=2**-22;
+  const {data,model,exchange}=fixture();exchange.samples[0][0].translation[2]+=.0001;
   assert.deepEqual(replaceAnimation(model,data,exchange).data,data);
   exchange.samples[0][0].translation[2]+=.0625;assert.notDeepEqual(replaceAnimation(model,data,exchange).data,data);
+});
+
+test('absent bone rotation tolerates a measured FBX round trip only when native packed rotations agree',()=>{
+  const {data,model,exchange}=fixture();
+  exchange.baseline[0][2].rotation=[0.4948790669441223,-0.5050694942474365,0.5050668716430664,0.49488070607185364];
+  exchange.samples[0][2].rotation=[0.49488338828086853,-0.5050650835037231,0.505071222782135,0.4948764443397522];
+  assert.ok(Math.max(...exchange.samples[0][2].rotation.map((v,i)=>Math.abs(v-exchange.baseline[0][2].rotation[i])))>32*2**-23);
+  assert.deepEqual(replaceAnimation(model,data,exchange).data,data);
+  exchange.samples[0][2].rotation=exchange.samples[0][2].rotation.map(v=>-v);
+  assert.deepEqual(replaceAnimation(model,data,exchange).data,data);
+  exchange.samples[0][0].translation[0]+=4;
+  const result=replaceAnimation(model,data,exchange);assert.equal(result.report.changedTranslations,1);assert.equal(result.report.changedRotations,0);
+  assert.notDeepEqual(result.data,data);assert.deepEqual(replaceAnimation(model,result.data,exchange).data,result.data);
+});
+
+test('an absent channel still rejects a rotation that crosses a native quantization boundary',()=>{
+  const {data,model,exchange}=fixture();
+  const x=0.6/32768;exchange.samples[0][2].rotation=[x,0,0,Math.sqrt(1-x*x)];
+  assert.throws(()=>replaceAnimation(model,data,exchange),/no writable animation channel.*source frame 1/);
+});
+
+test('real absent-channel rotation changes remain rejected regardless of quaternion sign',()=>{
+  for(const sign of [1,-1]) {
+    const {data,model,exchange}=fixture();exchange.samples[0][2].rotation=new Quaternion().setFromAxisAngle(new Vector3(0,1,0),.01).toArray().map(v=>v*sign);
+    assert.throws(()=>replaceAnimation(model,data,exchange),/no writable animation channel/);
+  }
+});
+
+test('ANM exchange ignores unsupported scale fields while preserving real translation and rotation edits',()=>{
+  const {data,model,exchange}=fixture();
+  for(const pose of exchange.samples[0]) {pose.scale=[.8,1.1,2];pose.poseScale=[.9999938,1,1.0000056];}
+  assert.deepEqual(replaceAnimation(model,data,exchange).data,data);
+  exchange.samples[0][0].translation[0]+=4;
+  exchange.samples[0][1].rotation=new Quaternion().setFromAxisAngle(new Vector3(0,1,0),.4).toArray();
+  const result=replaceAnimation(model,data,exchange);
+  const reference=structuredClone(exchange);reference.samples.forEach(frame=>frame.forEach(pose=>{delete pose.scale;delete pose.poseScale;}));
+  assert.deepEqual(result.data,replaceAnimation(model,data,reference).data);
+  assert.equal(result.report.changedRotations,1);assert.equal(result.report.changedTranslations,1);
+});
+
+test('animation export emits translation and rotation tracks without changing static rig transforms',()=>{
+  const {data,model}=fixture();model.meshes=[];model.bones[2].matrix=new Matrix4().makeScale(1.2,.8,1.1).setPosition(20,0,0).toArray();
+  const motion=animationExchange(model,data,0,2,30),{doc}=readGlb(exportGlb(model,[],motion));
+  assert.deepEqual(new Set(doc.animations[0].channels.map(c=>c.target.path)),new Set(['translation','rotation']));
+  assert.deepEqual(doc.nodes[2].scale.map(v=>Math.round(v*1000)/1000),[1.2,.8,1.1]);
+  assert.ok(motion.samples.every(frame=>frame.every(pose=>!('scale' in pose)&&!('poseScale' in pose))));
 });

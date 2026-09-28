@@ -28,5 +28,8 @@ const characterProfile = JSON.parse(fs.readFileSync(path.join(root, 'core/charac
 const characterSource = fs.readFileSync(path.join(root, 'tools/native/character-arena.py'), 'utf8').replace(/\r\n?/g, '\n');
 const characterHash = createHash('sha256').update(characterSource, 'utf8').digest('hex');
 if (characterHash !== characterProfile.sourceSha256) errors.push('Character arena source does not match its patch profile.');
+const textureProfile = JSON.parse(fs.readFileSync(path.join(root, 'core/model-texture-runtime-profile.json'), 'utf8'));
+const textureSource = fs.readFileSync(path.join(root, 'tools/native/model-textures.c'), 'utf8').replace(/\r\n?/g, '\n');
+if (createHash('sha256').update(textureSource, 'utf8').digest('hex') !== textureProfile.sourceSha256) errors.push('Model texture source does not match its patch profile.');
 if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
 else console.log(`Repository check passed: ${files.length} public files; links, source types and native source hashes verified.`);

@@ -311,3 +311,5 @@ main{flex:1;min-width:0;position:relative}
 .texture-issues{font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px}.texture-issues summary{cursor:pointer}.texture-issues>div{max-height:95px;overflow:auto;margin-top:8px}.texture-issues p{padding:4px 0;overflow-wrap:anywhere}
 .texture-no-results{color:var(--muted);padding:20px;grid-column:1/-1}
 @media(max-width:1250px){.texture-page{padding:16px}.texture-workspace{gap:12px;grid-template-columns:minmax(320px,1fr) 320px}.texture-search{flex-wrap:wrap}.texture-search input{min-width:180px}.texture-thumb{height:104px}.texture-card-info{padding:8px}}
+
+.texture-page-controls{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}.texture-page-controls select{padding:5px}.texture-page-controls label{font-size:11px}

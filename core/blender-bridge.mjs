@@ -15,7 +15,7 @@ export function findBlender() {
 /** Run the installed Blender without auto-executing blend scripts or changing the input file. */
 export async function blenderExchange(job, glb, cacheFolder, progress=()=>{}) {
   const executable=findBlender();requireThat(executable,'Install Blender 4.2 or newer, or set SH3TOOLS_BLENDER to blender.exe. This exchange workflow uses Blender.');
-  requireThat(['morph_workspace','animation_exchange','model_export'].includes(job.script),'Invalid Blender exchange script.');
+  requireThat(['morph_workspace','animation_exchange','model_export','model_import'].includes(job.script),'Invalid Blender exchange script.');
   fs.mkdirSync(cacheFolder,{recursive:true});const folder=fs.mkdtempSync(path.join(cacheFolder,'blender-'));
   try {
     const request={...job,folder};if(glb)fs.writeFileSync(path.join(folder,'model.glb'),glb);

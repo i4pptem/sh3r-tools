@@ -1,3 +1,4 @@
+import {restoreModelTextureRuntime, expandModelTextureRuntime} from './model-texture-runtime.mjs';
 import {restoreCharacterRuntime, expandCharacterRuntime} from './character-runtime.mjs';
 import {restoreFontRuntime, expandFontRuntime} from './font-runtime.mjs';
 import primary from './primary-index-runtime-profile.json' with {type: 'json'};
@@ -31,7 +32,7 @@ function replaceChecked(data, at, expected, replacement) {
 
 /** Reverse only our exact additions, then authenticate the entire supported executable. */
 function supportedBase(source) {
-  const character = restoreCharacterRuntime(source), font = restoreFontRuntime(character.data), data = Buffer.from(font.data), layout = peLayout(data), {pe, optional, table, count, offset} = layout;
+  const textures = restoreModelTextureRuntime(source), character = restoreCharacterRuntime(textures.data), font = restoreFontRuntime(character.data), data = Buffer.from(font.data), layout = peLayout(data), {pe, optional, table, count, offset} = layout;
   const hasPrimaryIndices = primary.patches.some(p => data.subarray(offset(p.address), offset(p.address) + p.replacement.length / 2).equals(Buffer.from(p.replacement, 'hex')));
   if (hasPrimaryIndices) for (const p of primary.patches) replaceChecked(data, offset(p.address), Buffer.from(p.replacement, 'hex'), Buffer.from(p.expected, 'hex'));
   const hasPicture = picture.patches.some(p => data.subarray(offset(p.address), offset(p.address) + p.replacement.length / 2).equals(Buffer.from(p.replacement, 'hex')));
@@ -54,7 +55,7 @@ function supportedBase(source) {
     data.writeUInt32LE(size, optional + 56);
     for (const value of [0, checksum(data, optional + 64)]) {
       data.writeUInt32LE(value, optional + 64);
-      if (knownHashes.has(sha256(data))) return {data, hasPicture, hasSecondary, hasPrimaryIndices, hasFonts: font.hasFonts, hasCharacter: character.hasCharacter};
+      if (knownHashes.has(sha256(data))) return {data, hasPicture, hasSecondary, hasPrimaryIndices, hasFonts: font.hasFonts, hasCharacter: character.hasCharacter, hasModelTextures: textures.hasModelTextures};
     }
   }
   throw new Error('This executable does not match a supported original or a verified Silent Hill 3 Tools patch. Select a supported sh3.exe.');
@@ -77,7 +78,7 @@ function expandSecondary(data) {
 /** Compose authenticated morph, geometry and picture patches, preserving installed extensions. */
 export function expandRuntimeBuffers(source, requirements) {
   const normalized = supportedBase(source); let data = normalized.data;
-  const report = {patch: 'sh3-runtime-buffers-v5', sourceHash: sha256(source), runtimeVerified: false};
+  const report = {patch: 'sh3-runtime-buffers-v6', sourceHash: sha256(source), runtimeVerified: false};
   if (requirements.requiresMorphPatch || morph.patched.some(p => p.hash === sha256(data))) {
     const expanded = expandMorphRuntime(data); data = expanded.data; report.morph = expanded.report;
   }
@@ -94,6 +95,7 @@ export function expandRuntimeBuffers(source, requirements) {
   }
   if (requirements.requiresFontPatch || normalized.hasFonts) {const expanded = expandFontRuntime(data); data = expanded.data; report.font = expanded.report;}
   if (requirements.requiresCharacterPatch || normalized.hasCharacter) {const expanded = expandCharacterRuntime(data); data = expanded.data; report.character = expanded.report;}
+  if (requirements.requiresModelTexturePatch || normalized.hasModelTextures) {const expanded = expandModelTextureRuntime(data); data = expanded.data; report.modelTextures = expanded.report;}
   const layout = peLayout(data); data.writeUInt32LE(checksum(data, layout.optional + 64), layout.optional + 64);
   report.outputHash = sha256(data); report.alreadyExpanded = report.sourceHash === report.outputHash;
   return {data, report};

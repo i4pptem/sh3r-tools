@@ -1,14 +1,18 @@
-# Validation for 0.8.4
+# Validation for 0.8.5
 
 Validation combines synthetic regression tests, local real-asset checks, exchange comparisons and selected user-confirmed game tests. Private game assets and development trace dumps are not redistributed. The source test suite is self-contained.
 
 ## Automated source checks
 
-The Node suite contains **182 tests** covering archive writes, native layouts, texture and font exchange, messages, model/morph rebuilding, map operations, animation channels, project behavior and runtime patch composition/authentication. The extracted native-layout validator lives under `tests/helpers`, so tests no longer depend on a private research directory. The production UI bundle is built with esbuild.
+The Node suite contains **206 tests** covering archive writes, native layouts, texture and font exchange, messages, model/morph rebuilding, map operations, animation channels, project behavior and runtime patch composition/authentication. The extracted native-layout validator lives under `tests/helpers`, so tests no longer depend on a private research directory. The production UI bundle is built with esbuild.
 
 The 0.8.3 regression checks cover one-click GLB import of unchanged geometry and automatic rebuild setup when a mesh changes material slots. A real Heather archive was also previewed before and after an in-memory PNG replacement: only the selected slot's decoded image changed, while all other slots stayed byte-identical. This does not substitute for testing the installed mod in the game.
 
 The 0.8.4 regressions additionally cover catalog ownership and shared-map references, MDL and MAP texture replacement, unchanged container geometry/suffix bytes, stale source rejection, incremental cache invalidation, metadata-only parsing and BMP row/padding preservation.
+
+The 0.8.5 suite covers external/multiple GLTF buffers, data URIs, PNG/JPEG companions, missing/escaping resource paths, linear base-color factors, material-slot conflicts and gaps, native image-table growth, template metadata, repeat-import identity and extra skin-weight channels.
+
+A further ANM regression reproduces an absent-bone FBX rotation residual beyond the float32 comparison bound but with identical native quaternion codes. Real changes crossing the native code boundary and meaningful missing-channel motion are still rejected. A supplied 111-frame animation (825–935) imported directly from the original edited FBX with incoming Scale ignored; bytes outside the range and repeated-import output remained identical. Exporting and importing an unchanged range retained the entire native ANM byte-for-byte. Regression tests verify translation/rotation-only exports, preserved static bind scale, and ignored legacy scale fields. Blender checks verify that exported FBX contains no Scale animation connections and that removing those tracks preserves all other objects and connections. Original FBX and game archives were not modified.
 
 ## Asset and exchange coverage
 
@@ -27,7 +31,11 @@ The measured position/deformation errors are below half the native 1/16 position
 
 The 0.8.4 catalog scan found **2,820 images** in the development installation: 328 MDL images, 1,862 embedded MAP images, 624 standalone images (including archived and loose BMP copies), and six font atlases. All images in 896 nonempty sources decoded successfully; 19 additional supported sources were empty. PNG replacements in a real MDL, MAP, shared TEX and BMP survived project save/load and a verified three-archive build; original source hashes remained unchanged. These are installation-specific counts, not coverage claims for every regional variant.
 
+A clean Heather was imported with six images through GLB, external-resource GLTF and FBX (Blender 5.2). GLB → GLTF repeat import produced byte-identical rebuilt MDLs. All paths retained 57 meshes, 25 morph slots and 16,768 triangles; FBX split additional vertices at exchange boundaries. New slots appeared in Texture Inspector, and the result built into a verified separate chrpl.arc without changing the original archive. Native-code emulation registered all six images and checked 57 bindings across three material consumers in four run-table configurations. These are file/emulation checks; the new six-slot model has not been tested in a running game.
+
 ## UI and game checks
+
+The 0.8.5 UI checks cover all four page sizes with loaded thumbnails, arrow navigation across a page boundary, preference persistence after reload, the 1120 × 720 footer layout, one three-format import dialog, rebuilding through each format and six updated catalog images. No renderer errors were recorded.
 
 The 0.8.4 Texture Inspector UI check covered catalog search/filtering, real MDL PNG import/export, embedded MAP replacement, live preview refresh, shared-map references, source navigation and the 1120 × 720 layout, with no renderer errors. These tests stage files locally; the newly authored test mod has not been scene-tested in game.
 
@@ -46,3 +54,5 @@ The publication build additionally runs tests and UI compilation from the standa
 - Executable revisions beyond the two audited base hashes.
 
 Build reports retain `runtimeVerified: false` because the builder itself has not executed the user's newly authored replacement in the game. See [Executable patches](EXECUTABLE-PATCHES.md).
+
+The conditional model-texture extension was tested with real eight- and 32-image Heather imports, repeated-import byte equality, catalog indexing and separate archive builds. Reapplying the composed executable patch is byte-identical. Native instruction emulation runs the compiled extension with original registration, lookup and cleanup code: 32 simultaneous models with 1,024 resources, all three material binders, auxiliary slots, single/bulk cleanup and global reset. All 1,199 stubbed GPU creates have matching releases; adjacent model memory and stack/callee-saved registers remain intact. GPU calls are stubbed in these tests. The stock-layout scan checked 158 MDLs for consistent header/batch counts. A live 32-slot Heather test recorded 80 resource lookups across primary and secondary material rendering, including Texture_31; every sampled GPU pointer was nonzero. The user confirmed correct textures during gameplay, weapon changes and a cutscene. Composing all seven runtime extensions and reapplying them was byte-identical. These checks cover the supplied test model, not every authored replacement.

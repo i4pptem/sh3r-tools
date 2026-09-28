@@ -1,3 +1,5 @@
+import {loadModelFile} from './model-import.mjs';
+import {modelTexturePlan} from './model-textures.mjs';
 import {TextureLibrary} from './texture-library.mjs';
 import {characterRequirements, isCharacterAsset} from './character-requirements.mjs';
 import {animationExchange,replaceAnimation} from './animation-exchange.mjs';
@@ -5,7 +7,7 @@ import {blenderExchange} from './blender-bridge.mjs';
 import {exportMapPart, importMapPart} from './map-part.mjs';
 import {mapPartReplacementIssue} from './map-repack.mjs';
 import {editMap, importMapGlb} from './map-edit.mjs';
-import {rebuildTexture} from './texture-rebuild.mjs';
+import {rebuildTexture, rebuildModelTextures, syncModelImageTable} from './texture-rebuild.mjs';
 import {mapAsset} from './map-materials.mjs';
 import {assetFormat} from './asset-format.mjs';
 import {exportArchive, exportAllArchives} from './archive-export.mjs';
@@ -27,6 +29,8 @@ import path from 'node:path';
 import {entryBytes, buildArchive} from './archives.mjs';
 import {parseModel, modelLayout, morphDocument, replaceMorphs} from './model.mjs';
 import {STOCK_MORPH_NODES, MODEL_LIMITS} from './model-limits.mjs';
+import {modelTextureRequirements} from './model-texture-requirements.mjs';
+import {MODEL_TEXTURE_LIMITS} from './model-limits.mjs';
 import {expandRuntimeBuffers, PRIMARY_LIMITS, SECONDARY_LIMITS, PICTURE_LIMITS} from './runtime-buffers.mjs';
 import {readTextures, replaceTexture} from './textures.mjs';
 import {exportGlb, importGlb} from './gltf.mjs';
@@ -135,31 +139,36 @@ export class Workbench {
     const result=await blenderExchange({script:'morph_workspace',mode:'import',input:path.resolve(file),outputType:'glb',metadata:this.morphWorkspaceMetadata(key)},null,this.cacheFolder,this.progress);
     return this.prepareModelBytes(key,result.data);
   }
-  importModel(key, file) {
-    const glb = readRange(file, 0, fs.statSync(file).size);
+  async importModel(key, file) {
+    const input = await loadModelFile(file, this.cacheFolder, this.progress), data = this.bytes(key);
+    const textures = modelTexturePlan(data, input), glb = textures.glb;
+    if (textures.added) return {...this.prepareModelBytes(key, glb, textures), modelImport: 'rebuild'};
     let edited;
-    try {edited = importGlb(this.bytes(key), glb);}
-    catch {return {...this.prepareModelBytes(key, glb), modelImport: 'rebuild'};}
-    return {...this.stage(key, edited, 'Model attributes: ' + path.basename(file)), modelImport: 'attributes'};
+    try {edited = importGlb(data, glb);}
+    catch {return {...this.prepareModelBytes(key, glb, textures), modelImport: 'rebuild'};}
+    const output = rebuildModelTextures(edited, textures.replacements);
+    return {...this.stage(key, output, 'Model and textures: ' + path.basename(file)), modelImport: 'attributes', importedTextures: textures.summary};
   }
-  prepareModelBytes(key,glb) {
-    const data=this.bytes(key),info=replacementInfo(data,glb);
+  prepareModelBytes(key,glb,textures) {
+    const data=this.bytes(key); textures ||= modelTexturePlan(data,glb); glb = textures.glb;
+    const info=replacementInfo(data,glb,textures.count);
     const token = sha256(Buffer.concat([Buffer.from(key + Date.now()), glb]));
-    this.modelPlan = {key, glb, sourceHash: sha256(data), token}; return {token, ...info};
+    this.modelPlan = {key, glb, textures, sourceHash: sha256(data), token}; return {token, ...info, importedTextures: textures.summary, newTextureSlots: textures.added};
   }
   modelTemplates(key, token, file) {
     const plan=this.modelPlan, current=this.bytes(key);
     requireThat(plan && plan.key===key && plan.token===token && plan.sourceHash===sha256(current),'Prepare the replacement model again.');
     const original=modelTemplate(readRange(file,0,fs.statSync(file).size)), model=parseModel(original), existing=parseModel(current);
-    requireThat(model.modelId===existing.modelId && model.morphNames.length===existing.morphNames.length && model.textureCount===existing.textureCount,'Choose the original MDL for this same character.');
+    requireThat(model.modelId===existing.modelId && model.morphNames.length===existing.morphNames.length && model.textureCount<=existing.textureCount,'Choose the original MDL for this same character.');
     requireThat(JSON.stringify(model.bones)===JSON.stringify(existing.bones),'Original template skeleton differs from this model.');
-    const template=Buffer.concat([original.subarray(0,original.readUInt32LE(12)),current.subarray(current.readUInt32LE(12))]);
-    const info=replacementInfo(template,plan.glb); plan.template=template; return {...info,token};
+    let template=Buffer.concat([original.subarray(0,original.readUInt32LE(12)),current.subarray(current.readUInt32LE(12))]);
+    template.writeUInt32LE(current.readUInt32LE(8),8); template=syncModelImageTable(template);
+    const info=replacementInfo(template,plan.glb,plan.textures.count); plan.template=template; return {...info,token,importedTextures:plan.textures.summary,newTextureSlots:plan.textures.added};
   }
   rebuildModel(key, token, selection) {
     const plan = this.modelPlan, data = this.bytes(key);
     requireThat(plan && plan.key === key && plan.token === token && plan.sourceHash === sha256(data), 'The model changed. Prepare the replacement again.');
-    const rebuilt = rebuildModel(plan.template || data, plan.glb, selection); this.modelPlan = null;
+    const rebuilt = rebuildModel(plan.template || data, plan.glb, selection, plan.textures); this.modelPlan = null;
     const snapshot = this.stage(key, rebuilt.data, 'Rebuilt topology and native morphs (runtime test required)');
     const change = this.changes.get(key); if (change) change.rebuildReport = rebuilt.report;
     return {...snapshot, rebuildReport: rebuilt.report};
@@ -340,10 +349,17 @@ export class Workbench {
   buildRequirements() {
     const morphNodes = Math.max(0, ...[...this.changes].filter(([key]) => ['mdl', 'mdl_'].includes(this.get(key).entry.extension)).map(([, change]) => modelLayout(change.data).morphBaseCount));
     requireThat(morphNodes <= MODEL_LIMITS.morphNodes, 'A staged model exceeds the native signed morph-index range.');
+    let textureSlots = 0, primaryTextureRuns = 0, secondaryTextureRuns = 0, requiresModelTexturePatch = false;
     let primaryVertices = 0, secondaryVertices = 0, secondaryTriangles = 0, pictureBytes = 0, fontScale = 0;
     for (const [key, change] of this.changes) {
       if (['mdl','mdl_'].includes(this.get(key).entry.extension)) {
-        const model = parseModel(change.data), meshes = model.meshes.filter(m => m.group === 1);
+        const model = parseModel(change.data), meshes = model.meshes.filter(m => m.group === 1), textures = modelTextureRequirements(model);
+        const batch = change.data.readUInt32LE(12);
+        requireThat(change.data[0] === 0 && batch === change.data.readUInt32LE(16) && batch <= change.data.length - 24 && change.data.readUInt32LE(batch + 20) === model.textureCount, "Model texture header and batch counts must agree in the supported PC layout.");
+        requireThat(model.meshes.every(mesh => mesh.texture >= 0 && mesh.texture < model.textureCount), "A model material references a missing texture slot.");
+        requireThat(textures.textureSlots <= MODEL_TEXTURE_LIMITS.slots && textures.primaryRuns <= MODEL_TEXTURE_LIMITS.primaryRuns && textures.secondaryRuns <= MODEL_TEXTURE_LIMITS.secondaryRuns, "A staged model exceeds the expanded texture tables.");
+        textureSlots = Math.max(textureSlots, textures.textureSlots); primaryTextureRuns = Math.max(primaryTextureRuns, textures.primaryRuns); secondaryTextureRuns = Math.max(secondaryTextureRuns, textures.secondaryRuns);
+        requiresModelTexturePatch ||= textures.requiresModelTexturePatch;
         primaryVertices = Math.max(primaryVertices, model.meshes.filter(m => m.group === 0).reduce((n, m) => n + m.vertexCount, 0));
         requireThat(meshes.every(m => m.vertexCount <= SECONDARY_LIMITS.perMeshVertices), 'A secondary mesh exceeds the native staging buffer. Use Replace model & rebuild morphs to partition it.');
         secondaryVertices = Math.max(secondaryVertices, meshes.reduce((n,m) => n+m.vertexCount,0));
@@ -365,8 +381,8 @@ export class Workbench {
       character = characterRequirements(entries);
     }
     const executable = this.dataRoot ? path.join(path.dirname(this.dataRoot), 'sh3.exe') : null;
-    return {...character, fontScale, requiresFontPatch, morphNodes, primaryVertices, requiresPrimaryIndexPatch, secondaryVertices, secondaryTriangles, pictureBytes, requiresMorphPatch, requiresSecondaryPatch, requiresPicturePatch,
-      requiresRuntimePatch: character.requiresCharacterPatch || requiresFontPatch || requiresPrimaryIndexPatch || requiresMorphPatch || requiresSecondaryPatch || requiresPicturePatch, executable: executable && fs.existsSync(executable) ? executable : null};
+    return {...character, textureSlots, primaryTextureRuns, secondaryTextureRuns, requiresModelTexturePatch, fontScale, requiresFontPatch, morphNodes, primaryVertices, requiresPrimaryIndexPatch, secondaryVertices, secondaryTriangles, pictureBytes, requiresMorphPatch, requiresSecondaryPatch, requiresPicturePatch,
+      requiresRuntimePatch: requiresModelTexturePatch || character.requiresCharacterPatch || requiresFontPatch || requiresPrimaryIndexPatch || requiresMorphPatch || requiresSecondaryPatch || requiresPicturePatch, executable: executable && fs.existsSync(executable) ? executable : null};
   }
   build(folder, gameExecutable) {
     requireThat(this.changes.size, 'No replacements are staged.');

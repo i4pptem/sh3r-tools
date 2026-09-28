@@ -59,7 +59,7 @@ export function exportGlb(model, textures = [], motion = null) {
     for (let bone = 0; bone < model.bones.length; bone++) {
       const node = nodes[bone], p = new Vector3(), q = new Quaternion(), scale = new Vector3(); locals[bone].decompose(p,q,scale);
       delete node.matrix; node.translation=p.toArray();node.rotation=q.toArray();node.scale=scale.toArray();
-      for (const [path,size] of [['translation',3],['rotation',4],['scale',3]]) {
+      for (const [path,size] of [['translation',3],['rotation',4]]) {
         const values=motion.samples.flatMap(frame=>frame[bone][path]);
         channels.push({sampler:samplers.length,target:{node:bone,path}});
         samplers.push({input,output:attribute(values,size===4?'VEC4':'VEC3'),interpolation:'LINEAR'});
@@ -94,7 +94,7 @@ export function readGlb(buffer) {
   }
   requireThat(doc && binary, 'GLB requires JSON and embedded binary data.');
   const accessor = index => gltfAccessor(doc, binary, index);
-  return {doc, accessor};
+  return {doc, binary, accessor};
 }
 
 /** Edit only vertex attributes on an unchanged topology; rig and native morph storage remain authoritative. */
@@ -115,6 +115,8 @@ export function importGlb(buffer, glb) {
     }
     requireThat((p.mode ?? 4) === 4 && p.indices !== undefined && equal(accessor(p.indices), source.indices), `${source.name}: triangle order or vertex topology changed.`);
     requireThat(!p.extensions, 'Compressed glTF meshes are unsupported.');
+    for (const [name, index] of Object.entries(p.attributes)) if (/^WEIGHTS_[1-9]\d*$/.test(name))
+      requireThat(accessor(index).every(weight => weight === 0), 'Additional skin weight channels are not supported. Limit each vertex to three influences before export.');
     for (const attr of ['JOINTS_0', 'WEIGHTS_0']) if (base.attributes[attr] !== undefined) requireThat(p.attributes[attr] !== undefined && equal(accessor(p.attributes[attr]), exported.accessor(base.attributes[attr])), 'Keep original skin weights and joints in this import mode.');
     const node = doc.nodes.find(n => n.mesh === doc.meshes.indexOf(mesh));
     requireThat(node && !node.matrix && !node.translation && !node.rotation && !node.scale, 'Apply object transforms before export. Mesh nodes must use identity transforms.');

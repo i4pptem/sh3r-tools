@@ -1,3 +1,4 @@
+import {MODEL_TEXTURE_LIMITS} from './model-limits.mjs';
 import {PNG} from 'pngjs';
 import {readTextures, encodePic} from './textures.mjs';
 import {requireThat, range, MAX_ASSET} from './binary.mjs';
@@ -61,5 +62,51 @@ export function rebuildTexture(data, index, inputPng, model = false, options = {
     const tolerance = target.layout.picture && p % 4 === 3 ? 1 : 0;
     requireThat(Math.abs(updated.rgba[p] - image.data[p]) <= tolerance, 'Rebuilt texture pixel verification failed.');
   }
+  return output;
+}
+
+/** Replace model images and append new native slots before geometry is rebuilt. */
+export function rebuildModelTextures(data, replacements) {
+  if (!replacements.length) return data;
+  const originalCount = data.readUInt32LE(8), ordered = [...replacements].sort((a, b) => a.slot - b.slot);
+  requireThat(originalCount <= MODEL_TEXTURE_LIMITS.slots && new Set(ordered.map(image => image.slot)).size === ordered.length, 'Invalid model texture slots.');
+  let output = data;
+  for (const {slot, png} of ordered) {
+    requireThat(Number.isInteger(slot) && slot >= 0 && slot < MODEL_TEXTURE_LIMITS.slots, 'Model texture slots must be between 0 and ' + (MODEL_TEXTURE_LIMITS.slots - 1) + '.');
+    const count = output.readUInt32LE(8);
+    if (slot < count) {output = rebuildTexture(output, slot, png, true); continue;}
+    requireThat(slot === count, 'New texture slots must be consecutive after the existing slots.');
+    const images = readTextures(output, true, {decode: false}), first = images[0], start = output.readUInt32LE(12);
+    requireThat(first && images.length === count && images.every(image => !image.layout.sharedPalette), 'New model slots require a native image template without shared palette variants.');
+    requireThat(start === output.readUInt32LE(16) && images.at(-1).end === output.length, 'Model textures must form a terminal batch.');
+    range(png, 0, 24, 'PNG image');
+    requireThat(png.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex')), 'Expected a PNG image.');
+    const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
+    requireThat(width && height && width <= 8192 && height <= 8192 && width * height <= 16777216, 'Unsupported model texture dimensions.');
+    requireThat(output.length + width * height * 4 + 256 <= MAX_ASSET, 'Model textures exceed the editing size limit.');
+    const record = directRecord(output, first, PNG.sync.read(png));
+    output = Buffer.concat([output, record]); output.writeUInt32LE(count + 1, 8);
+    output.writeUInt32LE(count + 1, start + 20); output.writeUInt32LE(output.length - start, start + 12);
+  }
+  const count = output.readUInt32LE(8);
+  if (count !== originalCount) output = syncModelImageTable(output);
+  requireThat(output.length <= MAX_ASSET && readTextures(output, true, {decode: false}).length === count, 'Model texture batch validation failed.');
+  return output;
+}
+
+/** Keep the native identity image table aligned with the embedded batch count. */
+export function syncModelImageTable(output) {
+  const count = output.readUInt32LE(8);
+  const base = output.readUInt32LE(20), start = output.readUInt32LE(12);
+  range(output, base, 112, 'Model header');
+  const oldTable = base + output.readUInt32LE(base + 52), oldCount = output.readUInt32LE(base + 48);
+  range(output, oldTable, oldCount * 4, 'Model image table');
+  if (oldCount === count) return output;
+  requireThat(oldCount <= count && Array.from({length: oldCount}, (_, i) => output.readUInt32LE(oldTable + i * 4)).every((value, i) => value === i), 'Unsupported native model image table.');
+  const table = Buffer.alloc(Math.ceil(count * 4 / 16) * 16);
+  for (let i = 0; i < count; i++) table.writeUInt32LE(i, i * 4);
+  output = Buffer.concat([output.subarray(0, start), table, output.subarray(start)]);
+  output.writeUInt32LE(count, base + 48); output.writeUInt32LE(start - base, base + 52);
+  output.writeUInt32LE(start + table.length, 12); output.writeUInt32LE(start + table.length, 16);
   return output;
 }

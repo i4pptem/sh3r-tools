@@ -10,13 +10,12 @@ export function animationExchange(model,data,start,end,fps) {
   requireThat(Number.isFinite(fps)&&fps>=1&&fps<=120,'Choose an exchange FPS from 1 to 120.');
   const count=end-start+1;
   requireThat(count*parents.length<=500000,'Export a shorter animation range (at most 500,000 bone samples).');
-  const rig=exchangeRig(model.bones),bind=rig.locals.map(m=>{const p=new Vector3(),q=new Quaternion(),s=new Vector3();m.decompose(p,q,s);return {translation:p.toArray(),rotation:q.toArray(),scale:s.toArray()};});
+  const rig=exchangeRig(model.bones),bind=rig.locals.map(m=>{const p=new Vector3(),q=new Quaternion(),s=new Vector3();m.decompose(p,q,s);return {translation:p.toArray(),rotation:q.toArray()};});
   const flip=new Quaternion(0,0,1,0),samples=[];
   for(let frame=start;frame<=end;frame++)samples.push(bind.map((rest,bone)=>{
     const pose=structuredClone(rest),r=(frame*parents.length+bone)*4,t=(frame*parents.length+bone)*3;
     if(Number.isFinite(clip.rotations[r])) {const q=new Quaternion().fromArray(clip.rotations,r);if(parents[bone]<0)q.premultiply(flip);pose.rotation=q.toArray();}
     if(Number.isFinite(clip.translations[t])) {pose.translation=Array.from(clip.translations.slice(t,t+3));if(parents[bone]<0){pose.translation[0]*=-1;pose.translation[1]*=-1;}}
-    pose.poseScale=[1,1,1];
     return pose;
   }));
   const bones=model.bones.map((bone,i)=>({name:bone.name,parent:bone.parent,world:rig.worlds[i].toArray()}));
@@ -24,6 +23,16 @@ export function animationExchange(model,data,start,end,fps) {
     skeletonHash:sha256(Buffer.from(JSON.stringify(bones))),sourceRange:data.subarray(4+start*clip.stride,4+(end+1)*clip.stride).toString('base64')}};
 }
 
+/** Compare absent rotation channels at the precision the native writer can represent. */
+function sameNativeRotation(first, second, root) {
+  const packed = values => {
+    const rotation = new Quaternion().fromArray(values);
+    if (root) rotation.premultiply(new Quaternion(0, 0, -1, 0));
+    return encodePackedQuaternion(rotation.toArray(), 1).decoded;
+  };
+  const a = packed(first), b = packed(second);
+  return a.every((value, i) => value === b[i]) || a.every((value, i) => value === -b[i]);
+}
 /** Rewrite existing channels only; untouched samples use the exported native bytes. */
 export function replaceAnimation(model,source,exchange) {
   const {metadata,baseline}=exchange,samples=structuredClone(exchange.samples),header=animationHeader(source),parents=model.bones.map(b=>b.parent);
@@ -50,14 +59,12 @@ export function replaceAnimation(model,source,exchange) {
         let values=pose[field];
         if(field==='rotation' && values.reduce((n,v,k)=>n+v*base[field][k],0)<0)values=values.map(v=>-v);
         changed[field]=values.some((v,k)=>Math.abs(v-base[field][k])>bound);
+        if (field === 'rotation' && changed.rotation && !Number.isFinite(current.rotations[b * 4]))
+          changed.rotation = !sameNativeRotation(values, base.rotation, parents[b] < 0);
         if(!changed[field])pose[field]=original[f][b][field].slice();
         else if(field==='translation')pose[field]=values.map((v,k)=>original[f][b][field][k]+v-base[field][k]);
         else if(field==='rotation')pose[field]=new Quaternion().fromArray(values).multiply(new Quaternion().fromArray(base[field]).invert()).multiply(new Quaternion().fromArray(original[f][b][field])).normalize().toArray();
       }
-      const poseScale=pose.poseScale;
-      requireThat(Array.isArray(poseScale)&&poseScale.length===3&&poseScale.every(Number.isFinite),'Invalid FBX pose-bone scale.');
-      const scaleBound=32*2**-23*Math.max(1,...poseScale.map(Math.abs));
-      requireThat(poseScale.every(value=>Math.abs(value-1)<=scaleBound),`${model.bones[b].name}: ANM has no scale channel. Keep Pose Mode scale at 1.`);
       return changed;
     });
     let offset=4+(metadata.start+f)*header.stride,group=0;
@@ -87,7 +94,7 @@ export function replaceAnimation(model,source,exchange) {
       }
       output.writeUInt32LE(word,flagOffset);group++;
     }
-    changes.forEach((change,bone)=>requireThat(seen.has(bone)||(!change.translation&&!change.rotation),`${model.bones[bone].name}: this ANM has no writable animation channel.`));
+    changes.forEach((change,bone)=>requireThat(seen.has(bone)||(!change.translation&&!change.rotation),`${model.bones[bone].name}: this ANM has no writable animation channel (source frame ${metadata.start + f}). Keep this bone’s local pose unchanged; adding FBX keys cannot add native channels.`));
   }
   const decoded=parseAnimation(output,parents);
   for(let f=0;f<count;f++)for(let b=0;b<bones;b++)for(let k=0;k<3;k++) {

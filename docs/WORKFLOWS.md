@@ -1,10 +1,10 @@
 # Workflows
 
-A local Windows workbench for Silent Hill 3 PC assets. English interface. Developed by **i4pptem**. Version 0.8.1 adds character-file memory expansion and safer model texture and visibility mapping.
+A local Windows workbench for Silent Hill 3 PC assets. English interface. Developed by **i4pptem**. Version 0.8.5 adds GLB/GLTF/FBX model import with color textures and expanded native texture slots.
 
 ## Run
 
-Open **dist/0.8.1/Silent Hill 3 Tools-win32-x64/Silent Hill 3 Tools.exe**. Keep the executable with its surrounding files. The portable build includes Electron. Run Install media.cmd once for optional FFmpeg media conversion; no system codec or Node.js installation is needed. Morph workspace and FBX exchange additionally use an installed Blender 4.2+ (tested with 5.2.2). Set SH3TOOLS_BLENDER to its executable if automatic detection does not find it.
+Open **dist/0.8.5/Silent Hill 3 Tools-win32-x64/Silent Hill 3 Tools.exe**. Keep the executable with its surrounding files. The portable build includes Electron. Run Install media.cmd once for optional FFmpeg media conversion; no system codec or Node.js installation is needed. Morph workspace and FBX exchange additionally use an installed Blender 4.2+ (tested with 5.2.2). Set SH3TOOLS_BLENDER to its executable if automatic detection does not find it.
 
 Choose **Open data folder** and select the game's data directory. Selecting the game root or opening data/arc.arc also discovers the same complete workspace. Keep the catalog beside its archives.
 
@@ -21,9 +21,9 @@ Success notifications dismiss after five seconds; errors dismiss after eight sec
 
 ## Model export and workspace layout
 
-Select a PC MDL. In **Inspector → Export model**, choose **Export GLB** or **Export FBX**. Both include meshes, original mesh names, skeleton, skin weights, texture bindings and pose morph shape keys. FBX embeds textures and uses the installed Blender; it exports the model in its bind pose. Use the animation exchange controls for a selected ANM range. Model replacement continues to use GLB or a morph workspace; FBX export does not add direct FBX-to-MDL import.
+Select a PC MDL. In **Inspector → Export model**, choose **Export GLB** or **Export FBX**. Both include meshes, original mesh names, skeleton, skin weights, texture bindings and pose morph shape keys. FBX embeds textures and uses the installed Blender; it exports the model in its bind pose. Use the animation exchange controls for a selected ANM range. The single Import model action accepts GLB, GLTF and FBX; only FBX requires Blender.
 
-**Import model → What changed?** separates new topology/morph rebuilding from positions, normals and UV edits with unchanged topology. The morph workspace, native morph JSON, embedded textures, mesh visibility and native file actions are grouped in expandable Inspector sections. Asset information and integrity details are below the editing tools.
+**Import model…** detects compatible attribute edits and topology/morph changes automatically. The morph workspace, native morph JSON, embedded textures, mesh visibility and native file actions are grouped in expandable Inspector sections. Asset information and integrity details are below the editing tools.
 
 Use **Asset library** or **Inspector** above the preview to hide either panel; the preference survives restarts. **Ctrl+Shift+L** toggles the library. **Ctrl+F** reveals it and focuses search. **Focus preview** temporarily hides the library, Inspector and navigation; **Esc** restores the previous panel layout.
 
@@ -34,10 +34,10 @@ The vector emblem, app/window icon and restrained charcoal/copper palette share 
 ## Replace a complete model and its morphs
 
 1. Select the original PC MDL and **Export GLB** to obtain its rig and named native morph slots.
-2. In a GLB-capable editor, bind the replacement mesh to that original rig. Preserve bone names and bind transforms, apply mesh object transforms, export triangles, and use at most three nonzero bone influences per vertex. New topology is supported; new skeletons are not.
+2. In your model editor, bind the replacement mesh to that original rig. Preserve bone names and bind transforms, apply mesh object transforms, export triangles, and use at most three nonzero bone influences per vertex. New topology is supported; new skeletons are not.
 3. Author the replacement model's shape keys to match the meaning of each original morph. The tool does not infer facial correspondence or automatically transfer expressions between unrelated faces.
-4. In **Import model**, choose **Import GLB…**. The tool applies compatible attribute edits directly; changed topology, shape keys, skinning or materials opens the native rebuild setup. For every included part, select an original visibility/render template and, when needed, a separate native texture slot. Review the bone-visibility warnings. Map every native morph slot to a new shape key, or explicitly select Neutral. Matching names are preselected.
-5. **Build & stage replacement** rebuilds native geometry, skin palettes, morph bases, deltas and vertex references. The original target order stays intact so existing facial tracks address the replacement shapes. Original texture images are retained; GLB images are not imported automatically. Replace intended native texture slots separately through PNG import.
+4. In **Import model**, choose **Import model…** and select a GLB, GLTF or FBX. The tool applies compatible attribute edits directly; changed topology, shape keys, skinning or materials opens the native rebuild setup. For every included part, select an original visibility/render template and, when needed, a separate native texture slot. Review the bone-visibility warnings. Map every native morph slot to a new shape key, or explicitly select Neutral. Matching names are preselected.
+5. **Build & stage replacement** rebuilds native geometry, skin palettes, morph bases, deltas and vertex references. The original target order stays intact so existing facial tracks address the replacement shapes. Supplied color images are imported atomically with geometry. Existing named slots with no color image or explicit color factor retain their texture.
 6. Inspect the result with its original ANM and cutscene morph clips. Save the project, then **Build mod** to produce separate game-format files.
 
 GLB export converts rounded native bone matrices to TRS-representable exchange matrices. Import matches bones by name and hierarchy, measures inverse-bind/rest-pose drift over the original and replacement geometry bounds, and accepts only drift below half a native position step (1/32 local unit) and half a native normal step (1/8192). The native skeleton is retained exactly. Identity armature wrapper nodes are accepted; transformed mesh coordinates and larger rig changes are rejected.
@@ -46,14 +46,24 @@ Native rebuilding remains experimental. The user confirmed the subdivided Heathe
 
 Primary geometry has a separate aggregate limit: the stock game converts all primary-part indices to 16 bits, so models above 65,536 primary vertices wrap into earlier meshes even if each part is small. Build mod now emits the primary INDEX32 patch when needed and preserves it in later builds. It changes GPU index allocation and upload; the MDL index format, materials, part visibility and morph slots stay intact. The user confirmed that it removes the gameplay/cutscene distortions in the 90,971-primary-vertex Heather workspace. Automatic `_part_` chunks remain necessary for palette and transparent-mesh limits; they do not rename the native material or visibility identity.
 
-The same **Import GLB…** action applies position, normal and UV edits directly when topology, skinning, morphs and material assignments are unchanged. Native morph JSON edits existing sparse deltas. Preview sliders and playback never stage changes; **Bake intensity** does.
+The same **Import model…** action applies position, normal and UV edits directly when topology, skinning, morphs and material assignments are unchanged. Native morph JSON edits existing sparse deltas. Preview sliders and playback never stage changes; **Bake intensity** does.
+
+## Model textures and new slots
+
+Use materials named **Texture_0**, **Texture_1**, etc. to bind exact native slots. For Heather, the next new material is **Texture_4**, then **Texture_5**. Supply its base-color image and assign the material to a mesh. New slots must be consecutive. Unnamed materials are assigned available slots automatically, with identical images shared; inspect the assignments in the rebuild dialog. Visibility/render templates remain independent of texture selection.
+
+Model import supports **32 image slots (Texture_0–Texture_31)** and up to **32 primary/secondary texture groups**. Build mod detects the native counts from staged MDL bytes. It includes the model-texture executable extension when a model exceeds six images, five primary runs or one secondary run. Five/six images fitting the original run tables need no additional patch. The extension preserves original model records, adds separate per-model tables and expands the shared texture-resource pool from 96 to 1,120 descriptors. Larger image payloads independently participate in the character-memory calculation. Install the generated executable and archives together; see [Executable patches](EXECUTABLE-PATCHES.md).
+
+GLB may embed PNG/JPEG images. Keep a GLTF file with its referenced BIN and image companions inside the same model directory or its subfolders; remote URLs and paths outside that directory are rejected. Embed FBX textures or retain the paths stored in the FBX. FBX uses the installed Blender 4.2+ to recover the rest-pose geometry, skin and shape keys; model animation is not imported through this action. When exporting model FBX from Blender, disable **Add Leaf Bones**, enable **Custom Properties**, and keep all original bones.
+
+Only base-color textures are transferred, including the material base-color factor. Explicit flat-color materials become 1×1 native images. They keep their supplied dimensions and alpha; the native visibility/render template determines blending behavior. Normal, metallic and roughness maps are not converted into new game shading. Apply UV transforms and use UV map 0. Keep the original rig and at most three influences per vertex. Shared-palette model variants and models without an existing image template cannot gain new slots through this writer. Separate PNG import remains available.
 
 ## Supported workflows
 
 | Format | Preview and exchange |
 | --- | --- |
 | ARC / AFS | Names, search, per-archive native/converted export, native replacement and verified patched copies |
-| PC MDL | Textured geometry, skeleton, morphs, GLB / FBX export, preserved-layout edits and experimental topology rebuild |
+| PC MDL | Textured geometry, skeleton, morphs, GLB / FBX export, GLB / GLTF / FBX import with color textures, preserved-layout edits and experimental topology rebuild |
 | ANM / PACK | Skeletal/facial playback; selected ANM range FBX export/replacement (original skeleton, channels and bank length) |
 | TEX / DAT / PIC / TBN2 | BGRA32, picture RGBA/PS2 alpha, RGBA5551, indexed palettes and PIC; automatic PNG fitting and palette reduction |
 | Font BIN | Normal/small glyph atlases, native PNG exchange and experimental 2×/4× coverage import; original IDs and text metrics |
@@ -154,7 +164,7 @@ In Blender, import the FBX with animation offset 0. Edit bones in Pose Mode. Exp
 
 Choose **Replace ANM range from FBX…** with the same model and bank selected. It stages the native ANM and reloads the edited range for playback. Save/build the mod normally. A repeated import does not accumulate conversion changes; frames outside the exported range remain byte-identical.
 
-This mode edits only existing rotation/translation channels. It rejects authored Pose Mode scale, missing channels, a changed skeleton, object-level armature animation and changed duration. Blender may bake Scale keys near 1.0 into the FBX; those keys are allowed when the bone scale itself remains unchanged. It does not author PACK cutscenes, facial curves, action/event tables or new channels. Export ranges are limited to 500,000 bone samples. Installed Blender performs the FBX conversion. Small conversion residuals within a float32 roundoff envelope retain the exported native sample; changed poses are transferred as deltas from the measured FBX baseline. Source native quaternion/sign bytes remain intact for unchanged channels.
+This mode transfers only existing Location/Rotation channels. Scale animation is omitted from FBX export and ignored on import, including deliberately authored Scale keys. Blender can bake nonunit Scale values from matrix conversion even when the authored Scale is 1; no rounding or manual Scale cleanup is needed. Static rest/bind transforms are retained and validated. Missing channels, a changed skeleton, object-level armature animation and changed duration remain unsupported. It does not author PACK cutscenes, facial curves, action/event tables or new channels. Export ranges are limited to 500,000 bone samples. Installed Blender performs the FBX conversion. Small conversion residuals within a float32 roundoff envelope retain the exported native sample. For an absent rotation channel, equal native quaternion codes also preserve the original pose; changed poses are transferred as deltas from the measured FBX baseline. Source native quaternion/sign bytes remain intact for unchanged channels.
 
 Blender round trips and native channel decoding have been verified. Authored ANM changes still need an in-game test, particularly transitions, root motion and procedural/IK behavior.
 
@@ -162,7 +172,7 @@ Blender round trips and native channel decoding have been verified. Authored ANM
 
 1. Open the game **data** folder, then select **Texture Inspector** beside Asset library. Opening a single archive limits the catalog to that source.
 2. Search by filename, path, archive or referencing map. Filter by models, embedded map textures, texture files or font atlases. **Modified sources** shows textures belonging to staged assets; it does not mean every image in that container was edited.
-3. Select a thumbnail, then use arrow keys to move through the grid. Zoom with the mouse wheel, drag to pan, or use **Fit** / **1:1**. The source path and texture slot identify the exact image. **Open source asset** returns to the owning model/map/file.
+3. Choose **Per page: 10, 20, 50 or 100** at the bottom; the preference survives restarts. Select a thumbnail, then use arrow keys to move through the grid. Zoom with the mouse wheel, drag to pan, or use **Fit** / **1:1**. The source path and texture slot identify the exact image. **Open source asset** returns to the owning model/map/file.
 4. Use **Export PNG…**, edit the image, then **Import PNG…**. **Fit to original** resizes and converts to the existing native format. Shared palette variants retain their shared indices and require consistent recoloring. BMP pictures require an opaque PNG.
 5. For supported model/standalone textures, **Full size · experimental** retains the imported dimensions and rebuilds direct-color storage. Embedded MAP textures currently offer Fit to original only. Font atlases have separate original/high-resolution modes; keep glyph layout intact.
 6. A shared GB/TR TEX is a single source: its **Used by** list shows the maps affected by the replacement. To change only one surface, use the map material tools and an appropriate separate texture slot.

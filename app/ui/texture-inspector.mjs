@@ -1,6 +1,6 @@
 import {ImageViewport} from './image-viewport.mjs';
 
-const pageSize = 24;
+const pageSizes = [10, 20, 50, 100];
 const $ = id => document.getElementById('texture-' + id);
 const basename = name => name.replaceAll('\\', '/').split('/').pop();
 function node(tag, className, text) {
@@ -10,6 +10,9 @@ function node(tag, className, text) {
 
 /** Present native texture slots while retaining the owning asset for every operation. */
 export function textureInspector(state, run, notify, openSource) {
+  const savedSize = Number(localStorage.getItem('sh3tools.textures.pageSize'));
+  let pageSize = pageSizes.includes(savedSize) ? savedSize : 20;
+  $('page-size').value = String(pageSize);
   let catalog, loading = false, selected = null, preview = null, page = 0, gridRequest = 0, previewRequest = 0;
   const viewer = new ImageViewport($('image'), scale => {$('zoom').textContent = Math.round(scale * 100) + '%';});
   function setBusy(busy) {
@@ -59,13 +62,16 @@ export function textureInspector(state, run, notify, openSource) {
   }
   async function thumbnails(items, request) {
     try {
-      const results = await window.studio.request('textureThumbnails', {ids: items.map(item => item.id)});
-      if (request !== gridRequest) return;
-      for (const result of results) {
-        const card = [...$('grid').children].find(card => card.dataset.id === result.id); if (!card) continue;
-        const image = card.querySelector('img'), placeholder = card.querySelector('.texture-thumb-status');
-        if (result.url) {image.src = result.url; image.classList.remove('hidden'); placeholder.remove();}
-        else {placeholder.textContent = 'Preview unavailable'; card.title += '\n' + result.error;}
+      for (let offset = 0; offset < items.length; offset += 32) {
+        if (request !== gridRequest) return;
+        const results = await window.studio.request('textureThumbnails', {ids: items.slice(offset, offset + 32).map(item => item.id)});
+        if (request !== gridRequest) return;
+        for (const result of results) {
+          const card = [...$('grid').children].find(card => card.dataset.id === result.id); if (!card) continue;
+          const image = card.querySelector('img'), placeholder = card.querySelector('.texture-thumb-status');
+          if (result.url) {image.src = result.url; image.classList.remove('hidden'); placeholder.remove();}
+          else {placeholder.textContent = 'Preview unavailable'; card.title += '\n' + result.error;}
+        }
       }
     } catch (error) {if (request === gridRequest) notify(error.message);}
   }
@@ -151,6 +157,13 @@ export function textureInspector(state, run, notify, openSource) {
   });
   $('refresh').onclick = () => void refresh(true);
   for (const id of ['search', 'kind', 'modified']) $(id).addEventListener(id === 'search' ? 'input' : 'change', () => {page = 0; renderGrid();});
+  $('page-size').onchange = () => {
+    const next = Number($('page-size').value); if (!pageSizes.includes(next)) return;
+    const selectedIndex = filtered().findIndex(item => item.id === selected?.id);
+    const anchor = selectedIndex >= 0 ? selectedIndex : page * pageSize;
+    pageSize = next; page = Math.floor(anchor / pageSize);
+    localStorage.setItem('sh3tools.textures.pageSize', String(pageSize)); renderGrid();
+  };
   $('prev').onclick = () => {page--; renderGrid();};
   $('next').onclick = () => {page++; renderGrid();};
   $('mode').onchange = modeNote;

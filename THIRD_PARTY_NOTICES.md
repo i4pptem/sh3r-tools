@@ -9,6 +9,7 @@ Original Silent Hill 3 Tools code and artwork are Copyright © 2026 i4pptem, und
 | Electron | 44.4.3 | MIT plus Chromium and other third-party terms; [Electron source](https://github.com/electron/electron/tree/v44.4.3) |
 | Three.js | 0.186.0 | MIT; [source](https://github.com/mrdoob/three.js/tree/r186) |
 | pngjs | 7.0.0 | MIT; [source](https://github.com/pngjs/pngjs) |
+| jpeg-js | 0.4.4 | BSD-3-Clause encoder and Apache-2.0 decoder; [source and notices](https://github.com/jpeg-js/jpeg-js) |
 
 Electron's `LICENSE` and `LICENSES.chromium.html` remain at the portable application's root. Their notices must be retained. The application license is separately named **LICENSE-SH3-TOOLS.txt** there, and is also present in `resources/app/LICENSE`. Production npm dependencies retain their license files in `resources/app/node_modules`.
 
