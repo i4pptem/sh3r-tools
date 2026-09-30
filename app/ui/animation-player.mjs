@@ -1,16 +1,19 @@
 import {Quaternion, Vector3} from 'three';
+import {applyCutscenePose} from '../../core/cutscene-sampling.mjs';
 import {sampleMorphAnimation} from '../../core/morph-sampling.mjs';
 
-const flip = new Quaternion(0, 0, 1, 0);
+const flip = new Quaternion(0, 0, 1, 0), unitScale = new Vector3(1, 1, 1);
 const qa = new Quaternion(), qb = new Quaternion(), pa = new Vector3(), pb = new Vector3();
 
 /** Apply absolute local ANM samples; unanimated components retain their bind pose. */
-export function applySkeletalPose(clip, frame, bones, bind, parents) {
-  const position = Math.max(0, Math.min(clip.frameCount - 1, frame));
-  const a = Math.floor(position), b = Math.min(a + 1, clip.frameCount - 1), mix = position - a;
+export function applySkeletalPose(clip, frame, bones, bind, parents, range = {}) {
+  const start=Math.max(0,Math.min(clip.frameCount-1,range.start??0)),end=Math.max(start,Math.min(clip.frameCount-1,range.end??clip.frameCount-1));
+  const position=Math.max(start,Math.min(end+1-Number.EPSILON,frame));
+  const a=Math.min(end,Math.floor(position)),b=a<end?a+1:range.loop?start:end,mix=Math.min(1,position-a);
+  if (clip.sourceFormat === 'pack') {applyCutscenePose(clip, a, b, mix, bones, parents); return;}
   for (let i = 0; i < bones.length; i++) {
     const bone = bones[i], ra = (a * bones.length + i) * 4, rb = (b * bones.length + i) * 4;
-    bone.position.copy(bind[i].position); bone.quaternion.copy(bind[i].quaternion);
+    bone.position.copy(bind[i].position); bone.quaternion.copy(bind[i].quaternion); bone.scale.copy(bind[i].scale || unitScale);
     if (Number.isFinite(clip.rotations[ra])) {
       qa.fromArray(clip.rotations, ra); qb.fromArray(clip.rotations, rb); bone.quaternion.copy(qa).slerp(qb, mix);
       if (parents[i] < 0) bone.quaternion.premultiply(flip);
@@ -31,7 +34,11 @@ export class AnimationPlayer {
   }
   get frameCount() {return Math.max(this.skeletal?.frameCount || 1, this.morphClip?.frameCount || 1);}
   clip(type, clip) {
-    if (type === 'skeletal') this.skeletal = clip; else {this.morphClip = clip; this.audition = false; this.weight = 0;}
+    if (type === 'skeletal') {
+      if (clip?.sourceFormat === 'pack') {this.fps = clip.fps || 30; this.morphClip = clip.morphClip || null; this.audition = false; this.weight = 0;}
+      else if (this.skeletal?.sourceFormat === 'pack') this.morphClip = null;
+      this.skeletal = clip;
+    } else {this.morphClip = clip; this.audition = false; this.weight = 0;}
     this.start = 0; this.end = this.frameCount - 1; this.frame = 0; this.playing = !!(this.skeletal || this.morphClip);
     this.apply(); this.onChange?.(this);
   }
@@ -58,8 +65,8 @@ export class AnimationPlayer {
   }
   apply() {
     const viewport = this.viewport;
-    if (this.skeletal) applySkeletalPose(this.skeletal, this.frame, viewport.rigBones, viewport.bindPose, viewport.parents);
-    else viewport.rigBones?.forEach((bone, i) => {bone.position.copy(viewport.bindPose[i].position); bone.quaternion.copy(viewport.bindPose[i].quaternion);});
+    if (this.skeletal) applySkeletalPose(this.skeletal, this.frame, viewport.rigBones, viewport.bindPose, viewport.parents, {start:this.start,end:this.end,loop:this.loop});
+    else viewport.rigBones?.forEach((bone, i) => {bone.position.copy(viewport.bindPose[i].position); bone.quaternion.copy(viewport.bindPose[i].quaternion); bone.scale.copy(viewport.bindPose[i].scale || unitScale);});
     const weights = this.morphClip ? sampleMorphAnimation(this.morphClip, this.frame) : null;
     for (const mesh of viewport.meshes) if (mesh.morphTargetInfluences) {
       mesh.morphTargetInfluences.fill(0);

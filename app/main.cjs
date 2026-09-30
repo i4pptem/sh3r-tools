@@ -31,14 +31,45 @@ async function pickFile(filters, properties = ['openFile']) {
   lastDialogDirectory = properties.includes('openDirectory') ? result.filePaths[0] : path.dirname(result.filePaths[0]);
   return result.filePaths[0];
 }
-async function chooseNewFile(defaultPath, extensions) {
-  const result = await dialog.showSaveDialog(window, {defaultPath: lastDialogDirectory ? path.join(lastDialogDirectory, defaultPath) : defaultPath, filters: [{name: 'Output file', extensions}], properties: ['createDirectory', 'showOverwriteConfirmation']});
+async function chooseNewFile(defaultPath, extensions, filters) {
+  const result = await dialog.showSaveDialog(window, {defaultPath: lastDialogDirectory ? path.join(lastDialogDirectory, defaultPath) : defaultPath, filters: filters || [{name: 'Output file', extensions}], properties: ['createDirectory', 'showOverwriteConfirmation']});
   if (result.canceled) return null;
   if (fs.existsSync(result.filePath)) throw new Error('Choose a new filename. Existing exports are preserved.');
   lastDialogDirectory = path.dirname(result.filePath);
   return result.filePath;
 }
+let reloadDialog = null, declinedSources = '';
+async function offerSourceReload(quiet = false) {
+  if (reloadDialog) return reloadDialog;
+  reloadDialog = (async () => {
+    const files = await call('sourceChanges'), signature = JSON.stringify(files);
+    if (quiet && (!files.length || signature === declinedSources)) return null;
+    let plan;
+    try {plan = await call('prepareSourceReload');}
+    catch (error) {
+      await dialog.showMessageBox(window, {type: 'warning', title: 'Sources cannot be reloaded yet', message: 'The updated sources could not be opened.', detail: `${error.message}\n\nYour current workspace and staged replacements have been kept. Finish copying the files, then use Reload sources again.`, buttons: ['Keep current workspace']});
+      return {workspaceRefresh: {reloaded: false}};
+    }
+    const list = files.slice(0, 8).map(file => file.name).join('\n');
+    const conflicts = plan.conflicts.slice(0, 8).map(item => `${item.name}: ${item.reason}`).join('\n');
+    const destructive = plan.conflicts.length || mapDraftCount;
+    const detail = [list, files.length > 8 ? `… and ${files.length - 8} more sources.` : '',
+      `${plan.kept} staged replacement(s) will be kept. ${plan.installed.length} already installed replacement(s) will be marked as saved.`,
+      conflicts ? `${plan.conflicts.length} conflicting replacement(s) will be discarded:\n${conflicts}` : '',
+      mapDraftCount ? `${mapDraftCount} unapplied map preview edit(s) will be discarded.` : '',
+      'The source files will not be modified. After reloading, repeat the operation you were performing.'].filter(Boolean).join('\n\n');
+    const {response} = await dialog.showMessageBox(window, {type: destructive ? 'warning' : 'question', title: 'Sources changed',
+      message: files.length ? 'The game archives or files changed. Reload them?' : 'Reload the current archives and files?', detail,
+      buttons: ['Keep current workspace', destructive ? 'Reload and discard conflicts' : 'Reload sources'], defaultId: destructive ? 0 : 1, cancelId: 0, noLink: true});
+    if (response !== 1) {declinedSources = signature; return {workspaceRefresh: {reloaded: false}};}
+    const snapshot = remember(await call('reloadSources', plan.token, !!plan.conflicts.length));
+    declinedSources = ''; mapDraftCount = 0; mediaFiles.clear();
+    return {workspaceRefresh: {id: plan.token, reloaded: true, snapshot}};
+  })();
+  try {return await reloadDialog;} finally {reloadDialog = null;}
+}
 async function operation(action, args) {
+  if (action === 'checkSources' || action === 'reloadSources') return offerSourceReload(action === 'checkSources');
   if (action === 'mapDraftCount') {if(!Number.isSafeInteger(args.count) || args.count<0) throw new Error('Invalid draft count.'); mapDraftCount=args.count; return null;}
   if (action === 'bootstrap') return {version: app.getVersion(), source: opening};
   if (action === 'snapshot') return call('snapshot');
@@ -48,13 +79,14 @@ async function operation(action, args) {
     return preview;
   }
   if (action === 'exportAnimation') {
-    const file=await chooseNewFile('Animation_'+args.start+'-'+args.end+'.fbx',['fbx']);
+    const file=await chooseNewFile('Animation_'+args.start+'-'+args.end+'.blend',['blend','fbx'],[{name:'Blender animation (recommended)',extensions:['blend']},{name:'FBX animation',extensions:['fbx']}]);
     return file?call('exportAnimation',args.key,args.id,args.start,args.end,args.fps,file):null;
   }
-  if (action === 'importAnimation') {
-    const file=await pickFile([{name:'SH3 animation with custom properties',extensions:['fbx']}]);
-    return file?remember(await call('importAnimation',args.key,args.id,file)):null;
+  if (action === 'prepareAnimationImport') {
+    const file=await pickFile([{name:'SH3 animation or Blender scene',extensions:['fbx','blend']}]);
+    return file?call('prepareAnimationImport',args.key,args.id,file):null;
   }
+  if (action === 'applyAnimationImport') return remember(await call('applyAnimationImport',args.key,args.id,args.token,args.options));
   if (action === 'exportMorphWorkspace') {
     const file=await chooseNewFile('Morph workspace.blend',['blend']);return file?call('exportMorphWorkspace',args.key,file):null;
   }
@@ -62,7 +94,7 @@ async function operation(action, args) {
     const file=await pickFile([{name:'SH3 morph workspace',extensions:['blend']}]);return file?call('prepareMorphWorkspace',args.key,file):null;
   }
   if (action === 'importModel') {
-    const file = await pickFile([{name: 'Model with rig, shape keys and textures (GLB / GLTF / FBX)', extensions: ['glb', 'gltf', 'fbx']}]);
+    const file = await pickFile([{name: 'Model with rig, shape keys and textures (GLB / GLTF / FBX / Blender)', extensions: ['glb', 'gltf', 'fbx', 'blend']}]);
     return file ? remember(await call('importModel', args.key, file)) : null;
   }
   if (action === 'modelTemplates') {
@@ -123,7 +155,7 @@ async function operation(action, args) {
   if (action === 'export') {
     const snapshot = await call('snapshot'), entry = snapshot.entries.find(e => e.key === args.key);
     if (!entry) throw new Error('Select an asset.');
-    const extensions = {world: 'json', messages: 'json', font: 'png', worldTexture: 'png', movie: 'mpg', webm: 'webm', audio: 'wav', glb: 'glb', fbx: 'fbx', morph: 'json', texture: 'png', native: entry.extension || 'bin'}, extension = extensions[args.mode];
+    const extensions = {world: 'json', messages: 'json', font: 'png', worldTexture: 'png', movie: 'mpg', webm: 'webm', audio: 'wav', glb: 'glb', fbx: 'fbx', blend: 'blend', morph: 'json', texture: 'png', native: entry.extension || 'bin'}, extension = extensions[args.mode];
     if (!extension) throw new Error('Invalid export mode.');
     const base = path.basename(entry.name, path.extname(entry.name));
     const file = await chooseNewFile(`${base}${args.mode === 'texture' ? '_texture_' + (args.textureIndex || 0) : args.mode === 'morph' ? '_morphs' : ''}.${extension}`, [extension]);
@@ -152,6 +184,7 @@ async function execute(event, action, args) {
   const exclusive = !['preview', 'snapshot', 'bootstrap', 'motionList', 'motionClip', 'mapDraftCount', 'texturePreview', 'textureThumbnails'].includes(action);
   if (exclusive) busy = true;
   try { return await operation(action, args); }
+  catch (error) {if (error.code === 'SOURCE_CHANGED') return await offerSourceReload(); throw error;}
   finally {if (exclusive) busy = false;}
 }
 app.whenReady().then(async () => {
@@ -170,7 +203,7 @@ app.whenReady().then(async () => {
   worker = new Worker(path.join(__dirname, 'worker.mjs'), {workerData: {cacheFolder: path.join(app.getPath('userData'), 'media-cache')}});
   worker.on('message', ({id, result, error, progress}) => {
     if (progress) {if (!window.isDestroyed()) window.webContents.send('studio:progress', progress); return;}
-    const request = pending.get(id); if (!request) return; pending.delete(id); error ? request.reject(new Error(error)) : request.resolve(result);
+    const request = pending.get(id); if (!request) return; pending.delete(id); error ? request.reject(Object.assign(new Error(error.message), {code: error.code})) : request.resolve(result);
   });
   worker.on('error', error => {for (const request of pending.values()) request.reject(error); pending.clear();});
   window = new BrowserWindow({width: 1560, height: 960, minWidth: 1120, minHeight: 720, show: process.env.SH3TOOLS_TEST !== '1',
@@ -191,6 +224,7 @@ app.whenReady().then(async () => {
     {label: 'Open archive…', accelerator: 'CmdOrCtrl+O', click: command('open')},
     {label: 'Open data folder…', click: command('openGame')},
     {label: 'Open project…', click: command('openProject')},
+    {label: 'Reload sources…', accelerator: 'CmdOrCtrl+R', click: command('reloadSources')},
     {label: 'Save project as…', accelerator: 'CmdOrCtrl+Shift+S', click: command('saveProject')},
     {type: 'separator'}, {label: 'Build patched copies…', accelerator: 'CmdOrCtrl+B', click: command('build')}, {role: 'quit'}]},
     {label: 'View', submenu: [{role: 'resetZoom'}, {role: 'zoomIn'}, {role: 'zoomOut'}, {role: 'togglefullscreen'}]}]));

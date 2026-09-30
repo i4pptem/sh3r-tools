@@ -32,7 +32,7 @@ function refreshButtons() {
 }
 async function run(action, args = {}, label = 'Working…') {
   if (state.busy) return;
-  if (state.mapDrafts.count && action !== 'editMap') {notify('Apply or discard map preview edits before this operation. Return to the edited map to continue.'); return;}
+  if (state.mapDrafts.count && !['editMap', 'reloadSources', 'checkSources'].includes(action)) {notify('Apply or discard map preview edits before this operation. Return to the edited map to continue.'); return;}
   const mapView = state.preview?.world?.editable ? state.viewport?.viewState() : null, mapKey = state.selected;
   state.busy = true; state.viewport?.setEditingEnabled?.(false); $('#status').textContent = label; refreshButtons();
   try {
@@ -185,6 +185,7 @@ async function selectAsset(key, audioIndex = 0, {preserveView = false} = {}) {
   $('#other-preview').replaceChildren(el('p', '', 'Reading asset…')); setPreviewVisibility('other'); renderInspector(entry, null);
   try {
     const preview = await window.studio.request('preview', {key, audioIndex}); if (id !== state.previewRequest) return;
+    if (!preview) {$('#other-preview').replaceChildren(el('p', '', 'Reload the sources to preview this asset.'), button('Reload sources…', () => run('reloadSources'))); return;}
     state.preview = preview; state.texture = Math.min(state.texture, Math.max(0, preview.textures.length - 1)); renderInspector(entry, preview); await renderPreview();
   } catch (error) {if (id === state.previewRequest) {$('#other-preview').replaceChildren(el('p', '', error.message)); setPreviewVisibility('other');}}
 }
@@ -204,6 +205,7 @@ async function renderPreview() {
   $('#bones').classList.toggle('hidden', !!preview.model?.world); $('#frame-morph').classList.toggle('hidden', !!preview.model?.world);
   $('#motion-controls').classList.toggle('hidden', !(preview.model && !preview.model.world && state.tab === 'preview'));
   $('#morph-controls').classList.toggle('hidden', !(preview.model?.morphNames.length && state.tab === 'preview'));
+  $('#no-morphs').classList.toggle('hidden', !!preview.model?.morphNames.length);
   $('#image-controls').classList.toggle('hidden', !(state.tab === 'textures' || (!preview.model && (preview.textures.length || preview.image))) || state.tab === 'hex');
   if (state.tab === 'hex') {$('#hex-preview').textContent = hexView(preview.hex); setPreviewVisibility('hex'); return;}
   if (state.tab === 'textures' || (!preview.model && (preview.textures.length || preview.image))) {
@@ -330,6 +332,15 @@ function handleAction(action) {
 }
 $$('[data-action]').forEach(b => {b.onclick = () => handleAction(b.dataset.action);});
 window.studio.onCommand(handleAction);
+window.studio.onWorkspace(({reloaded, snapshot}) => {
+  if (!reloaded) return;
+  const selected = snapshot.keyMap[state.selected];
+  state.library = snapshot; resetWorkspaceView(); updateLibrary();
+  if (selected) void selectAsset(selected);
+  const info = snapshot.reloadSummary;
+  notify(`Sources reloaded. ${info.kept} staged replacement(s) kept; ${info.installed} already installed. Repeat the previous operation to continue.`, true);
+});
+window.addEventListener('focus', () => {if (state.library && !state.busy) void run('checkSources', {}, 'Checking sources…');});
 window.studio.onProgress(({message, done, total}) => {$('#status').textContent = total ? `${message} · ${done} / ${total}` : message; $('#progress').classList.remove('hidden'); $('#progress>div').style.width = `${total ? done / total * 100 : 0}%`;});
 document.addEventListener('dragover', event => event.preventDefault());
 document.addEventListener('drop', async event => {

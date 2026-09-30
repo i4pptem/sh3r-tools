@@ -57,8 +57,26 @@ Base-color images in GLB/GLTF/FBX are imported automatically. Match Texture_N ma
 
 Embedded textures enlarge the entire MDL. This can exceed the character file arena even when each image is a valid GPU texture. Use the complete data folder and rebuild with a version supporting the character arena patch; install the generated executable and archives together. See [Executable patches](EXECUTABLE-PATCHES.md). The picture/menu patch alone does not cover this allocator.
 
-## ANM reports no writable channel even though FBX has keys
+## Animation import reports a missing channel
 
-ANM stores a fixed set of bone channels. FBX export can bake keys for every bone, including bones with no local track in the original bank. A bone can also move through its parent without having its own channel. More FBX keys do not allocate a new native channel. Version 0.8.5 ignores absent-bone rotation residuals only when they encode to the same native rotation; actual unsupported motion is rejected with its source frame.
+Blender keys cannot allocate native ANM channels. Choose **Preserve unsupported channels** to keep those native components and import compatible motion; the result lists every skipped bone/channel and frame range. Strict mode is available when any omitted motion should stop the import. More baked keys do not fix this native limitation.
 
-ANM exchange transfers Location and Rotation only. Version 0.8.5 removes Scale animation tracks from exported FBX and ignores incoming bone Scale keys before converting to native transforms. This prevents baked FBX scale residuals from blocking import; no manual key cleanup is required. Deliberate Scale animation is also ignored, so it will not appear in the game. Static rest-bone and armature transforms are still checked: preserve the original skeleton and frame range.
+## IK, extra bones and scale
+
+Import a saved Blender scene directly to evaluate constraints, or bake animation when exporting FBX. Preserve Custom Properties and original game bone names/rest axes. Helper bones are ignored; missing original bones are not. Armature object placement/scale are ignored, positive uniform applied skeleton scale is normalized, and bone Scale animation is omitted. Edit the original root in Pose Mode for root motion. Rest-pose errors name the affected bone and require restoring its Edit Mode transform.
+
+## One extra frame or a hold at the loop boundary
+
+Ranges are inclusive: 0–9 means ten samples. The last pose transitions to the first when preview looping is enabled. If the final authored pose duplicates the first, trim it explicitly in the source range and choose the intended destination duration. The importer never shifts later bank frames. Game loop/end/action/event tables are external to ANM and are not edited here.
+
+## Bones point sideways or lose local Translation in Blender
+
+Export a fresh Blender (.blend) model or ANM range. It has individually joint-aligned bones, a consistent roll reference and independent bone translations. FBX model and animation exports retain the original SH3 axes; they can look sideways in Blender because game joints do not necessarily point along the visible limb. Blender's FBX importer automatically marks aligned child bones Connected, which suppresses local Translation even when curves exist. For FBX authoring, disable Connected on the original bones in Edit Mode before baking; exporting a .blend scene avoids this importer behavior. Keep the delivered rest axes and custom properties. The app converts the authoring basis back to the original SH3 skeleton when importing.
+
+## The archive changed after installing a build
+
+Use **Reload sources** in the offered dialog, the refresh button beside Sources, or **Ctrl+R**. Compatible staged edits are retained; replacements already installed are cleared. If an asset changed both on disk and in the project, review the named conflicts before choosing to discard them. Cancelling retains the current workspace. Repeat the previous operation after the reload. If files are missing or still being copied, the reload keeps the old workspace and explains why the new sources could not be opened.
+
+## No action ranges appear for an animation bank
+
+Automatic discovery currently covers the 11 main 1763-frame Heather gameplay banks and a verified PC executable profile. Open the data folder with sh3.exe beside it; test banks and other animation layouts still use custom ranges. The app displays the reason when discovery is unavailable. Action IDs are native identifiers, not movement names. Rates are defaults from the game tables; gameplay state can adjust them.

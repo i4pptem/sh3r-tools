@@ -1,8 +1,11 @@
+import {workspaceSources, changedSources, assertSources} from './source-state.mjs';
+import {prepareSourceReload, validateSourceReload} from './source-reload.mjs';
 import {loadModelFile} from './model-import.mjs';
 import {modelTexturePlan} from './model-textures.mjs';
 import {TextureLibrary} from './texture-library.mjs';
 import {characterRequirements, isCharacterAsset} from './character-requirements.mjs';
 import {animationExchange,replaceAnimation} from './animation-exchange.mjs';
+import {cutsceneExchange,replaceCutsceneAnimation} from './cutscene-exchange.mjs';
 import {blenderExchange} from './blender-bridge.mjs';
 import {exportMapPart, importMapPart} from './map-part.mjs';
 import {mapPartReplacementIssue} from './map-repack.mjs';
@@ -12,6 +15,7 @@ import {mapAsset} from './map-materials.mjs';
 import {assetFormat} from './asset-format.mjs';
 import {exportArchive, exportAllArchives} from './archive-export.mjs';
 import {parseMorphAnimations} from './morph-animation.mjs';
+import {cutsceneAnimations} from './cutscene-animation.mjs';
 import {openWorkspace} from './workspace.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -48,11 +52,27 @@ export function assetKind(extension) {
 }
 
 export class Workbench {
-  constructor(progress = () => {}, cacheFolder = path.join(os.tmpdir(), 'sh3tools-media-cache')) { this.archives = []; this.changes = new Map(); this.input = null; this.catalogPath = null; this.dataRoot = null; this.progress = progress; this.motion = new MotionLibrary(this); this.cacheFolder = cacheFolder; this.modelPlan = null; this.mapHistory = new Map(); this.textureLibrary = new TextureLibrary(this); }
+  constructor(progress = () => {}, cacheFolder = path.join(os.tmpdir(), 'sh3tools-media-cache')) { this.sources = []; this.reloadPlan = null; this.archives = []; this.changes = new Map(); this.input = null; this.catalogPath = null; this.dataRoot = null; this.progress = progress; this.motion = new MotionLibrary(this); this.cacheFolder = cacheFolder; this.modelPlan = null; this.animationPlan = null; this.mapHistory = new Map(); this.textureLibrary = new TextureLibrary(this); }
   open(input) {
-    const workspace = openWorkspace(input);
-    Object.assign(this, workspace); this.textureLibrary.reset(); this.mapHistory.clear(); this.changes.clear(); this.modelPlan = null; this.motion = new MotionLibrary(this);
+    const workspace = openWorkspace(input), sources = workspaceSources(workspace);
+    assertSources(sources);
+    Object.assign(this, workspace); this.sources = sources; this.reloadPlan = null; this.textureLibrary.reset(); this.mapHistory.clear(); this.changes.clear(); this.modelPlan = null; this.animationPlan = null; this.motion = new MotionLibrary(this);
     return this.snapshot();
+  }
+  sourceChanges() {return changedSources(this.sources);}
+  assertSources() {assertSources(this.sources);}
+  prepareSourceReload() {
+    this.reloadPlan = prepareSourceReload(this);
+    const {token, changes, conflicts, installed} = this.reloadPlan;
+    return {token, kept: changes.size, conflicts, installed};
+  }
+  reloadSources(token, discardConflicts = false) {
+    const plan = this.reloadPlan;
+    validateSourceReload(this, plan, token, discardConflicts);
+    Object.assign(this, plan.workspace); this.sources = plan.sources; this.changes = plan.changes;
+    this.textureLibrary.reset(); this.mapHistory.clear(); this.modelPlan = null; this.animationPlan = null;
+    this.motion = new MotionLibrary(this); this.reloadPlan = null;
+    return {...this.snapshot(), keyMap: plan.keyMap, reloadSummary: {kept: plan.changes.size, installed: plan.installed.length, discarded: plan.conflicts.length}};
   }
   get(key) {
     requireThat(typeof key === 'string' && /^\d+:\d+$/.test(key), 'Invalid asset selection.');
@@ -168,27 +188,54 @@ export class Workbench {
   rebuildModel(key, token, selection) {
     const plan = this.modelPlan, data = this.bytes(key);
     requireThat(plan && plan.key === key && plan.token === token && plan.sourceHash === sha256(data), 'The model changed. Prepare the replacement again.');
-    const rebuilt = rebuildModel(plan.template || data, plan.glb, selection, plan.textures); this.modelPlan = null;
+    const rebuilt = rebuildModel(plan.template || data, plan.glb, selection, plan.textures); this.modelPlan = null; this.animationPlan = null;
     const snapshot = this.stage(key, rebuilt.data, 'Rebuilt topology and native morphs (runtime test required)');
     const change = this.changes.get(key); if (change) change.rebuildReport = rebuilt.report;
     return {...snapshot, rebuildReport: rebuilt.report};
   }
   animationSource(key,id) {
-    requireThat(typeof id==='string' && id.startsWith('asset:'),'Select an ANM from the asset library for replacement.');
-    const clip=this.motion.get(key,id);return {model:parseModel(this.bytes(key)),data:this.bytes(id.slice(6)),clip,target:id.slice(6)};
+    return {model:parseModel(this.bytes(key)),...this.motion.exchangeSource(key,id)};
+  }
+  animationExchange(source,start,end,fps) {
+    const {model,data,clip}=source;
+    return clip.sourceFormat==='pack'?cutsceneExchange(model,data,clip.sectionIndex,clip.modelId,start,end,fps):animationExchange(model,data,start,end,fps);
   }
   async exportAnimation(key,id,start,end,fps,file) {
-    const {model,data,target}=this.animationSource(key,id),exchange=animationExchange(model,data,start,end,fps);
-    exchange.metadata.bankName=this.get(target).entry.name;
-    const result=await blenderExchange({script:'animation_exchange',mode:'export',outputType:'fbx',metadata:exchange.metadata},exportGlb(model,readTextures(this.bytes(key),true),exchange),this.cacheFolder,this.progress);
+    const source=this.animationSource(key,id),exchange=this.animationExchange(source,start,end,fps);
+    exchange.metadata.bankName=source.clip.sourceFormat==='pack'?source.clip.name:this.get(source.target).entry.name;
+    const outputType=path.extname(file).slice(1).toLowerCase();
+    requireThat(['fbx','blend'].includes(outputType), 'Choose FBX or Blender animation output.');
+    const result=await blenderExchange({script:'animation_exchange',mode:'export',outputType,metadata:exchange.metadata},exportGlb(source.model,readTextures(this.bytes(key),true),exchange),this.cacheFolder,this.progress);
     writeNew(file,result.data);return {file,...result.report};
   }
-  async importAnimation(key,id,file) {
-    const {model,data,target}=this.animationSource(key,id),identity=animationExchange(model,data,0,0,30);
+  async prepareAnimationImport(key,id,file) {
+    const source=this.animationSource(key,id),{data,target,clip}=source;
+    requireThat(target,'Open this cutscene AFS through the data folder or asset library before replacing animation. External motion files are preview/export sources.');
+    const identity=this.animationExchange(source,0,0,30);
     const result=await blenderExchange({script:'animation_exchange',mode:'import',input:path.resolve(file),outputType:'json',skeletonHash:identity.metadata.skeletonHash},null,this.cacheFolder,this.progress);
-    const exchange=JSON.parse(result.data.toString('utf8'));requireThat(exchange.metadata.bankName===this.get(target).entry.name,'Select the same ANM bank used for this FBX export.');
-    const rebuilt=replaceAnimation(model,data,exchange);
-    return {...this.stage(target,rebuilt.data,'Animation range from FBX'),animationReport:rebuilt.report};
+    const exchange=JSON.parse(result.data.toString('utf8')),token=sha256(result.data),bankName=clip.sourceFormat==='pack'?clip.name:this.get(target).entry.name;
+    requireThat((exchange.metadata.format||'anm')===clip.sourceFormat,'Import an animation exported from the same format: ANM for gameplay, PACK for cutscenes.');
+    this.animationPlan={key,id,target,exchange,token,modelHash:sha256(this.bytes(key)),bankHash:sha256(data)};
+    return {token,format:clip.sourceFormat,sourceFile:path.basename(file),sourceBank:exchange.metadata.bankName,targetBank:bankName,
+      sameBank:bankName===exchange.metadata.bankName&&(clip.sourceFormat!=='pack'||exchange.metadata.sectionIndex===clip.sectionIndex),
+      sourceStart:exchange.sampleStart,sourceEnd:exchange.sampleEnd,exportStart:exchange.metadata.start,targetFrames:identity.metadata.frameCount,fps:exchange.metadata.fps,...result.report};
+  }
+  applyAnimationImport(key,id,token,options={}) {
+    const plan=this.animationPlan;
+    requireThat(plan&&plan.key===key&&plan.id===id&&plan.token===token,'Animation import expired. Select the input animation again.');
+    requireThat(sha256(this.bytes(key))===plan.modelHash&&sha256(this.bytes(plan.target))===plan.bankHash,'Model or target animation changed after preparation. Reopen the import to review the current bank.');
+    const {model,data,target,clip}=this.animationSource(key,id);
+    const rebuilt=clip.sourceFormat==='pack'?replaceCutsceneAnimation(model,data,clip.sectionIndex,clip.modelId,plan.exchange,options):replaceAnimation(model,data,plan.exchange,options);
+    const report={...rebuilt.report,...plan.exchange.importReport,sourceBank:plan.exchange.metadata.bankName,targetBank:clip.sourceFormat==='pack'?clip.name:this.get(target).entry.name};
+    report.sourceStart=rebuilt.report.sourceStart;report.sourceEnd=rebuilt.report.sourceEnd;
+    this.animationPlan=null;
+    const snapshot=this.stage(target,rebuilt.data,clip.sourceFormat==='pack'?'Cutscene animation range import':'Animation range import');
+    const animationId=clip.sourceFormat==='pack'?this.motion.list(key).clips.find(item=>item.assetKey===target&&item.type==='skeletal'&&item.sectionIndex===clip.sectionIndex)?.id:id;
+    return {...snapshot,animationId,animationReport:report};
+  }
+  async importAnimation(key,id,file,options={}) {
+    const prepared=await this.prepareAnimationImport(key,id,file);
+    return this.applyAnimationImport(key,id,prepared.token,options);
   }
   motionList(key) {return this.motion.list(key);}
   motionClip(key, id) {return this.motion.get(key, id);}
@@ -218,8 +265,8 @@ export class Workbench {
         base.textures = textures.map(({png, ...t}) => ({...t, url: 'data:image/png;base64,' + png.toString('base64')}));
         base.world = details; base.text = JSON.stringify(details, null, 2); if (model?.meshes.length) base.model = model;
       } else if (['pack', 'cluster'].includes(format)) {
-        const clips = parseMorphAnimations(data); base.motion = {format, clips: clips.map(({name, modelId, frameCount, targetCount}) => ({name, modelId, frameCount, targetCount}))};
-        base.text = JSON.stringify({...base.motion, note: clips.length ? 'Facial motion. Open this AFS / BIN from the selected model’s Open motion file action to play compatible tracks.' : 'Valid cutscene PACK. It contains sections whose skeletal / camera playback is not implemented yet.'}, null, 2);
+        const clips = [...cutsceneAnimations(data), ...parseMorphAnimations(data)]; base.motion = {format, clips: clips.map(({name, type, modelId, frameCount, targetCount, boneCount}) => ({name, type, modelId, frameCount, targetCount, boneCount}))};
+        base.text = JSON.stringify({...base.motion, note: clips.length ? 'Select a matching model, then choose this cutscene under Clips & settings. Skeletal motion loads its matching facial track automatically. Use Export cutscene range and Import animation to edit the selected character.' : 'No supported character motion in this PACK. Camera and other scene tracks are not played.'}, null, 2);
       } else if (entry.extension === 'mes') {
         const messages = readMessages(data); base.messages = {count: messages.count}; base.text = messages.messages.map(m => '[' + m.index + '] ' + m.text).join('\n\n');
       } else if (format === 'bin' && /font/i.test(entry.name)) {
@@ -280,15 +327,17 @@ export class Workbench {
     return this.stage(key, replaceMorphs(data, doc), `Morph ${target}: intensity ×${factor}`);
   }
   undo(key) {this.get(key); this.changes.delete(key); this.mapHistory.delete(key); this.textureLibrary.invalidate(key); return this.snapshot();}
-  async exportModelFbx(key, file) {
+  async exportModelScene(key, file) {
     requireThat(!fs.existsSync(file), 'Output already exists. Choose a new filename.');
-    requireThat(['mdl', 'mdl_'].includes(this.get(key).entry.extension), 'FBX model export requires a PC MDL.');
+    requireThat(['mdl', 'mdl_'].includes(this.get(key).entry.extension), 'Blender/FBX model export requires a PC MDL.');
     const data = this.bytes(key), model = parseModel(data);
-    const result = await blenderExchange({script:'model_export', mode:'export', outputType:'fbx'}, exportGlb(model, readTextures(data, true)), this.cacheFolder, this.progress);
+    const outputType=path.extname(file).slice(1).toLowerCase();
+    requireThat(['fbx','blend'].includes(outputType), 'Choose FBX or Blender model output.');
+    const result = await blenderExchange({script:'model_export', mode:'export', outputType, bones:model.bones.map(bone=>({name:bone.name, world:bone.matrix}))}, exportGlb(model, readTextures(data, true)), this.cacheFolder, this.progress);
     writeNew(file, result.data); return {file, size:result.data.length, report:result.report};
   }
   exportAsset(key, file, mode = 'native', textureIndex = 0) {
-    if (mode === 'fbx') return this.exportModelFbx(key, file);
+    if (mode === 'fbx' || mode === 'blend') return this.exportModelScene(key, file);
     const data = this.bytes(key); let output;
     if (mode === 'movie') return exportMovie(data, file, 'mpeg');
     if (mode === 'webm') return exportMovie(data, file, 'webm');
@@ -318,6 +367,7 @@ export class Workbench {
     return {folder, count: outputs.length};
   }
   saveProject(file) {
+    this.assertSources();
     const doc = {format: 'sh3tools-project-v2', source: this.input,
       sources: this.archives.map(sourceRecord),
       changes: [...this.changes].map(([key, c]) => ({key, label: c.label, originalHash: c.originalHash, rebuildReport: c.rebuildReport, data: c.data.toString('base64')}))};
@@ -343,10 +393,11 @@ export class Workbench {
       candidate.stage(key, Buffer.from(change.data, 'base64'), String(change.label));
       if (change.rebuildReport && candidate.changes.has(key)) candidate.changes.get(key).rebuildReport = change.rebuildReport;
     }
-    this.textureLibrary.reset(); this.mapHistory.clear(); this.archives = candidate.archives; this.changes = candidate.changes; this.input = candidate.input; this.catalogPath = candidate.catalogPath; this.dataRoot = candidate.dataRoot; this.modelPlan = null; this.motion = new MotionLibrary(this);
+    this.textureLibrary.reset(); this.mapHistory.clear(); this.sources = candidate.sources; this.reloadPlan = null; this.archives = candidate.archives; this.changes = candidate.changes; this.input = candidate.input; this.catalogPath = candidate.catalogPath; this.dataRoot = candidate.dataRoot; this.modelPlan = null; this.animationPlan = null; this.motion = new MotionLibrary(this);
     return this.snapshot();
   }
   buildRequirements() {
+    this.assertSources();
     const morphNodes = Math.max(0, ...[...this.changes].filter(([key]) => ['mdl', 'mdl_'].includes(this.get(key).entry.extension)).map(([, change]) => modelLayout(change.data).morphBaseCount));
     requireThat(morphNodes <= MODEL_LIMITS.morphNodes, 'A staged model exceeds the native signed morph-index range.');
     let textureSlots = 0, primaryTextureRuns = 0, secondaryTextureRuns = 0, requiresModelTexturePatch = false;

@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {readGlb} from './gltf.mjs';
+import {Matrix4} from 'three';
+import {gltfHierarchy} from './gltf-rig.mjs';
 import {align, range, requireThat, readRange, MAX_ASSET} from './binary.mjs';
 import {blenderExchange} from './blender-bridge.mjs';
 
@@ -13,6 +15,54 @@ export function writeGlb(doc, binary) {
   header.writeUInt32LE(json.length, 12); header.writeUInt32LE(0x4e4f534a, 16);
   binaryHeader.writeUInt32LE(bin.length); binaryHeader.writeUInt32LE(0x004e4942, 4);
   return Buffer.concat([header, json, binaryHeader, bin]);
+}
+/** Undo the calibrated authoring basis before native rest/bind validation. */
+function restoreAuthoringBind(data) {
+  const {doc, binary, accessor} = readGlb(data), property = 'sh3_model_bind';
+  const roots = new Set((doc.nodes || []).flatMap((node, i) => node.extras?.[property] ? [i] : []));
+  if (!roots.size) return data;
+  const metadata = new Map([...roots].map(root => {
+    const value = JSON.parse(doc.nodes[root].extras[property]);
+    requireThat(value?.version === 1 && value.corrections, 'Invalid SH3 authoring bind metadata. Keep the exported armature Custom Properties.');
+    return [root, value.corrections];
+  }));
+  const hierarchy = gltfHierarchy(doc);
+  const owner = index => {
+    for (let node = index; node !== undefined; node = hierarchy.parents.get(node)) if (roots.has(node)) return node;
+  };
+  const skins = (doc.skins || []).filter(skin => skin.joints.some(index => owner(index) !== undefined)), joints = new Map();
+  for (const skin of skins) for (const index of skin.joints) {
+    const values = metadata.get(owner(index))?.[doc.nodes[index].name];
+    requireThat(Array.isArray(values) && values.length === 16 && values.every(Number.isFinite), `Missing authoring bind metadata for ${doc.nodes[index].name}. Keep the original bone names and armature Custom Properties.`);
+    const correction = new Matrix4().fromArray(values);
+    requireThat(correction.determinant() !== 0 && values[3] === 0 && values[7] === 0 && values[11] === 0 && values[15] === 1, 'Invalid authoring bone basis.');
+    joints.set(index, correction);
+  }
+  const restored = index => joints.has(index) ? hierarchy.world(index).clone().multiply(joints.get(index)) : hierarchy.world(index).clone();
+  for (const [index, node] of doc.nodes.entries()) {
+    const parent = hierarchy.parents.get(index);
+    if (!joints.has(index) && !joints.has(parent)) continue;
+    const world = restored(index), local = parent === undefined ? world : restored(parent).invert().multiply(world);
+    // Inverting affine matrices can round the homogeneous 1; glTF stores it exactly.
+    local.elements[3] = local.elements[7] = local.elements[11] = 0; local.elements[15] = 1;
+    node.matrix = local.toArray(); delete node.translation; delete node.rotation; delete node.scale;
+  }
+  const chunks = [binary, Buffer.alloc(align(binary.length, 4) - binary.length)]; let length = align(binary.length, 4);
+  for (const skin of skins) {
+    const values = accessor(skin.inverseBindMatrices);
+    requireThat(values.length === skin.joints.length * 16, 'Invalid authoring inverse bind matrices.');
+    const bytes = Buffer.alloc(values.length * 4);
+    skin.joints.forEach((index, i) => {
+      const bind = new Matrix4().fromArray(values, i * 16).premultiply(joints.get(index).clone().invert());
+      bind.elements.forEach((value, j) => bytes.writeFloatLE(value, (i * 16 + j) * 4));
+    });
+    skin.inverseBindMatrices = doc.accessors.length;
+    doc.accessors.push({bufferView: doc.bufferViews.length, componentType: 5126, count: skin.joints.length, type: 'MAT4'});
+    doc.bufferViews.push({buffer: 0, byteOffset: length, byteLength: bytes.length}); chunks.push(bytes); length += bytes.length;
+  }
+  for (const root of roots) delete doc.nodes[root].extras[property];
+  doc.buffers = [{byteLength: length}];
+  return writeGlb(doc, Buffer.concat(chunks));
 }
 function resource(uri, folder) {
   requireThat(typeof uri === 'string', 'A glTF resource needs a URI.');
@@ -56,12 +106,12 @@ export function loadGltfFile(file) {
     delete image.uri;
   }
   doc.buffers = [{byteLength: length}];
-  return writeGlb(doc, Buffer.concat(chunks));
+  return restoreAuthoringBind(writeGlb(doc, Buffer.concat(chunks)));
 }
 export async function loadModelFile(file, cacheFolder, progress) {
   const extension = path.extname(file).toLowerCase();
-  requireThat(['.glb', '.gltf', '.fbx'].includes(extension), 'Choose a GLB, GLTF or FBX model.');
-  if (extension !== '.fbx') return loadGltfFile(file);
+  requireThat(['.glb', '.gltf', '.fbx', '.blend'].includes(extension), 'Choose a GLB, GLTF, FBX or Blender model.');
+  if (extension !== '.fbx' && extension !== '.blend') return loadGltfFile(file);
   const result = await blenderExchange({script: 'model_import', mode: 'import', input: path.resolve(file), outputType: 'glb'}, null, cacheFolder, progress);
-  return result.data;
+  return restoreAuthoringBind(result.data);
 }

@@ -1,7 +1,7 @@
 import {requireThat, range} from './binary.mjs';
+import {packSections} from './pack.mjs';
 
 const CLUSTER_IDS = new Set([0x29843918, 0x29853918]);
-const PACK_ID = 0x12345678;
 
 function cluster(buffer, offset, size) {
   range(buffer, offset, size, 'Morph animation');
@@ -42,7 +42,7 @@ function control(buffer, offset, size, controlIndex) {
     const p = 12 + index * 16;
     const startFrame = data.readUInt32LE(p), endFrame = data.readUInt32LE(p + 4);
     const length = data.readUInt32LE(p + 8), relativeOffset = data.readUInt32LE(p + 12);
-    requireThat(endFrame > startFrame && (!index || startFrame >= segments[index - 1].endFrame), 'PACK morph segments overlap or have invalid ranges.');
+    requireThat(endFrame >= startFrame && (!index || startFrame >= segments[index - 1].endFrame), 'PACK morph segments overlap or have invalid ranges.');
     let curve = null;
     if (length) {
       requireThat(relativeOffset >= 12 + count * 16, 'PACK morph data overlaps its segment table.');
@@ -53,9 +53,10 @@ function control(buffer, offset, size, controlIndex) {
     }
     segments.push({startFrame, endFrame, frameCount: curve?.frameCount ?? endFrame - startFrame,
       offset: curve?.offset ?? null, tracks: curve?.tracks ?? []});
-    frameCount = endFrame;
+    frameCount = endFrame + 1;
   }
   if (targetCount === null || !targetCount) return null;
+  const last=segments.at(-1);frameCount=Math.max(frameCount,last.startFrame+last.frameCount);
   return {type: 'morph', modelId, name: `Character 0x${modelId.toString(16).toUpperCase()} · morphs`,
     offset, controlIndex, frameCount, targetCount, segments, fps: 30, fpsSource: 'preview-default',
     tracks: segments.length === 1 ? segments[0].tracks : []};
@@ -75,16 +76,8 @@ export function parseMorphAnimations(buffer) {
       fps: 30, fpsSource: 'preview-default',
       segments: [{startFrame: 0, endFrame: curve.frameCount, ...curve}]}];
   }
-  if (id !== PACK_ID) return [];
-  range(buffer, 0, 16, 'PACK header');
-  requireThat(buffer.readUInt32LE(4) === 1, 'Unsupported PACK revision.');
-  const count = buffer.readUInt32LE(8);
-  range(buffer, 16, count * 16, 'PACK file table');
   const clips = [];
-  for (let index = 0; index < count; index++) {
-    const p = 16 + index * 16, offset = buffer.readUInt32LE(p), type = buffer.readUInt32LE(p + 4), size = buffer.readUInt32LE(p + 8);
-    range(buffer, offset, size, 'PACK section');
-    requireThat(!size || offset >= 16 + count * 16, 'PACK section overlaps its file table.');
+  for (const {index, offset, type, size} of packSections(buffer)) {
     if (type === 1) {
       const clip = control(buffer, offset, size, index);
       if (clip) clips.push(clip);

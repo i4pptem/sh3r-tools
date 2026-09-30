@@ -1,4 +1,4 @@
-function sampleTrack(track, frame) {
+export function sampleMorphTrack(track, frame) {
   const {frames, weights} = track, count = frames.length;
   if (!count) return 0;
   if (count === 1 || frame <= frames[0]) return weights[0];
@@ -12,17 +12,19 @@ function sampleTrack(track, frame) {
   return weights[left] + (weights[right] - weights[left]) * t;
 }
 
-/** Sample signed morph weights at a scene frame; callers own playback looping.
- * PACK segments use [startFrame, endFrame); cuts never blend between segments.
- * Empty segments clear all weights. The engine clamps each curve's last frame.
+/** Sample native steady-state facial weights. PACK ends are inclusive; the last
+ * selected payload stays active. The runtime's one-update reset on payload switches
+ * depends on update cadence and is not part of this stateless sample operation.
  */
 export function sampleMorphAnimation(clip, frame) {
   if (!Number.isFinite(frame)) throw new Error('Morph playback frame must be finite.');
-  frame = Math.max(0, Math.min(clip.frameCount - 1, frame));
   const weights = new Array(clip.targetCount).fill(0);
-  const segment = clip.segments.find(segment => frame >= segment.startFrame && frame < segment.endFrame);
+  frame = Math.max(0, frame);
+  const segment = clip.controlIndex !== undefined
+    ? clip.segments.find(segment => Math.ceil(frame) <= segment.endFrame) || clip.segments.at(-1)
+    : clip.segments[0];
   if (!segment) return weights;
-  const localFrame = Math.min(segment.frameCount - 1, frame - segment.startFrame);
-  for (let index = 0; index < segment.tracks.length; index++) weights[index] = sampleTrack(segment.tracks[index], localFrame);
+  const localFrame = Math.max(0, Math.min(segment.frameCount - 1, frame - segment.startFrame));
+  for (let index = 0; index < segment.tracks.length; index++) weights[index] = sampleMorphTrack(segment.tracks[index], localFrame);
   return weights;
 }

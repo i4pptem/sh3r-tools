@@ -6,9 +6,9 @@ Support below describes the implemented PC workflows. A file extension alone is 
 | --- | --- | --- |
 | ARC catalog/subarchives | Asset tree, native export, converted archive/all-archive export | Stage native replacements; build separate archives with updated layout |
 | AFS, nested demo AFS | Container browsing and embedded file detection | Native replacements and supported converted audio exchange |
-| PC MDL | Textured model, skin/skeleton, morphs; GLB and FBX | GLB / GLTF / FBX import with base-color images; compatible edits or native geometry/morph rebuilding against the original rig; new slots up to native limits; per-texture PNG replacement |
-| ANM | Skeletal playback, range selection, FBX range export | FBX motion back into the supported existing ANM range/layout; original skeleton retained |
-| Facial PACK tracks | Supported cutscene facial playback linked to selected model | Native morph targets can be rebuilt; this is not a general cutscene/PACK timeline authoring system |
+| PC MDL | Textured model, skin/skeleton, morphs; GLB, FBX and Blender scenes | GLB / GLTF / FBX / .blend import with base-color images; compatible edits or native geometry/morph rebuilding against the original rig; new slots up to native limits; per-texture PNG replacement |
+| ANM | Skeletal playback, verified Heather gameplay action ranges from local sh3.exe, custom range selection, Blender / FBX range export | FBX / Blender evaluated motion into explicit ranges of same-skeleton banks; existing channels and bank length retained; unsupported channels reported |
+| Cutscene PACK tracks | Character skeletal and facial playback from PACK/AFS, filtered by selected model; matching face and body share a timeline | Selected-character range export/import through Blender or FBX, including existing facial controls; preserves scene length, other tracks and actor state. Camera playback and full scene authoring are not supported |
 | KG1 / KG2 | Shadow-geometry inspection where recognized | Native exchange; these are not ordinary skeletal animation clips |
 | TEX, texture-bearing DAT/TBN2, PIC | Decoded texture preview, pan/zoom, PNG | Format-aware replacement; optional full-size mode for supported paths, not a guarantee for every container |
 | `fontdata_*.bin` | Normal/Small glyph atlas, PNG | Native font editing and 2×/4× coverage extensions; expanded fonts need the runtime uploader |

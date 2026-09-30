@@ -1,4 +1,4 @@
-"""Convert an FBX scene to the canonical skinned model exchange representation."""
+"""Convert a Blender or FBX scene to the canonical skinned model exchange representation."""
 import json
 import sys
 import traceback
@@ -9,17 +9,20 @@ import bpy
 
 def import_model(source, root):
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    print('SH3_PROGRESS Reading FBX meshes, rig and materials…', flush=True)
-    bpy.ops.import_scene.fbx(
-        filepath=str(source), use_anim=False, use_custom_props=True,
-        use_image_search=False, use_custom_normals=True, ignore_leaf_bones=False,
-        automatic_bone_orientation=False, use_prepost_rot=True)
+    print('SH3_PROGRESS Reading model meshes, rig and materials…', flush=True)
+    if source.suffix.lower() == '.blend':
+        bpy.ops.wm.open_mainfile(filepath=str(source), load_ui=False, use_scripts=False)
+    else:
+        bpy.ops.import_scene.fbx(
+            filepath=str(source), use_anim=False, use_custom_props=True,
+            use_image_search=False, use_custom_normals=True, ignore_leaf_bones=False,
+            automatic_bone_orientation=False, use_prepost_rot=True)
     meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
     if not meshes:
-        raise ValueError('The FBX contains no meshes.')
+        raise ValueError('The scene contains no meshes.')
     for image in bpy.data.images:
-        if image.type == 'IMAGE' and (not image.has_data or not image.size[0]):
-            raise ValueError(f'Missing FBX texture: {image.filepath or image.name}. Embed it or keep the linked image at its saved path.')
+        if image.type == 'IMAGE' and not len(image.pixels):
+            raise ValueError(f'Missing model texture: {image.filepath or image.name}. Embed it or keep the linked image at its saved path.')
     for obj in bpy.context.scene.objects:
         if obj.type == 'ARMATURE':
             obj.data.pose_position = 'REST'

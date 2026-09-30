@@ -39,27 +39,30 @@ test('native morph tracks preserve signed weights and zero/constant defaults', (
   assert.throws(() => sampleMorphAnimation(clip, NaN), /finite/);
 });
 
-test('PACK playback switches at exclusive segment ends and clears empty segments', () => {
+test('PACK playback uses inclusive ends, ceil selection and retains the final payload', () => {
   const [clip] = parseMorphAnimations(pack([
     {start: 0, end: 10, data: curve(10, [[[0, 0], [9, 4096]]])},
     {start: 10, end: 12},
     {start: 12, end: 17, data: curve(9, [[[0, -4096], [8, 4096]]])},
   ]));
-  assert.equal(clip.modelId, 0x100); assert.equal(clip.frameCount, 17);
+  assert.equal(clip.modelId, 0x100); assert.equal(clip.frameCount, 21);
   assert.equal(clip.segments[2].frameCount, 9);
   assert.deepEqual(sampleMorphAnimation(clip, 9.9), [1]);
-  assert.deepEqual(sampleMorphAnimation(clip, 10), [0]);
-  assert.deepEqual(sampleMorphAnimation(clip, 12), [-1]);
+  assert.deepEqual(sampleMorphAnimation(clip, 10), [1]);
+  assert.deepEqual(sampleMorphAnimation(clip, 12), [0]);
+  assert.deepEqual(sampleMorphAnimation(clip, 10.1), [0]);
+  assert.deepEqual(sampleMorphAnimation(clip, 12.5), [-.875]);
   assert.deepEqual(sampleMorphAnimation(clip, 16), [0]);
+  assert.deepEqual(sampleMorphAnimation(clip, 100), [1]);
 });
 
-test('PACK gaps do not hold a preceding morph pose', () => {
+test('PACK gaps select the upcoming payload before its start and clamp local time', () => {
   const [clip] = parseMorphAnimations(pack([
     {start: 1, end: 3, data: curve(2, [[[0, 4096], [1, 4096]]])},
     {start: 5, end: 7, data: curve(2, [[[0, 2048], [1, 2048]]])},
   ]));
-  assert.deepEqual(sampleMorphAnimation(clip, 0), [0]);
-  assert.deepEqual(sampleMorphAnimation(clip, 4), [0]);
+  assert.deepEqual(sampleMorphAnimation(clip, 0), [1]);
+  assert.deepEqual(sampleMorphAnimation(clip, 4), [0.5]);
   assert.deepEqual(sampleMorphAnimation(clip, 5), [0.5]);
 });
 

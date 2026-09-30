@@ -65,7 +65,7 @@ export function textureInspector(state, run, notify, openSource) {
       for (let offset = 0; offset < items.length; offset += 32) {
         if (request !== gridRequest) return;
         const results = await window.studio.request('textureThumbnails', {ids: items.slice(offset, offset + 32).map(item => item.id)});
-        if (request !== gridRequest) return;
+        if (!results || request !== gridRequest) return;
         for (const result of results) {
           const card = [...$('grid').children].find(card => card.dataset.id === result.id); if (!card) continue;
           const image = card.querySelector('img'), placeholder = card.querySelector('.texture-thumb-status');
@@ -129,7 +129,7 @@ export function textureInspector(state, run, notify, openSource) {
     }
     try {
       const result = await window.studio.request('texturePreview', {id: item.id});
-      if (request !== previewRequest) return;
+      if (!result || request !== previewRequest) return;
       preview = result; viewer.show(result.url);
     } catch (error) {
       if (request === previewRequest) {$('error').textContent = error.message; $('error').classList.remove('hidden');}

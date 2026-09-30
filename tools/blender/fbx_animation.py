@@ -1,7 +1,10 @@
 """Keep FBX animation exchange limited to the channels supported by native ANM."""
 from collections import Counter
+from inspect import signature
 
-from io_scene_fbx import data_types, encode_bin, parse_fbx
+import bpy
+
+from io_scene_fbx import data_types, encode_bin, parse_fbx, import_fbx
 
 
 PROPERTY_WRITERS = {
@@ -46,3 +49,29 @@ def remove_scale_tracks(file):
             count = next(child for child in element.elems if child.id == b'Count')
             count.props[0] -= counts[element.props[0]]
     encode_bin.write(str(file), writable(root), version)
+
+
+def import_fbx_animation(file):
+    """Convert FBX times using Blender's effective FPS, including fps_base.
+
+    The animation reader's FPS argument owns conversion of seconds into frames.
+    Supplying the scene's complete timebase also covers custom and fractional rates.
+    The adapter is scoped to this import and leaves the installed add-on unchanged.
+    """
+    reader = import_fbx.blen_read_animations_action_item
+    parameters = signature(reader)
+    if 'fps' not in parameters.parameters:
+        raise RuntimeError('Unsupported Blender FBX animation reader. Use a supported Blender release or import a .blend scene.')
+
+    def read_animation(*args, **kwargs):
+        bound = parameters.bind(*args, **kwargs)
+        render = bpy.context.scene.render
+        bound.arguments['fps'] = render.fps / render.fps_base
+        return reader(*bound.args, **bound.kwargs)
+
+    import_fbx.blen_read_animations_action_item = read_animation
+    try:
+        bpy.ops.import_scene.fbx(filepath=str(file), use_custom_props=True, anim_offset=0.0,
+                                automatic_bone_orientation=False, ignore_leaf_bones=False)
+    finally:
+        import_fbx.blen_read_animations_action_item = reader

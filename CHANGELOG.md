@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.9.0 — Animation & Cutscene Workflows
+
+### Cutscene animation
+
+- Play character animations from PACK files inside cutscene AFS archives, with synchronized facial morphs.
+- Automatically discover compatible cutscenes from the game's data folder.
+- Export selected cutscene ranges to **Blender (.blend)** or **FBX**, then reimport bone motion, facial shape keys, or both.
+- Preserve other characters and scene tracks, restore the original scene coordinates, and validate rebuilt facial curves against the native memory budget.
+- Improve facial-track boundaries, continuation of the last facial pose, and exact-frame rotation sampling.
+
+### Blender and animation exchange
+
+- Export ready-to-edit **.blend** models and animation ranges with packed textures, shape keys and independent bone translations.
+- Blender exports use joint-aligned bones; **FBX retains the original SH3 bone orientations**. GLB model export remains available.
+- Sample evaluated IK/FK motion on the original game bones. Extra control bones are ignored and sparse keyframes are interpolated.
+- Normalize uniform skeleton scale and ignore armature object placement/scale while checking rest-pose changes separately.
+- Transfer compatible animation between banks using the same original rig, with explicit source/destination ranges and optional retiming.
+- Preserve unsupported native channels with a detailed bone/channel/frame report, or choose strict rejection.
+- Fix selected-range looping that could sample the next action, and fractional-FPS FBX imports that could introduce an extra end frame.
+
+### Gameplay action ranges
+
+- Read verified action ranges for **11 main Heather gameplay banks** from the local sh3.exe.
+- Select native action IDs with inclusive frame bounds, loop flags and default playback rates; step through actions and export the selected range.
+- Keep custom ranges available for unsupported banks and executable profiles. Movement names are not yet mapped; entries use **Action 101**, **Action 201**, etc.
+
+### Animation panel
+
+- Replace the large animation section with a compact window inside the viewport.
+- Separate **Clips**, **Export / Import** and **Morphs**, with advanced playback settings kept out of the main controls.
+- Drag the header to move the panel and resize its expanded view from the lower-right corner.
+- Remember position and size between sessions, keep the panel inside the viewport and restore defaults with **↺**.
+- Keep playback controls accessible when folded; move external motion loading into advanced settings.
+
+### Archive reload
+
+- Offer to reload game archives changed outside the app, including after installing a built mod.
+- Preserve compatible staged replacements, recognize already installed changes and request confirmation before discarding conflicts or unapplied map previews.
+- Refresh archive offsets, selections and model/texture/animation caches together.
+- Add **Reload sources** and **Ctrl+R**.
+
+### Notes
+
+- Blender workflows require an installed Blender 4.2+; tested with Blender 5.2.2.
+- New native ANM channels, animation bank/cutscene length changes and camera/event editing are not included.
+- Action discovery reads the local executable without modifying it. In-game speed and body-part blending can differ from isolated preview.
+- 242 automated tests pass, with additional Blender round-trip and packaged UI checks. Test authored replacements in the game before distributing a mod.
+
 ## 0.8.5
 
 ### Model and texture import

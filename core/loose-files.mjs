@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {assertSources} from './source-state.mjs';
 import path from 'node:path';
 import {readRange, fileHash, requireThat, writeNew, safeOutput, sha256} from './binary.mjs';
 
@@ -14,13 +15,13 @@ export function looseFolder(folder, section, files = folderFiles(folder)) {
   folder = path.resolve(folder);
   const entries = files.map((sourceFile, index) => {
     const relative = path.relative(folder, sourceFile).replaceAll('\\', '/'), stat = fs.statSync(sourceFile);
-    return {index, fileId: index, name: 'data/' + section + '/' + relative, extension: path.extname(relative).slice(1).toLowerCase(), sourceFile, size: stat.size, size2: stat.size, mtime: stat.mtimeMs, offset: 0};
+    return {index, fileId: index, name: 'data/' + section + '/' + relative, extension: path.extname(relative).slice(1).toLowerCase(), sourceFile, size: stat.size, size2: stat.size, mtime: stat.mtimeMs, ctime: stat.ctimeMs, offset: 0};
   });
   return {format: 'FOLDER', section, name: section, file: folder, entries, size: entries.reduce((n, e) => n + e.size, 0)};
 }
 
 const sourceName = (archive, entry) => path.relative(archive.file, entry.sourceFile).replaceAll('\\', '/');
-export function looseBytes(entry) {return readRange(entry.sourceFile, 0, fs.statSync(entry.sourceFile).size);}
+export function looseBytes(entry) {assertSources([{...entry, file: entry.sourceFile}]); return readRange(entry.sourceFile, 0, entry.size);}
 export function sourceRecord(archive) {
   if (archive.format !== 'FOLDER') return {file: archive.file, hash: fileHash(archive.file)};
   return {file: archive.file, kind: 'folder', files: archive.entries.map(e => ({name: sourceName(archive, e), hash: fileHash(e.sourceFile)}))};
@@ -36,8 +37,8 @@ export function verifySource(archive, record) {
 export function buildLoose(archive, changes, folder) {
   const files = [];
   for (const [index, data] of changes) {
-    const entry = archive.entries[index], current = fs.statSync(entry.sourceFile);
-    requireThat(current.size === entry.size && current.mtimeMs === entry.mtime, entry.name + ' changed on disk. Reopen it before building.');
+    const entry = archive.entries[index];
+    assertSources([{...entry, file: entry.sourceFile}]);
     const file = safeOutput(folder, entry.name); writeNew(file, data);
     const hash = sha256(data); requireThat(fileHash(file) === hash, 'Loose file output hash verification failed.');
     files.push({file, source: entry.sourceFile, sourceHash: fileHash(entry.sourceFile), outputHash: hash, size: data.length});

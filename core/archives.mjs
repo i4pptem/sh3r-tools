@@ -1,3 +1,4 @@
+import {assertSources} from './source-state.mjs';
 import {assetFormat} from './asset-format.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -67,10 +68,11 @@ export function openArchive(file, names = []) {
   });
   const sorted = entries.filter(e => e.size).toSorted((a, b) => a.offset - b.offset);
   for (let i = 1; i < sorted.length; i++) requireThat(sorted[i].offset >= sorted[i - 1].offset + sorted[i - 1].size, 'Overlapping archive entries are unsupported.');
-  return {file: path.resolve(file), name: path.basename(file), format, entries, size: stat.size, mtime: stat.mtimeMs, attributeOffset, hasAttributes: !!attributes};
+  return {file: path.resolve(file), name: path.basename(file), format, entries, size: stat.size, mtime: stat.mtimeMs, ctime: stat.ctimeMs, attributeOffset, hasAttributes: !!attributes};
 }
 
 export function entryBytes(archive, index) {
+  assertSources([archive]);
   const entry = archive.entries[index]; requireThat(entry, 'Unknown archive entry.');
   requireThat(entry.size <= MAX_ASSET, 'Asset too large for preview; export a smaller selection.');
   return readRange(archive.file, entry.offset, entry.size);
@@ -78,8 +80,7 @@ export function entryBytes(archive, index) {
 
 /** Preserve opaque data and untouched payloads; redirect changed entries to appended, aligned payloads. */
 export function buildArchive(archive, replacements, output, progress = () => {}) {
-  const current = fs.statSync(archive.file);
-  requireThat(current.size === archive.size && current.mtimeMs === archive.mtime, `${archive.name} changed on disk. Reopen it before building.`);
+  assertSources([archive]);
   requireThat(!fs.existsSync(output), 'Build output already exists.');
   fs.copyFileSync(archive.file, output, fs.constants.COPYFILE_EXCL);
   const handle = fs.openSync(output, 'r+');

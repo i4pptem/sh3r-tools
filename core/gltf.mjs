@@ -65,7 +65,12 @@ export function exportGlb(model, textures = [], motion = null) {
         samplers.push({input,output:attribute(values,size===4?'VEC4':'VEC3'),interpolation:'LINEAR'});
       }
     }
-    animations.push({name:'SH3_ANM',samplers,channels});
+    if(motion.morphSamples)for(let mesh=0;mesh<model.meshes.length;mesh++) {
+      if(!model.meshes[mesh].morphPositions.length)continue;
+      channels.push({sampler:samplers.length,target:{node:model.bones.length+mesh,path:'weights'}});
+      samplers.push({input,output:attribute(motion.morphSamples.flat(),'SCALAR'),interpolation:'LINEAR'});
+    }
+    animations.push({name:motion.metadata.format==='pack'?'SH3_PACK':'SH3_ANM',samplers,channels});
   }
   const images = textures.map(t => ({bufferView: blob(t.png), mimeType: 'image/png'}));
   const doc = {asset: {version: '2.0', generator: 'Silent Hill 3 Tools', extras: {...model.exchangeExtras, sh3SourceHash: model.sourceHash}}, scene: 0,

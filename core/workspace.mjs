@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {fileStamp} from './source-state.mjs';
 import path from 'node:path';
 import {parseCatalog, openArchive} from './archives.mjs';
 import {looseFolder, folderFiles} from './loose-files.mjs';
@@ -39,11 +40,12 @@ export function openWorkspace(input) {
   }
   if (/\.000$/i.test(input)) return {input, catalogPath: null, dataRoot: null, archives: [looseFolder(path.dirname(input), 'movie')]};
   const root = path.dirname(input), catalogPath = path.join(root, 'arc.arc');
-  const catalog = fs.existsSync(catalogPath) ? parseCatalog(catalogPath) : null;
+  const catalogSource = fs.existsSync(catalogPath) ? {file: catalogPath, name: 'arc.arc', ...fileStamp(catalogPath)} : null;
+  const catalog = catalogSource ? parseCatalog(catalogPath) : null;
   if (path.basename(input).toLowerCase() !== 'arc.arc') {
     const cluster = catalog?.clusters.find(c => c.name.toLowerCase() === path.basename(input, '.arc').toLowerCase());
     const names = catalog?.files.filter(f => f.cluster === cluster?.index);
-    return {input, catalogPath: catalog ? catalogPath : null, dataRoot: null, archives: [container(input, 'assets', null, names)]};
+    return {input, catalogSource, catalogPath: catalog ? catalogPath : null, dataRoot: null, archives: [container(input, 'assets', null, names)]};
   }
   requireThat(catalog, 'Master catalog not found.');
   const archives = catalog.clusters.map(cluster => {
@@ -57,5 +59,5 @@ export function openWorkspace(input) {
   const sound = path.join(root, 'sound/sd.afs');
   if (fs.existsSync(sound)) archives.push(container(sound, 'sound', root));
   dataFolders(root, archives);
-  return {input, catalogPath, dataRoot: root, archives};
+  return {input, catalogSource, catalogPath, dataRoot: root, archives};
 }

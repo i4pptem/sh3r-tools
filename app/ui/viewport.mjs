@@ -51,7 +51,7 @@ export class ModelViewport {
       local.decompose(bone.position, bone.quaternion, bone.scale); return bone;
     });
     this.rigBones.forEach((bone, i) => (this.parents[i] < 0 ? this.group : this.rigBones[this.parents[i]]).add(bone));
-    this.bindPose = this.rigBones.map(b => ({position: b.position.clone(), quaternion: b.quaternion.clone()}));
+    this.bindPose = this.rigBones.map(b => ({position: b.position.clone(), quaternion: b.quaternion.clone(), scale: b.scale.clone()}));
     this.group.updateMatrixWorld(true);
     this.skin = this.rigBones.length ? new THREE.Skeleton(this.rigBones, matrices.map(m => m.clone().invert())) : null;
     for (const source of model.meshes) {
@@ -148,6 +148,8 @@ export class ModelViewport {
     this.pivot.updateMatrixWorld(true); this.gizmo.attach(this.pivot); this.syncingGizmo = false;
   }
   frame() {
+    this.group.updateMatrixWorld(true); this.skin?.update();
+    for (const mesh of this.meshes) if (mesh.isSkinnedMesh) mesh.computeBoundingBox();
     const box = new THREE.Box3().setFromObject(this.group); if (box.isEmpty()) return;
     this.frameBox(box);
   }

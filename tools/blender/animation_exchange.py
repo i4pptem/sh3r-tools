@@ -4,99 +4,31 @@ import traceback
 from pathlib import Path
 
 import bpy
-from mathutils import Matrix, Quaternion, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from fbx_animation import remove_scale_tracks
-
-PROPERTY = 'sh3_anm_exchange'
-# glTF Y-up coordinates to Blender Z-up coordinates.
-TO_BLENDER = Matrix(((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))
-
-
-def matrix(values):
-    return Matrix([values[i:i + 4] for i in range(0, 16, 4)]).transposed()
+from animation_rig import PROPERTY, armature, bind_signature, sample
+from fbx_animation import remove_scale_tracks, import_fbx_animation
+from animation_morphs import prepare as prepare_morphs, sample_morphs
+from authoring_rig import reorient_for_authoring, disconnect_bones, save_authoring_scene
 
 
-def armature():
-    rigs = [obj for obj in bpy.context.scene.objects if obj.type == 'ARMATURE']
-    if len(rigs) != 1:
-        raise ValueError('Keep exactly one original armature in the FBX.')
-    return rigs[0]
-
-
-def import_fbx(file):
+def import_scene(file):
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.fbx(filepath=str(file), use_custom_props=True, anim_offset=0.0,
-                             automatic_bone_orientation=False, ignore_leaf_bones=False)
-    return armature()
-
-
-def bind_signature(rig, metadata):
-    return {'object': [v for row in rig.matrix_world for v in row],
-            'bones': [[v for row in rig.data.bones[bone['name']].matrix_local for v in row] for bone in metadata['bones']]}
-
-
-def check_bind(rig, metadata):
-    actual = bind_signature(rig, metadata)
-    expected = metadata['fbxBind']
-    for current, original in zip([actual['object']] + actual['bones'], [expected['object']] + expected['bones']):
-        if any(abs(a - b) >= (1 / 32 if i in (3, 7, 11) else 1 / 8192) for i, (a, b) in enumerate(zip(current, original))):
-            raise ValueError('FBX rest skeleton changed. Edit the action in Pose Mode; keep the original rest bones and armature transform.')
-
-
-def pose_rotation(pose):
-    if pose.rotation_mode == 'QUATERNION':
-        return pose.rotation_quaternion.copy()
-    if pose.rotation_mode == 'AXIS_ANGLE':
-        angle, x, y, z = pose.rotation_axis_angle
-        return Quaternion((x, y, z), angle)
-    return pose.rotation_euler.to_quaternion()
-
-
-def sample(rig, metadata):
-    bones = metadata['bones']
-    if set(rig.data.bones.keys()) != {bone['name'] for bone in bones}:
-        raise ValueError('Keep all original bone names. Export FBX with Add Leaf Bones disabled.')
-    rest = []
-    for bone in bones:
-        native = rig.data.bones[bone['name']]
-        parent = bones[bone['parent']]['name'] if bone['parent'] >= 0 else None
-        if (native.parent.name if native.parent else None) != parent:
-            raise ValueError(f"Skeleton hierarchy changed at {bone['name']}.")
-        rest.append((rig.matrix_world @ native.matrix_local).inverted())
-    count = metadata['end'] - metadata['start'] + 1
-    if not rig.animation_data or not rig.animation_data.action:
-        raise ValueError('FBX contains no active armature action.')
-    first, last = rig.animation_data.action.frame_range
-    if abs(first) > 1e-4 or abs(last - (count - 1)) > 1e-4:
-        raise ValueError(f'Keep FBX frames 0 through {count - 1}; ANM action ranges cannot change length.')
-    inverse = TO_BLENDER.inverted()
-    corrections = [rest[i] @ TO_BLENDER @ matrix(bone['world']) for i, bone in enumerate(bones)]
-    local_rest = []
-    for bone in bones:
-        native = rig.data.bones[bone['name']]
-        local_rest.append(native.parent.matrix_local.inverted() @ native.matrix_local if native.parent else rig.matrix_world @ native.matrix_local)
-    samples = []
-    for frame in range(count):
-        bpy.context.scene.frame_set(frame)
-        current_object = [v for row in rig.matrix_world for v in row]
-        if any(abs(a - b) > 32 * 2 ** -23 * max(1, abs(a), abs(b)) for a, b in zip(current_object, metadata['fbxBind']['object'])):
-            raise ValueError('Animate bones in Pose Mode; object-level armature animation is unsupported.')
-        poses = []
-        for i, bone in enumerate(bones):
-            pose = rig.pose.bones[bone['name']]
-            basis = Matrix.LocRotScale(pose.location, pose_rotation(pose), Vector((1, 1, 1)))
-            local = local_rest[i] @ basis @ corrections[i]
-            local = corrections[bone['parent']].inverted() @ local if bone['parent'] >= 0 else inverse @ local
-            position, rotation, _scale = local.decompose()
-            poses.append({'translation': list(position), 'rotation': [rotation.x, rotation.y, rotation.z, rotation.w]})
-        samples.append(poses)
-    return samples
+    if Path(file).suffix.lower() == '.blend':
+        bpy.ops.wm.open_mainfile(filepath=str(file), load_ui=False, use_scripts=False)
+    else:
+        import_fbx_animation(file)
+    rig = armature()
+    if Path(file).suffix.lower() != '.blend':
+        stored = rig.get(PROPERTY)
+        names = [bone['name'] for bone in json.loads(stored)['metadata']['bones']] if stored else list(rig.data.bones.keys())
+        disconnect_bones(rig, names)
+    return rig
 
 
 def write_fbx(file):
     bpy.ops.export_scene.fbx(filepath=str(file), use_selection=True, object_types={'ARMATURE', 'MESH'},
-        use_custom_props=True, add_leaf_bones=False, bake_anim=True, bake_anim_use_all_bones=True,
+        use_custom_props=True, add_leaf_bones=False, primary_bone_axis='Y', secondary_bone_axis='X',
+        bake_anim=True, bake_anim_use_all_bones=True,
         bake_anim_use_nla_strips=False, bake_anim_use_all_actions=False, bake_anim_force_startend_keying=True,
         bake_anim_step=1.0, bake_anim_simplify_factor=0.0, mesh_smooth_type='FACE', path_mode='COPY', embed_textures=True)
     remove_scale_tracks(file)
@@ -104,51 +36,62 @@ def write_fbx(file):
 
 def export_animation(job, root):
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.context.scene.render.fps = round(job['metadata']['fps'])
-    bpy.context.scene.render.fps_base = bpy.context.scene.render.fps / job['metadata']['fps']
-    bpy.ops.import_scene.gltf(filepath=str(root / 'model.glb'))
-    rig = armature()
     metadata = job['metadata']
-    count = metadata['end'] - metadata['start'] + 1
     scene = bpy.context.scene
     scene.render.fps = round(metadata['fps'])
     scene.render.fps_base = scene.render.fps / metadata['fps']
+    bpy.ops.import_scene.gltf(filepath=str(root / 'model.glb'), bone_heuristic='BLENDER', guess_original_bind_pose=False)
+    rig = armature()
+    prepare_morphs(metadata)
+    count = metadata['end'] - metadata['start'] + 1
     scene.frame_start = 0
     scene.frame_end = count - 1
+    if job['outputType'] == 'blend':
+        reorient_for_authoring(rig, 0, count - 1)
     bpy.ops.object.select_all(action='DESELECT')
     rig.select_set(True)
     for obj in scene.objects:
         if obj.type == 'MESH' and any(mod.type == 'ARMATURE' and mod.object == rig for mod in obj.modifiers):
             obj.select_set(True)
     bpy.context.view_layer.objects.active = rig
+    if job['outputType'] == 'blend':
+        metadata['fbxBind'] = bind_signature(rig, metadata)
+        baseline, _report = sample(rig, metadata, 0, count - 1)
+        rig[PROPERTY] = json.dumps({'metadata': metadata, 'baseline': baseline, 'morphBaseline': sample_morphs(metadata, 0, count - 1)}, separators=(',', ':'))
+        scene.frame_set(0)
+        save_authoring_scene(root / 'result.blend', rig)
+        return {'frames': count, 'start': metadata['start'], 'end': metadata['end']}
     bpy.ops.wm.save_as_mainfile(filepath=str(root / 'source.blend'))
     write_fbx(root / 'baseline.fbx')
-    measured = import_fbx(root / 'baseline.fbx')
+    measured = import_scene(root / 'baseline.fbx')
     metadata['fbxBind'] = bind_signature(measured, metadata)
-    baseline = sample(measured, metadata)
-    # Export the identical source scene with measured decoder provenance. This keeps no-op channels byte-exact.
-    bpy.ops.wm.open_mainfile(filepath=str(root / 'source.blend'), load_ui=False)
-    armature()[PROPERTY] = json.dumps({'metadata': metadata, 'baseline': baseline}, separators=(',', ':'))
+    baseline, _report = sample(measured, metadata, 0, count - 1)
+    morph_baseline = sample_morphs(metadata, 0, count - 1)
+    bpy.ops.wm.open_mainfile(filepath=str(root / 'source.blend'), load_ui=False, use_scripts=False)
+    armature()[PROPERTY] = json.dumps({'metadata': metadata, 'baseline': baseline, 'morphBaseline': morph_baseline}, separators=(',', ':'))
     write_fbx(root / 'result.fbx')
     return {'frames': count, 'start': metadata['start'], 'end': metadata['end']}
 
 
 def import_animation(job, root):
-    rig = import_fbx(job['input'])
+    rig = import_scene(job['input'])
     stored = rig.get(PROPERTY)
     if not stored:
-        raise ValueError('Choose an FBX exported by Silent Hill 3 Tools; preserve armature Custom Properties when exporting edits.')
+        raise ValueError('Choose an animation exported by Silent Hill 3 Tools. Preserve armature Custom Properties when exporting FBX; a saved Blender scene is also accepted.')
     exchange = json.loads(stored)
     metadata = exchange['metadata']
     if metadata.get('version') != 1 or metadata.get('skeletonHash') != job['skeletonHash']:
-        raise ValueError('FBX belongs to another skeleton.')
-    scene = bpy.context.scene
-    scene.render.fps = round(metadata['fps'])
-    scene.render.fps_base = scene.render.fps / metadata['fps']
-    check_bind(rig, metadata)
-    exchange['samples'] = sample(rig, metadata)
+        raise ValueError('Animation uses another rest skeleton. Select an animation for the original model; additional control bones are allowed.')
+    samples, report = sample(rig, metadata)
+    try:
+        morph_samples = sample_morphs(metadata, report['sourceStart'], report['sourceEnd'])
+        morph_error = None
+    except ValueError as error:
+        morph_samples, morph_error = None, str(error)
+    report.update(hasMorphs=bool(metadata.get('morph')), morphError=morph_error)
+    exchange.update(samples=samples, morphSamples=morph_samples, sampleStart=report['sourceStart'], sampleEnd=report['sourceEnd'], importReport=report)
     (root / 'result.json').write_text(json.dumps(exchange, separators=(',', ':')), encoding='utf-8')
-    return {'frames': len(exchange['samples']), 'start': metadata['start'], 'end': metadata['end']}
+    return {'frames': len(samples), **report}
 
 
 def main():

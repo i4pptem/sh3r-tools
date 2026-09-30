@@ -1,10 +1,10 @@
 # Workflows
 
-A local Windows workbench for Silent Hill 3 PC assets. English interface. Developed by **i4pptem**. Version 0.8.5 adds GLB/GLTF/FBX model import with color textures and expanded native texture slots.
+A local Windows workbench for Silent Hill 3 PC assets. English interface. Developed by **i4pptem**. Version 0.9.0 improves IK/FK animation exchange and cross-bank transfer.
 
 ## Run
 
-Open **dist/0.8.5/Silent Hill 3 Tools-win32-x64/Silent Hill 3 Tools.exe**. Keep the executable with its surrounding files. The portable build includes Electron. Run Install media.cmd once for optional FFmpeg media conversion; no system codec or Node.js installation is needed. Morph workspace and FBX exchange additionally use an installed Blender 4.2+ (tested with 5.2.2). Set SH3TOOLS_BLENDER to its executable if automatic detection does not find it.
+Open **dist/0.9.0/Silent Hill 3 Tools-win32-x64/Silent Hill 3 Tools.exe**. Keep the executable with its surrounding files. The portable build includes Electron. Run Install media.cmd once for optional FFmpeg media conversion; no system codec or Node.js installation is needed. Morph workspace and FBX exchange additionally use an installed Blender 4.2+ (tested with 5.2.2). Set SH3TOOLS_BLENDER to its executable if automatic detection does not find it.
 
 Choose **Open data folder** and select the game's data directory. Selecting the game root or opening data/arc.arc also discovers the same complete workspace. Keep the catalog beside its archives.
 
@@ -27,7 +27,7 @@ Select a PC MDL. In **Inspector → Export model**, choose **Export GLB** or **E
 
 Use **Asset library** or **Inspector** above the preview to hide either panel; the preference survives restarts. **Ctrl+Shift+L** toggles the library. **Ctrl+F** reveals it and focuses search. **Focus preview** temporarily hides the library, Inspector and navigation; **Esc** restores the previous panel layout.
 
-Animation playback and its timeline remain visible. **Clips & settings** opens skeletal/facial clip selection, range, FPS, speed, looping and animation exchange. Playback continues when this panel is collapsed. **Pose morphs** opens the manual shape preview and intensity controls.
+Animation appears as a compact overlay inside the viewport. **Clips & tools** opens three tabs: **Clips** for banks and ranges, **Export / Import** for animation exchange, and **Morphs** for manual shape preview and intensity. Playback and the timeline remain visible when folded. Advanced playback settings contain FPS, speed, the facial track and optional external motion loading. Drag the Animation header to move the window. Open **Clips & tools** and drag its lower-right corner to change width and height. Position and expanded size are saved between sessions; the window stays inside the viewport as the layout changes. **↺** resets its layout. A focused header or resize corner also supports arrow keys (Shift for larger steps). The expanded panel scrolls within the viewport on smaller windows.
 
 The vector emblem, app/window icon and restrained charcoal/copper palette share the same visual identity. Developer credit appears in the header and status bar.
 
@@ -64,7 +64,7 @@ Only base-color textures are transferred, including the material base-color fact
 | --- | --- |
 | ARC / AFS | Names, search, per-archive native/converted export, native replacement and verified patched copies |
 | PC MDL | Textured geometry, skeleton, morphs, GLB / FBX export, GLB / GLTF / FBX import with color textures, preserved-layout edits and experimental topology rebuild |
-| ANM / PACK | Skeletal/facial playback; selected ANM range FBX export/replacement (original skeleton, channels and bank length) |
+| ANM / PACK | Skeletal/facial playback and selected-range Blender/FBX exchange. PACK supports bone motion and facial weights; ANM preserves original native channels. Scene/bank length remains unchanged. |
 | TEX / DAT / PIC / TBN2 | BGRA32, picture RGBA/PS2 alpha, RGBA5551, indexed palettes and PIC; automatic PNG fitting and palette reduction |
 | Font BIN | Normal/small glyph atlases, native PNG exchange and experimental 2×/4× coverage import; original IDs and text metrics |
 | MES | Text/control inspection and structured JSON exchange; verified Latin mapping; unidentified Asian glyph codes retained |
@@ -94,7 +94,39 @@ The installed game contains .sdb files; no .sbd sample was available to establis
 
 ## Playback and projects
 
-Select an MDL with **Keep model open**, then choose an ANM. Compatible motion starts automatically. **Open motion file…** accepts the cutscene AFS files under data/sound/demo_afs; amcm.afs includes Heather's facial performances. Native model IDs, skeletons and target counts filter compatibility. Arbitrary gameplay and facial clips are not automatically synchronized to a matching scene. Preview FPS is adjustable because ANM does not contain the playback rate.
+Select an MDL with **Keep model when selecting motion** enabled. Under **Clips & tools → Clips → Animation bank / cutscene**, choose a gameplay ANM or a **Cutscenes / PACK** entry. Opening the game's data folder discovers compatible cutscenes in its Sound sources automatically. **Playback settings & facial track → Open external motion…** also accepts an AFS or an extracted PACK/BIN, for example data/sound/demo_afs/amcm.afs for Heather. Native model IDs, bone counts and morph target counts filter compatibility.
+
+A cutscene starts character motion and its matching facial track together on the same timeline. The facial track must belong to the same PACK entry; unrelated gameplay and facial clips are not paired. Use play/pause, the scrubber, inclusive start/end frames and loop controls to inspect a segment. PACK playback defaults to the game's 30 samples per second; preview FPS and speed remain adjustable. ANM has no embedded playback rate. **Fit** frames the current character pose, including a character positioned far from the scene origin.
+
+Cutscene support previews and edits the selected character's skeleton and facial morphs. Camera and audio playback are not included. Playback itself does not stage changes.
+
+### Find actions in Heather gameplay banks
+
+Open the game's data folder with its **sh3.exe** in the parent folder. Select Heather and a **Gameplay / ANM** bank, then use **Action range**. The arrows step through the native action IDs. Selecting an action applies its inclusive first/last frame, loop flag and default playback rate. Custom frame bounds remain editable, and **Whole bank** restores the complete timeline. Export uses the currently selected bounds.
+
+The verified set covers 11 original 1763-frame chhaa_basic banks: none, hand, shot, mach, knif, pipe, blad, hamm, stun, sabe and flam. Action numbers come from the executable; descriptive movement names have not been mapped. Identical or overlapping intervals can be distinct native actions. Test banks, other models and unsupported executable profiles do not receive guessed ranges. The app reads this metadata locally and does not patch the executable for range discovery.
+
+The default rate uses the native 60 Hz clock. Actual gameplay may alter speed and blend different upper/lower-body actions; isolated whole-rig preview does not reproduce that controller. The final frame is included. Choosing a range changes preview/export selection, not game action/event tables or bank length.
+
+### Reload archives after installing a mod
+
+When returning to the app or accessing a changed source, a dialog offers **Reload sources**. You can also use the refresh button beside Sources or **Ctrl+R**. Finish copying game files before reloading.
+
+The dialog reports staged replacements that can be kept and replacements already present on disk. Kept edits must still match their original asset hash; already installed edits leave Staged changes. Conflicting or missing assets require explicit **Reload and discard conflicts** confirmation. Unapplied map previews are also counted before discarding. Cancelling leaves the workspace intact, but reading/building changed sources remains blocked until reloaded. Archive offsets, asset selections and preview caches are refreshed together. Repeat the interrupted export/import/build after reloading; it is not automatically retried with a potentially changed selection.
+
+### Edit a cutscene character
+
+1. Open the game's **data** folder or an AFS in the asset library, select the character model, then choose the cutscene under **Animation bank / cutscene → Cutscenes / PACK**. An external AFS/PACK opened only through **Playback settings & facial track → Open external motion…** can be previewed/exported; open its archive in the workspace before staging replacements.
+2. Set the inclusive start/end range and choose **Export / Import → Export cutscene range…**. Choose **.blend** for Blender or **.fbx** for exchange. Both include the rig, model and matching facial shape key animation. The exported range starts at frame 0. The character is centered for authoring precision; stored metadata restores its original scene coordinates on import.
+3. Animate original bones in Pose Mode, directly or with IK/control bones, and edit existing facial shape key values. Save the .blend or export FBX with Bake Animation, Custom Properties enabled, default Primary Y / Secondary X, and Add Leaf Bones disabled. Keep native shape key identities. A morph shared by several meshes needs matching weights on those meshes; conflicting values are reported. Do not edit the rest skeleton. Armature object movement/scale is ignored; animate bones for motion.
+4. Choose **Import animation…** and select the edited file. Review source and destination ranges, optional retiming, and **Import bone motion** / **Import facial shape keys**. Uncheck facial import if you only need body motion. A missing/conflicting facial mesh can be corrected or excluded without blocking bone import.
+5. **Stage animation**, review playback, save the project, then **Build mod**. The replacement is written to the original AFS path under data/sound/demo_afs in the new output folder. Original game files remain untouched.
+
+PACK bones have explicit position and rotation records, so ANM missing-channel rules do not apply. The importer retains the target scene's length and native track layout. Other characters, camera/light records, audio and actor track 0 remain unchanged. Moving the skeleton does not relocate actor collision/event/culling state; this is character animation editing, not scene placement editing. Gameplay ANM and cutscene PACK exchanges are distinct formats.
+
+Morph import preserves segment boundaries and untouched curves, rebuilds changed curves as signed Q12 keys, and restores 2048-byte section alignment. Boundary anchors can introduce at most half a Q12 step (1/8192) in surrounding integer samples; the importer measures and enforces this bound. A clamped curve sample can drive several scene frames: include the whole held interval to change it, or retain its original value. Values must fit -8 through 32767/4096. Rebuilt curves must leave three streaming blocks in the stock 0x210000-byte cutscene arena; excessive key data is rejected with an explanation. No executable patch is needed for this workflow.
+
+Facial preview/export samples steady-state native weights: ends are inclusive, selection uses ceil(scene frame), and the last payload continues beyond its descriptor end. The game's one-update reset when a payload changes depends on runtime cadence; it is not baked into a stateless DCC export. Preserve segment boundaries and check authored results in the game.
 
 **Save project** stores staged payloads and source hashes in a new .sh3project. Original archives/movies remain referenced. **Build mod** creates a new SH3-Build timestamped folder with changed archives or movies and a verified integrity manifest. Models or pictures requiring expanded storage include sh3.exe and runtime-buffers.json at the build root. The output folder opens after a successful build. Existing compatible morph, primary-index, transparent-mesh, font, picture and character-file patches are preserved and composed on later builds. It does not install into the game. Original files and existing exports are preserved. Test built assets in a separate game copy before deployment; file integrity is not an in-game behavior guarantee.
 
@@ -102,7 +134,7 @@ Select an MDL with **Keep model open**, then choose an ANM. Compatible motion st
 
 The unified installed workspace contains 2,796 main archive assets, seven movies, three loose pictures and 1,185 entries in the Sound section (70 archive/folder sources). All 157 PC MDLs and 461 texture containers parse, including valid empty containers; this is acceptance coverage, not exhaustive visual inspection. All 368 MES files, six font atlases, seven FMVs, 32 audio banks and twelve AIX files pass relevant round-trip checks. See [Validation](VALIDATION.md) for evidence and limits.
 
-Remaining work includes game validation of authored ANM replacements, automatic morph transfer between unrelated models, ANM bank length/channel changes, PACK skeletal/camera tracks, and complete world visibility/collision/event editing. New rigs and arbitrary native engine capacity increases are outside this release.
+Remaining work includes game validation of authored ANM replacements, automatic morph transfer between unrelated models, ANM bank length/channel changes, PACK scene length changes and camera/audio playback, and complete world visibility/collision/event editing. New rigs and arbitrary native engine capacity increases are outside this release.
 
 ## Development
 
@@ -156,26 +188,29 @@ Special parts carrying auxiliary native payloads support preserved-topology attr
 
 Assembly uses the BASE modifier stack for all poses; it supports Armature and Subdivision Surface, not arbitrary modifiers. Skin weights are limited to the strongest three influences and normalized for the game. Unrelated replacement faces still need authored expression correspondence. Source blend files are opened with script auto-execution disabled and are never overwritten.
 
-## ANM range exchange through FBX (experimental, 0.7)
+## ANM animation exchange (0.9.0)
 
-Select a model and an ANM from the asset library. Open **Clips & settings**, set **Range** and **FPS**, then expand **Exchange animation** and choose **Export ANM range FBX…**. Exported FBX frames are numbered **0 through range length minus one**. FPS is an exchange assumption; ANM stores no FPS or action names.
+1. Select a model and an ANM from Asset library. In **Clips & tools → Clips**, choose an action or a custom inclusive range; FPS is under playback settings. Then use **Export / Import → Export ANM range…**. For example, 825–834 exports ten samples, numbered 0–9 in the exported scene. Choose Blender (.blend, recommended) or FBX. ANM contains no FPS or named-action table.
+2. Open the exported .blend directly in Blender. For FBX, import with animation offset 0 and automatic bone orientation disabled, then disable **Connected** on the original bones in Edit Mode before animating or baking: Blender automatically connects collinear FBX joints and suppresses their independent translations. Edit animation in Pose Mode. Retain the original bone names, rest axes and original-bone ancestry. Additional IK/control bones and helper rigs are allowed. Sparse keys are evaluated at every source frame automatically.
+3. Either save a **.blend** scene and import it directly, or export FBX with **Bake Animation**, **Custom Properties**, **Key All Bones**, **Simplify 0**, and **NLA Strips / All Actions disabled**. Keep Add Leaf Bones disabled and use Blender's default **Primary Y / Secondary X**. Preserve the exported rest axes. FBX does not preserve Blender constraints; Bake Animation records their result. Direct .blend import evaluates the scene's constraints and active action/NLA without requiring manual baking. Blender file scripts are not auto-executed.
+4. Select the destination ANM, which may be another bank for the same original skeleton. Choose **Import animation…**, then the FBX or .blend. The dialog shows separate source and destination ranges and counts. Both endpoints are included. Use **Fit source motion to the destination range** only when you intend to retime the clip. Trimming a duplicated final loop pose is an explicit source-range choice.
+5. Choose the missing-channel policy. **Preserve unsupported channels** imports writable motion and lists every skipped bone/channel and frame range in the persistent result. **Stop if any motion cannot be written** rejects such a replacement. Neither option creates new native channels.
+6. Stage, inspect playback, save the project and Build mod. Frames outside the destination interval remain byte-identical, and the target bank keeps its length and layout. Test gameplay, weapon transitions and cutscenes in the game.
 
-In Blender, import the FBX with animation offset 0. Edit bones in Pose Mode. Export one active action with **Custom Properties enabled**, **Add Leaf Bones disabled**, **NLA Strips / All Actions disabled**, **Simplify 0**, and the same FPS and frame range. Keep the armature, bone names, parents, rest transforms and armature custom properties. Those properties retain the original native interval and the decoded exchange baseline.
+The converter uses evaluated original-bone transforms, so control bones themselves are never written into ANM. Blender (.blend) model/animation exports orient each bone along its joint chain, using skinned vertices for terminal bones and a common roll reference. FBX exports retain the original SH3 bone orientation. For .blend, evaluated poses are rebaked into the authoring basis without changing skin deformation. The importer converts poses back to the original SH3 local axes using the stored bind reference. Static uniform applied skeleton scale is normalized; armature object placement and object scale do not become root motion. Animate the original root bone when root motion is intended. Bone Scale animation is ignored because ANM stores only Location/Rotation. Rest-pose changes are checked separately and identify the affected bone.
 
-Choose **Replace ANM range from FBX…** with the same model and bank selected. It stages the native ANM and reloads the edited range for playback. Save/build the mod normally. A repeated import does not accumulate conversion changes; frames outside the exported range remain byte-identical.
+A loop range 0–9 contains ten samples and interpolates from 9 back to 0. A repeated first pose at frame 9 can create a hold; it is not silently removed. Preview loop/clamp and FPS do not edit the game's action/event tables. Compatible skeletons permit cross-bank transfer, but weapon grips, root motion, hit events and transition timing still belong to the target action.
 
-This mode transfers only existing Location/Rotation channels. Scale animation is omitted from FBX export and ignored on import, including deliberately authored Scale keys. Blender can bake nonunit Scale values from matrix conversion even when the authored Scale is 1; no rounding or manual Scale cleanup is needed. Static rest/bind transforms are retained and validated. Missing channels, a changed skeleton, object-level armature animation and changed duration remain unsupported. It does not author PACK cutscenes, facial curves, action/event tables or new channels. Export ranges are limited to 500,000 bone samples. Installed Blender performs the FBX conversion. Small conversion residuals within a float32 roundoff envelope retain the exported native sample. For an absent rotation channel, equal native quaternion codes also preserve the original pose; changed poses are transferred as deltas from the measured FBX baseline. Source native quaternion/sign bytes remain intact for unchanged channels.
+**New channels remain a runtime feature.** The stock player uses fixed model strides, one shared stride during old/new-bank blending, sequential decoder cursors and procedural bone masks. Heather gameplay detaches bones after 42 and protects some earlier nodes. Appending channels or merely increasing a stride would not safely enable hair/fingers. No expanded-ANM runtime patch is included in this version.
 
-Blender round trips and native channel decoding have been verified. Authored ANM changes still need an in-game test, particularly transitions, root motion and procedural/IK behavior.
+The source suite includes animation range/channel tests. A self-contained Blender regression can be run with `blender --background --factory-startup --disable-autoexec --python tools/blender/test_animation_rig.py`. It checks two-bone IK, sparse controls, extra bones, object scale, inclusive frame numbering and rest-pose rejection without game files.
 
-## Texture Inspector
+### Blender model scenes and bone axes
 
-1. Open the game **data** folder, then select **Texture Inspector** beside Asset library. Opening a single archive limits the catalog to that source.
-2. Search by filename, path, archive or referencing map. Filter by models, embedded map textures, texture files or font atlases. **Modified sources** shows textures belonging to staged assets; it does not mean every image in that container was edited.
-3. Choose **Per page: 10, 20, 50 or 100** at the bottom; the preference survives restarts. Select a thumbnail, then use arrow keys to move through the grid. Zoom with the mouse wheel, drag to pan, or use **Fit** / **1:1**. The source path and texture slot identify the exact image. **Open source asset** returns to the owning model/map/file.
-4. Use **Export PNG…**, edit the image, then **Import PNG…**. **Fit to original** resizes and converts to the existing native format. Shared palette variants retain their shared indices and require consistent recoloring. BMP pictures require an opaque PNG.
-5. For supported model/standalone textures, **Full size · experimental** retains the imported dimensions and rebuilds direct-color storage. Embedded MAP textures currently offer Fit to original only. Font atlases have separate original/high-resolution modes; keep glyph layout intact.
-6. A shared GB/TR TEX is a single source: its **Used by** list shows the maps affected by the replacement. To change only one surface, use the map material tools and an appropriate separate texture slot.
-7. Replacements immediately update previews and appear in **Staged changes**. Save a project to continue later, or **Build mod** to write the updated native containers and any required executable patch. Original game files are not overwritten. Reverting a staged source restores that entire asset, including its other edits.
+**Export Blender (.blend)** saves the assembled model with its rig, shape keys and packed textures. Open it in Blender, edit the model and save; **Import model…** accepts the saved .blend directly, alongside GLB, GLTF and FBX. This is separate from **Morph workspace**, which lays out base and expression meshes for synchronized subdivision. Blender scene scripts are not auto-executed by the converter.
 
-Use **Refresh catalog** after external source changes. Apply or discard pending map preview transforms before importing a texture. Unknown/unsupported texture sources appear under the scan-issues list; this is not an arbitrary binary texture extractor.
+.blend uses individually joint-aligned authoring bones. FBX retains the original SH3 bone orientation, without joint alignment or roll changes. Blender scenes retain independent bone translations; FBX import in Blender can automatically enable Connected on aligned joints. Disable that connection before animating Translation or baking a return FBX. The tool also disables automatic connections on original bones while reading FBX, but cannot recover a translation already omitted by another program's bake.
+
+When exporting back through FBX, keep **Primary Y / Secondary X**, **Add Leaf Bones disabled**, and **Custom Properties enabled**. For GLB/GLTF, enable **Custom Properties** as well. The armature's `sh3_model_bind` property retains the conversion back to native rest and inverse-bind matrices. Real rest-pose edits are still rejected; calibration does not replace an edited skeleton with a stored snapshot. Direct GLB exports retain the original game basis.
+
+The Blender scene/FBX basis and deformation regression runs with `blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/blender/test_fbx_axes.py`.

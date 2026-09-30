@@ -41,11 +41,10 @@ test('ANM edits stay inside the exported interval and preserve presence and high
   assert.equal(result.report.changedRotations,1);assert.equal(result.report.changedTranslations,1);
   assert.deepEqual(replaceAnimation(model,after,exchange).data,after,'repeat import is stable');
 });
-test('ANM rejects absent channels, wrong skeleton and frame count',()=>{
+test('ANM validates skeletons, metadata and transforms',()=>{
   for(const [change,pattern] of [
-    [e=>e.samples[0][2].translation[0]+=1,/no writable/],
-    [e=>e.metadata.skeletonHash='wrong',/skeleton/],
-    [e=>e.metadata.frameCount++,/bank layout/],
+        [e=>e.metadata.skeletonHash='wrong',/skeleton/],
+    [e=>e.metadata.stride++,/metadata/],
     [e=>e.samples[0][0].rotation[0]=NaN,/Invalid FBX/],
   ]) {const {data,model,exchange}=fixture();change(exchange);assert.throws(()=>replaceAnimation(model,data,exchange),pattern);}
 });
@@ -68,16 +67,16 @@ test('absent bone rotation tolerates a measured FBX round trip only when native 
   assert.notDeepEqual(result.data,data);assert.deepEqual(replaceAnimation(model,result.data,exchange).data,result.data);
 });
 
-test('an absent channel still rejects a rotation that crosses a native quantization boundary',()=>{
+test('an absent channel reports motion that crosses a native quantization boundary',()=>{
   const {data,model,exchange}=fixture();
   const x=0.6/32768;exchange.samples[0][2].rotation=[x,0,0,Math.sqrt(1-x*x)];
-  assert.throws(()=>replaceAnimation(model,data,exchange),/no writable animation channel.*source frame 1/);
+  const result=replaceAnimation(model,data,exchange);assert.deepEqual(result.data,data);assert.equal(result.report.skippedChannels[0].bone,'bone2');assert.equal(result.report.skippedChannels[0].firstFrame,1);assert.throws(()=>replaceAnimation(model,data,exchange,{missingChannels:'reject'}),/no writable rotation channel/);
 });
 
-test('real absent-channel rotation changes remain rejected regardless of quaternion sign',()=>{
+test('real absent-channel rotation changes are reported regardless of quaternion sign',()=>{
   for(const sign of [1,-1]) {
     const {data,model,exchange}=fixture();exchange.samples[0][2].rotation=new Quaternion().setFromAxisAngle(new Vector3(0,1,0),.01).toArray().map(v=>v*sign);
-    assert.throws(()=>replaceAnimation(model,data,exchange),/no writable animation channel/);
+    assert.equal(replaceAnimation(model,data,exchange).report.skippedChannels[0].channel,'rotation');
   }
 });
 
@@ -99,4 +98,27 @@ test('animation export emits translation and rotation tracks without changing st
   assert.deepEqual(new Set(doc.animations[0].channels.map(c=>c.target.path)),new Set(['translation','rotation']));
   assert.deepEqual(doc.nodes[2].scale.map(v=>Math.round(v*1000)/1000),[1.2,.8,1.1]);
   assert.ok(motion.samples.every(frame=>frame.every(pose=>!('scale' in pose)&&!('poseScale' in pose))));
+});
+
+
+test('unsupported translations preserve the native channel and retain compatible edits',()=>{
+  const {data,model,exchange}=fixture();exchange.samples[0][2].translation[1]+=5;exchange.samples[0][0].translation[0]+=2;
+  const {report,data:result}=replaceAnimation(model,data,exchange);
+  assert.equal(report.changedTranslations,1);assert.equal(report.skippedChannels.length,1);assert.equal(report.skippedChannels[0].channel,'translation');
+  assert.equal(parseAnimation(result,[-1,0,1]).translations[9],10.5);assert.deepEqual(result.subarray(72),data.subarray(72));
+});
+test('transfer to a different same-skeleton bank keeps target length and surrounding frames',()=>{
+  const {data,model}=fixture(),source=animationExchange(model,data,1,2,30),exchange={...source,baseline:structuredClone(source.samples)};
+  const target=Buffer.concat([data,data.subarray(4)]);target.writeFloatLE(999,4+4);
+  const result=replaceAnimation(model,target,exchange,{start:3,end:4});
+  assert.equal(result.data.length,target.length);assert.deepEqual(result.data.subarray(0,4+3*34),target.subarray(0,4+3*34));
+  assert.deepEqual(result.data.subarray(4+5*34),target.subarray(4+5*34));
+  assert.deepEqual(result.data.subarray(4+3*34,4+5*34),data.subarray(4+34));
+});
+test('inclusive source ranges map exact endpoints and require explicit resampling',()=>{
+  const {data,model}=fixture(),source=animationExchange(model,data,0,2,30),exchange={...source,baseline:structuredClone(source.samples),sampleStart:1,sampleEnd:3};
+  const result=replaceAnimation(model,data,exchange,{sourceStart:2,sourceEnd:3,start:0,end:1});
+  assert.equal(result.report.frameCount,2);assert.deepEqual(result.data.subarray(4,4+68),data.subarray(38,106));assert.deepEqual(result.data.subarray(72),data.subarray(72));
+  assert.throws(()=>replaceAnimation(model,data,exchange,{start:0,end:1}),/Match the ranges/);
+  assert.equal(replaceAnimation(model,data,exchange,{start:0,end:1,resample:true}).report.resampled,true);
 });

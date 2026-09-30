@@ -7,13 +7,13 @@ export function modelInspector(root, entry, preview, {state, run, notify, el, bu
   };
   const output = section('Export model', 'Meshes, skeleton, skin weights, textures and pose morphs.');
   const formats = el('div', 'export-formats');
-  for (const [mode, name] of [['glb', 'GLB'], ['fbx', 'FBX']]) {
-    const action = button('Export ' + name, () => run('export', {key:entry.key, mode}, mode === 'fbx' ? 'Exporting FBX with Blender…' : 'Exporting model, rig and morphs…'));
+  for (const [mode, name] of [['glb', 'GLB'], ['fbx', 'FBX'], ['blend', 'Blender (.blend)']]) {
+    const action = button('Export ' + name, () => run('export', {key:entry.key, mode}, mode !== 'glb' ? 'Preparing scene with Blender…' : 'Exporting model, rig and morphs…'));
     action.id = 'export-model-' + mode; formats.append(action);
   }
-  output.append(formats, el('p', 'hint compact-hint', 'FBX uses installed Blender 4.2+.'));
+  output.append(formats, el('p', 'hint compact-hint', 'Blender and FBX use installed Blender 4.2+. Choose .blend for joint-aligned bones and independent translations.'));
   const input = section('Import model');
-  const hint = el('p', 'hint', 'Choose GLB, GLTF or FBX with the original rig. Color textures import together with the model; new slots are detected automatically. FBX requires Blender 4.2+. Topology and morph changes open the rebuild setup.');
+  const hint = el('p', 'hint', 'Choose GLB, GLTF, FBX or .blend with the original rig. Color textures import together with the model; new slots are detected automatically. FBX / .blend require Blender 4.2+. Topology and morph changes open the rebuild setup.');
   const load = button('Import model…', async () => {
     const result = await run('importModel', {key: entry.key}, 'Checking model and morphs…');
     if (result?.modelImport === 'rebuild') modelReplacement(state, run, notify, result);
