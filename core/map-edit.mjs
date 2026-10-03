@@ -8,7 +8,8 @@ const bounds = positions => new Box3().setFromArray(positions);
 const equal = (a,b) => a.length === b.length && a.every((v,i) => Math.fround(v) === Math.fround(b[i]));
 const finite = (values, count, label) => requireThat(Array.isArray(values) && values.length === count && values.every(Number.isFinite), `Invalid ${label}.`);
 
-export function preserveVisibility(edited, reference, world) {
+export function updateMapVisibility(output, edited, reference, world) {
+  if(edited.objectType===0)return;
   const envelope = bounds(reference.positions);
   if (reference.objectType !== 1) {
     for (const mesh of world.model.meshes.filter(m => m.layout.transformOffset === reference.layout.transformOffset)) envelope.union(bounds(mesh.positions));
@@ -16,8 +17,10 @@ export function preserveVisibility(edited, reference, world) {
     for (const p of record.box) if (p.every(Number.isFinite)) envelope.expandByPoint(new Vector3(-p[0],-p[1],p[2]));
   }
   const point = new Vector3();
-  for (let i=0;i<edited.positions.length;i+=3) requireThat(envelope.containsPoint(point.fromArray(edited.positions,i)),
-    `${reference.name}: geometry leaves its preserved visibility bounds. Keep static parts inside their original bounds; editing visibility cells is not yet supported.`);
+  const contained=edited.positions.every((_,i)=>i%3 || envelope.containsPoint(point.fromArray(edited.positions,i)));
+  if(contained)return;
+  if(edited.objectType===1&&reference.objectType===1){output.writeUInt32LE(0,edited.layout.offset+20);return;}
+  requireThat(false,`${reference.name}: event-controlled or movable geometry leaves its preserved visibility bounds. Keep its native object ownership and bounds.`);
 }
 
 function writeAttributes(output, source, edited) {
@@ -61,7 +64,7 @@ export function commitGeometry(data, changes, referenceData) {
   for(const {source} of changes) {
     const actual=decoded.model.meshes.find(m=>m.name===source.name), original=reference.model.meshes.find(m=>m.name===source.name);
     requireThat(original && actual.vertexCount===source.vertexCount, 'MAP source topology changed.');
-    if (!equal(actual.positions, source.positions)) preserveVisibility(actual,original,reference);
+    if (!equal(actual.positions, source.positions)) updateMapVisibility(output,actual,original,reference);
     requireThat(equal(actual.indices,source.indices),'MAP edit changed native strip topology.');
   }
   return output;

@@ -31,5 +31,5 @@ export function mapAsset(data, virtualPath, findCompanion) {
     if (mesh.texture < 0) warnings.push(`Group ${mesh.group}: texture family ${mesh.textureSource}, index ${mesh.textureIndex} is unavailable.`);
   }
   world.model.textureCount = textures.length;
-  return {...world, textures, companions, warnings: [...new Set(warnings)], note: 'Textured MAP geometry with stored object transforms. Edit parts, UVs and material groups; static parts must stay inside their original visibility bounds. Collision, camera zones and events remain separate.'};
+  return {...world, textures, companions, warnings: [...new Set(warnings)], note: 'Textured MAP geometry with stored object transforms. Edit parts, UVs and material groups; expanded static parts use unpartitioned visibility. Collision and camera edits are saved in companion files; events remain separate.'};
 }

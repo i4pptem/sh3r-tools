@@ -12,7 +12,7 @@ export function cameraRecords(data) {
   const records=[];let terminator=-1;
   for(let offset=0;offset<data.length;offset+=128) {
     const flags=data.readUInt32LE(offset+68);
-    if(flags===1){terminator=offset;break;}
+    if(flags&1){terminator=offset;break;}
     const active=floats(data,offset,8),constraint=floats(data,offset+32,8);
     records.push({index:records.length,kindId:data.readInt32LE(offset+64),flags,
       activeGroundPoints:[[active[0],active[1]],[active[2],active[3]],[active[4],active[5]]],activeHeights:active.slice(6),
@@ -26,7 +26,7 @@ export function cameraRecords(data) {
   const nameEnd=data.indexOf(0,terminator),sourceName=data.subarray(terminator,Math.min(nameEnd<0?terminator+64:nameEnd,terminator+64)).toString('ascii');
   return {format:'SH3 camera zones',recordSize:128,count:records.length,records,
     sourceName:/^[\w .-]+\.cam$/i.test(sourceName)?sourceName:null,
-    note:'Activation and camera constraint volumes are displayed as prisms. Camera movement settings are inspected only; no cutscene playback is implied.'};
+    note:'Activation and camera constraint volumes are displayed as prisms. Camera zones can be edited and rebuilt. These are gameplay camera regions, not cutscene tracks.'};
 }
 
 /** Decode the ten bounded light tables present in PC room DED files. */

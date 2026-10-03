@@ -1,5 +1,7 @@
 # Executable patches
 
+Build mod has two delivery modes. **Replace game files** creates a patched EXE when required, as described below. Experimental **ASI overlay** loads changed archive entries and loose files from `plugins/SH3Tools/data` and applies the same required extensions in memory through a separate DLL; it never outputs or rewrites a game executable. See [ASI overlay installation and limitations](ASI-OVERLAY.md). The extension requirements are shared between both modes. PE sections mentioned below describe the replacement-EXE mode; ASI uses dynamically allocated regions instead.
+
 Build mod can generate an extended **32-bit Silent Hill 3 PC executable** from a supported executable supplied by the user. The editor itself is a Windows x64 application. This feature writes a new file into the mod output; it does not attach to the game or modify the source executable in place.
 
 ## When an executable is included
@@ -14,6 +16,8 @@ Requirements are triggered by **staged replacements**, not preview sliders. Char
 | Secondary mesh buffers | Secondary group has more than 1,024 vertices or 2,048 triangles | Storage for 65,536 vertices and 131,072 triangles; the native index representation stays 16-bit |
 | Picture streaming | A recognized TEX replacement under `data/pic` is larger than `0x14C800` bytes (1,361,920 bytes) | Five 16 MiB slots, 80 MiB in total, with bounded slot assignment; seven patch spans, 67 modified code bytes |
 | Character file storage | Changed character files leave insufficient space in the stock 40 MiB file arena | Separate 128 MiB storage, preserving up to 40 MiB of character cache; three checked code redirects |
+| Background/MAP storage | The complete staged stage exceeds the stock primary background budget | Separate 256 MiB primary arena; the 12 MiB auxiliary arena is retained; one checked initializer CALL redirect |
+| Transparent MAP queue | A staged MAP grows its transparent geometry, or has more than 2,730 transparent triangles | Three producer preflight hooks flush the native queue before selecting a descriptor |
 | High-resolution fonts | A staged `fontdata_*.bin` contains a 2× or 4× font extension | An extended glyph uploader and a 2048×2048 glyph cache, retaining original logical text size and spacing |
 
 These are separate constraints. A large face can need morph scratch; subdivided hair can additionally need secondary storage; a model with many primary vertices can need INDEX32. The builder combines the required extensions.
@@ -69,7 +73,7 @@ a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e
 
 These hashes identify supported bytes; they are not a claim that every release from a particular region or distributor works. Unknown executables are rejected. Do not bypass the hash check by changing the allowlist.
 
-For an executable already patched by a recognized version of this tool, validation reverses the **exact known extensions in memory**, then authenticates the recovered base and verifies the expected bytes/section structure. Recognized existing morph, primary, secondary, picture, font, character and model-texture extensions are retained while adding new requirements. Patch generation is designed to be idempotent.
+For an executable already patched by a recognized version of this tool, validation reverses the **exact known extensions in memory**, then authenticates the recovered base and verifies the expected bytes/section structure. Recognized existing morph, primary, secondary, picture, font, character, model-texture and background extensions are retained while adding new requirements. Patch generation is designed to be idempotent.
 
 This recognition does not cover arbitrary executable modifications. External fixes installed as DLLs or configuration files are separate; their presence is not evidence that any EXE layout is supported.
 
@@ -87,6 +91,26 @@ This recognition does not cover arbitrary executable modifications. External fix
 
 ## Publishing a mod
 
-The application release must not contain a game EXE or game archives. Build mod generates an executable locally from the user's own copy. This release does not include a standalone ASI loader, binary-delta distribution workflow or a universal executable patcher. If your mod needs extensions, document its requirements and the local Build mod process instead of attaching a modified game executable.
+The application release must not contain a game EXE or game archives. Build mod generates an executable locally from the user's own copy. Use the ASI overlay delivery mode to distribute authored extensions and changed assets without including a game executable or whole source archives. Changed payload files themselves are included; this is not a binary-delta or rights-clearance mechanism.
 
 Implementation entry points: [`core/workbench.mjs`](../core/workbench.mjs) and the runtime/profile modules in [`core`](../core).
+
+## Background/MAP arena
+
+Growth checks include MAP, shared GB/TR textures and companion world files from the complete open stage. Stock capacity is tried first. If it fails, the same calculation is repeated against a 256 MiB primary arena; passing it requires the new extension. Indoor transitions reserve the two largest distinct room footprints. Outdoor stages reserve shared resources plus four equal tile fractions, each able to hold twice the largest tile, covering duplicate/current-neighbor ownership. Format, GPU, tile-coordinate and per-object limits still apply.
+
+The patch redirects the initializer CALL at `0x58EB7B` to a shim that substitutes only the primary pointer/size before tail-calling the original initializer. The auxiliary 12 MiB pool and all other shared-pool users stay intact. Replacement mode uses `.sh3bg01` and `.sh3bbuf`; ASI allocates equivalent code/data separately. Original native initialization, background placements and outdoor tile-queue transitions were executed in emulation. Authored high-resolution stages still need tests in the game.
+
+## MAP geometry queue
+
+Opaque MAP draws already use 32-bit vertex counts and non-indexed strips; they do not share the MDL primary INDEX16 limit. The importer retains its two-million-strip-vertices per part, 256 MiB asset and full-stage memory checks.
+
+The transparent renderer shares 4,096 descriptors with effect streams. Its original producers can choose a descriptor before a capacity flush, losing one submission or overwriting sorting data. `.sh3tr01` preflights three producer entries (`0x5F5990`, `0x5F58E0`, `0x5F5A30`) and flushes before descriptor selection. Stream capacities remain 8,192 / 4,096 / 64 vertices. Native MAP submissions request three vertices; batch sorting is retained. Sorting between separate batches can still differ. This is not unlimited GPU geometry support.
+
+The patch is selected for any increase in transparent triangle count against the opened source, or more than 2,730 such triangles in a staged MAP. The verified native CPU cases include 25,000 MAP triangle submissions and mixed-stream descriptor exhaustion. Authored large rooms still require rendering and gameplay tests.
+
+## Removed Action-length extension
+
+Action ranges and ANM bank lengths remain native. Fit source motion into the existing destination range. Old `SH3ANM1` banks and `.sh3anm1` / `.sh3abuf` executable extensions are rejected: restore the original ANM and executable before rebuilding. The extension code and UI have been removed.
+
+The ASI runtime's combined allocation ceiling is 512 MiB, allowing the background and character arenas alongside other extensions. This is a safety bound on extension allocations, not a guarantee of free address space in a 32-bit game or of GPU texture memory. All enabled patches together currently require about 391 MiB. Only required patches are allocated.

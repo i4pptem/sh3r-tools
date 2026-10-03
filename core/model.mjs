@@ -147,7 +147,7 @@ export function parseModel(buffer) {
       }
       const identity = provenance?.meshes[meshes.length];
       meshes.push({name: identity?.name || `Mesh_${group}_${index}`, templateName: identity?.template || `Mesh_${group}_${index}`, positions, normals, uv, joints, weights, indices, morphPositions, morphNormals,
-        texture: materials[buffer.readUInt16LE(materialOffset)] ?? -1, vertexCount, triangleCount: indices.length / 3, group,
+        texture: materials[buffer.readUInt16LE(materialOffset)] ?? -1, vertexCount, triangleCount: indices.length / 3, group, visibilityId: header >= 84 ? buffer[p + 0x52] : null,
         layout: {offset: p, header, stride, indexOffset, indexCount, size, boneMap, vertexBones}});
       p += size;
     }

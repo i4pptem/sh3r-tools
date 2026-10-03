@@ -183,14 +183,14 @@ test('one GLB import stages compatible edits and opens rebuild for a changed mat
   const model=parseModel(source),glb=exportGlb(model,readTextures(source,true));
   const folder=fs.mkdtempSync(path.join(os.tmpdir(),'sh3-model-import-')),file=path.join(folder,'edited.glb');
   try {
-    const workbench=new Workbench();workbench.bytes=()=>source;
+    const workbench=new Workbench();workbench.get=()=>({archive:{entries:[]},entry:{name:'model.mdl'}});workbench.bytes=()=>source;
     workbench.stage=(_key,data)=>({entries:[],data});
     fs.writeFileSync(file,glb);
     const direct=await workbench.importModel('0:0',file);
-    assert.equal(direct.modelImport,'attributes');assert.deepEqual(direct.data,source);
+    assert.equal(direct.modelImport,'review');assert.equal(workbench.changes.size,0);const applied=workbench.applyModelReview('0:0',direct.token,direct.reviewHash);assert.deepEqual(applied.data,source);
     const reordered=editGlbJson(glb,doc=>{doc.materials[0].name='Texture_0.001';doc.materials[0].pbrMetallicRoughness.baseColorTexture.index=1;});
     fs.writeFileSync(file,reordered);
-    assert.equal((await workbench.importModel('0:0',file)).modelImport,'attributes');
+    assert.equal((await workbench.importModel('0:0',file)).modelImport,'review');
     const changed=editGlbJson(glb,doc=>{doc.meshes[0].primitives[0].material=1;});
     assert.throws(()=>importGlb(source,changed),/material or texture slot changed/);
     fs.writeFileSync(file,changed);

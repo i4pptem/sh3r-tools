@@ -12,7 +12,7 @@ function fixture(t, format = 'ARC') {
   bytes.writeUInt32LE(format === 'ARC' ? 0x20030507 : 0x00534641, 0); bytes.writeUInt32LE(2, 4);
   if (format === 'ARC') {
     bytes.writeUInt32LE(200, 8); bytes.writeUInt32LE(0, 12);
-    for (let i = 0; i < 2; i++) {const p = 16 + i * 16; bytes.writeUInt32LE(256 + i * 128, p); bytes.writeUInt32LE(400 + i, p + 4); bytes.writeUInt32LE(64, p + 8); bytes.writeUInt32LE(64, p + 12);}
+    for (let i = 0; i < 2; i++) {const p = 16 + i * 16; bytes.writeUInt32LE(256 + i * 128, p); bytes.writeUInt32LE(48 + i * 4, p + 4); bytes.writeUInt32LE(64, p + 8); bytes.writeUInt32LE(64, p + 12);}
   } else {
     for (let i = 0; i < 2; i++) {bytes.writeUInt32LE(256 + i * 128, 8 + i * 8); bytes.writeUInt32LE(64, 12 + i * 8);}
     bytes.writeUInt32LE(512, 24); bytes.writeUInt32LE(96, 28); bytes.fill(0, 512, 608); bytes.write('same.wav', 512); bytes.write('same.wav', 560);
@@ -28,7 +28,9 @@ for (const format of ['ARC', 'AFS']) {
     const f = fixture(t, format), a = openArchive(f.file), out = path.join(f.dir, 'patched.bin'), replacement = Buffer.alloc(2300, 0x42);
     buildArchive(a, new Map([[0, replacement]]), out); const b = openArchive(out);
     assert.deepEqual(entryBytes(b, 0), replacement); assert.deepEqual(entryBytes(b, 1), entryBytes(a, 1)); assert.deepEqual(fs.readFileSync(f.file), f.bytes);
-    assert.deepEqual(fs.readFileSync(out).subarray(48, 256), f.bytes.subarray(48, 256)); assert.equal(b.entries[0].fileId, a.entries[0].fileId);
+    const result=fs.readFileSync(out);
+    if(format==='ARC'){assert.deepEqual(result.subarray(48,248),f.bytes.subarray(48,248));assert.deepEqual(result.subarray(264,272),f.bytes.subarray(248,256));assert.equal(b.entries[0].chunkTableOffset,248);assert.ok(result.subarray(248,264).every(v=>v===0));}
+    else assert.deepEqual(result.subarray(48,256),f.bytes.subarray(48,256));
     if (format === 'AFS') assert.equal(b.entries[0].offset % 2048, 0);
   });
   test(`${format}: overlapping entries are rejected`, t => {const f = fixture(t, format), b = Buffer.from(f.bytes); b.writeUInt32LE(260, format === 'ARC' ? 32 : 16); fs.writeFileSync(f.file, b); assert.throws(() => openArchive(f.file), /Overlapping/);});

@@ -1,0 +1,605 @@
+{
+  "source": "Native model kinds and asset identifications verified by i4pptem; https://github.com/dreamingmoths/memory-of-alessa/blob/main/silent-hill-3/src/Chacter/chara_list.h",
+  "models": {
+    "bg_hum.mdl": {
+      "name": "Angela Head",
+      "aliases": ""
+    },
+    "bg_car.mdl": {
+      "name": "Car",
+      "aliases": ""
+    },
+    "bg_wmn.mdl": {
+      "name": "Woman figure",
+      "aliases": ""
+    },
+    "bg_jet.mdl": {
+      "name": "Roller coaster",
+      "aliases": ""
+    },
+    "bg_isu.mdl": {
+      "name": "Chair",
+      "aliases": ""
+    },
+    "bg_traxx.mdl": {
+      "name": "Train",
+      "aliases": ""
+    },
+    "bg_den.mdl": {
+      "name": "Train",
+      "aliases": ""
+    },
+    "bg_dor.mdl": {
+      "name": "Door",
+      "aliases": ""
+    },
+    "bg_rod.mdl": {
+      "name": "Sewer monster",
+      "aliases": ""
+    },
+    "bg_spi.mdl": {
+      "name": "Valtiel",
+      "aliases": ""
+    },
+    "bg_sya.mdl": {
+      "name": "Train",
+      "aliases": ""
+    },
+    "bg_fre.mdl": {
+      "name": "Fire effect",
+      "aliases": ""
+    },
+    "bg_tra.mdl": {
+      "name": "Train",
+      "aliases": ""
+    },
+    "bg_wg1.mdl": {
+      "name": "Car",
+      "aliases": ""
+    },
+    "bg_wg2.mdl": {
+      "name": "Car",
+      "aliases": ""
+    },
+    "bg_wg3.mdl": {
+      "name": "Car",
+      "aliases": ""
+    },
+    "bg_wg4.mdl": {
+      "name": "Car",
+      "aliases": ""
+    },
+    "bg_wg5.mdl": {
+      "name": "Car",
+      "aliases": ""
+    },
+    "bg_hry.mdl": {
+      "name": "Harry Mason",
+      "aliases": "Harry Гарри"
+    },
+    "chvaa.mdl": {
+      "name": "Vincent",
+      "aliases": "Vincent Smith Винсент"
+    },
+    "chcaa.mdl": {
+      "name": "Claudia",
+      "aliases": "Claudia Wolf Клаудия"
+    },
+    "chdaa.mdl": {
+      "name": "Douglas",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "chdbb.mdl": {
+      "name": "Douglas",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "chdcc.mdl": {
+      "name": "Douglas",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "chddd.mdl": {
+      "name": "Douglas",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "chdee.mdl": {
+      "name": "Douglas Blood",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "chdff.mdl": {
+      "name": "Douglas Underwear",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "chdgg.mdl": {
+      "name": "Douglas Underwear",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "chdhh.mdl": {
+      "name": "Douglas Underwear",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "chdii.mdl": {
+      "name": "Douglas Underwear",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "chdjj.mdl": {
+      "name": "Douglas Underwear Blood",
+      "aliases": "Douglas Cartland Дуглас"
+    },
+    "en_rod.mdl": {
+      "name": "Sewer monster",
+      "aliases": ""
+    },
+    "en_lie.mdl": {
+      "name": "Slurper",
+      "aliases": ""
+    },
+    "en_shb.mdl": {
+      "name": "God",
+      "aliases": "boss"
+    },
+    "en_lix.mdl": {
+      "name": "Slurper — pale variant",
+      "aliases": ""
+    },
+    "en_smb.mdl": {
+      "name": "Split Worm",
+      "aliases": "boss"
+    },
+    "en_spi.mdl": {
+      "name": "Valtiel",
+      "aliases": "Валтиэль"
+    },
+    "en_fly.mdl": {
+      "name": "Pendulum",
+      "aliases": ""
+    },
+    "en_mry.mdl": {
+      "name": "Carousel horse",
+      "aliases": "merry go round"
+    },
+    "en_aid.mdl": {
+      "name": "Closer",
+      "aliases": ""
+    },
+    "en_nse.mdl": {
+      "name": "Nurse",
+      "aliases": ""
+    },
+    "en_ap2.mdl": {
+      "name": "Scraper",
+      "aliases": ""
+    },
+    "en_apb.mdl": {
+      "name": "Missionary",
+      "aliases": "boss"
+    },
+    "en_one.mdl": {
+      "name": "Double Head",
+      "aliases": "dog"
+    },
+    "en_hpb.mdl": {
+      "name": "Leonard",
+      "aliases": "Leonard Wolf Леонард boss"
+    },
+    "en_bhr.mdl": {
+      "name": "Memory of Alessa",
+      "aliases": "Dark Heather Evil Heather Alessa Злая Хизер Алесса boss"
+    },
+    "en_ckn.mdl": {
+      "name": "Numb Body",
+      "aliases": ""
+    },
+    "en_deb.mdl": {
+      "name": "Insane Cancer",
+      "aliases": ""
+    },
+    "it_necklace.mdl": {
+      "name": "Pendant",
+      "aliases": ""
+    },
+    "it_photo.mdl": {
+      "name": "Photograph",
+      "aliases": ""
+    },
+    "it_jerky.mdl": {
+      "name": "Beef jerky",
+      "aliases": ""
+    },
+    "it_mkey.mdl": {
+      "name": "Key",
+      "aliases": ""
+    },
+    "it_can.mdl": {
+      "name": "Can",
+      "aliases": ""
+    },
+    "it_oxi.mdl": {
+      "name": "Oxydol",
+      "aliases": ""
+    },
+    "it_cl2.mdl": {
+      "name": "Detergent",
+      "aliases": ""
+    },
+    "it_bbook.mdl": {
+      "name": "Book",
+      "aliases": ""
+    },
+    "it_chain.mdl": {
+      "name": "Chain",
+      "aliases": ""
+    },
+    "it_clw.mdl": {
+      "name": "Bleach",
+      "aliases": ""
+    },
+    "it_jacki.mdl": {
+      "name": "Car jack",
+      "aliases": ""
+    },
+    "it_hgun2.mdl": {
+      "name": "Handgun",
+      "aliases": ""
+    },
+    "it_note.mdl": {
+      "name": "Note",
+      "aliases": ""
+    },
+    "it_tablet.mdl": {
+      "name": "Tarot card",
+      "aliases": ""
+    },
+    "it_juwaki.mdl": {
+      "name": "Telephone receiver",
+      "aliases": ""
+    },
+    "it_knife.mdl": {
+      "name": "Knife",
+      "aliases": ""
+    },
+    "it_dry.mdl": {
+      "name": "Hair dryer",
+      "aliases": ""
+    },
+    "it_mc2.mdl": {
+      "name": "Matchbox",
+      "aliases": ""
+    },
+    "it_juwaki2.mdl": {
+      "name": "Telephone receiver",
+      "aliases": ""
+    },
+    "it_meatlump.mdl": {
+      "name": "Fetus",
+      "aliases": ""
+    },
+    "it_juwaki4.mdl": {
+      "name": "Telephone receiver",
+      "aliases": ""
+    },
+    "it_liv.mdl": {
+      "name": "Pork liver",
+      "aliases": ""
+    },
+    "it_juwaki5.mdl": {
+      "name": "Telephone receiver",
+      "aliases": ""
+    },
+    "it_map.mdl": {
+      "name": "Map",
+      "aliases": ""
+    },
+    "it_bld2.mdl": {
+      "name": "Blood",
+      "aliases": ""
+    },
+    "it_mch.mdl": {
+      "name": "Matchbox",
+      "aliases": ""
+    },
+    "it_lifekey.mdl": {
+      "name": "Life Insurance Key",
+      "aliases": ""
+    },
+    "it_dagger.mdl": {
+      "name": "Dagger",
+      "aliases": ""
+    },
+    "it_dagger2.mdl": {
+      "name": "Dagger",
+      "aliases": ""
+    },
+    "it_hgun.mdl": {
+      "name": "Handgun",
+      "aliases": ""
+    },
+    "it_tog.mdl": {
+      "name": "Tongs",
+      "aliases": ""
+    },
+    "it_radio2.mdl": {
+      "name": "Radio",
+      "aliases": ""
+    },
+    "it_driver.mdl": {
+      "name": "Screwdriver",
+      "aliases": ""
+    },
+    "it_trs.mdl": {
+      "name": "Talisman",
+      "aliases": ""
+    },
+    "it_hanger.mdl": {
+      "name": "Hanger",
+      "aliases": ""
+    },
+    "it_camera.mdl": {
+      "name": "Camera",
+      "aliases": ""
+    },
+    "it_necklace2.mdl": {
+      "name": "Pendant",
+      "aliases": ""
+    },
+    "it_knife2.mdl": {
+      "name": "Knife",
+      "aliases": ""
+    },
+    "chhaa.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhbb.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhcc.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhdd.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhrr.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhss.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhtt.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhuu.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhvv.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhww.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhxx.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhyy.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chhzz.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "chfuda.mdl": {
+      "name": "Heather",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rwp_lig.mdl": {
+      "name": "Beam saber — reflection mesh",
+      "aliases": ""
+    },
+    "wp_hgun.mdl": {
+      "name": "Handgun",
+      "aliases": ""
+    },
+    "rwp_sho.mdl": {
+      "name": "Shotgun — reflection mesh",
+      "aliases": ""
+    },
+    "wp_fir.mdl": {
+      "name": "Flamethrower",
+      "aliases": ""
+    },
+    "rwp_hgun.mdl": {
+      "name": "Handgun — reflection mesh",
+      "aliases": ""
+    },
+    "wp_sub.mdl": {
+      "name": "Submachine gun",
+      "aliases": ""
+    },
+    "wp_stu.mdl": {
+      "name": "Stun gun",
+      "aliases": ""
+    },
+    "wp_pipe.mdl": {
+      "name": "Steel pipe",
+      "aliases": ""
+    },
+    "wp_swo.mdl": {
+      "name": "Katana",
+      "aliases": ""
+    },
+    "rwp_fir.mdl": {
+      "name": "Flamethrower — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_pipe.mdl": {
+      "name": "Steel pipe — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_sub.mdl": {
+      "name": "Submachine gun — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_stu.mdl": {
+      "name": "Stun gun — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_swo.mdl": {
+      "name": "Katana — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_pipeg.mdl": {
+      "name": "Gold pipe — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_pipes.mdl": {
+      "name": "Silver pipe — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_hguns.mdl": {
+      "name": "Silenced handgun — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_knife.mdl": {
+      "name": "Knife — reflection mesh",
+      "aliases": ""
+    },
+    "wp_subs.mdl": {
+      "name": "Silenced submachine gun",
+      "aliases": ""
+    },
+    "wp_hum.mdl": {
+      "name": "Maul",
+      "aliases": ""
+    },
+    "rwp_subs.mdl": {
+      "name": "Silenced submachine gun — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_hum.mdl": {
+      "name": "Maul — reflection mesh",
+      "aliases": ""
+    },
+    "wp_pipeg.mdl": {
+      "name": "Gold pipe",
+      "aliases": ""
+    },
+    "wp_pipes.mdl": {
+      "name": "Silver pipe",
+      "aliases": ""
+    },
+    "wp_hguns.mdl": {
+      "name": "Silenced handgun",
+      "aliases": ""
+    },
+    "wp_knife.mdl": {
+      "name": "Knife",
+      "aliases": ""
+    },
+    "wp_lig.mdl": {
+      "name": "Beam saber",
+      "aliases": ""
+    },
+    "wp_sho.mdl": {
+      "name": "Shotgun",
+      "aliases": ""
+    },
+    "wp_u_subs.mdl": {
+      "name": "Submachine gun magazine",
+      "aliases": ""
+    },
+    "wp_u_sub.mdl": {
+      "name": "Submachine gun",
+      "aliases": ""
+    },
+    "rwp_u_subs.mdl": {
+      "name": "Submachine gun magazine — reflection mesh",
+      "aliases": ""
+    },
+    "rwp_u_sub.mdl": {
+      "name": "Submachine gun — reflection mesh",
+      "aliases": ""
+    },
+    "rchhaa.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhbb.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhcc.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhdd.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhrr.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhss.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhtt.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhuu.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhvv.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhww.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhxx.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhyy.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchhzz.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "rchfuda.mdl": {
+      "name": "Heather — reflection mesh",
+      "aliases": "Heather Mason Cheryl Хизер"
+    },
+    "bg_bld.mdl": {
+      "name": "Blood",
+      "aliases": ""
+    },
+    "bg_ddd.mdl": {
+      "name": "Dead Body",
+      "aliases": ""
+    },
+    "bg_cpw.mdl": {
+      "name": "Dead Body",
+      "aliases": ""
+    },
+    "it_tear.mdl": {
+      "name": "Tear",
+      "aliases": ""
+    }
+  }
+}

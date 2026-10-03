@@ -35,8 +35,8 @@ The installer verifies the archive and the extracted file manifest. It refuses t
 | `app/main.cjs`, `app/preload.cjs`, `app/worker.mjs` | Desktop lifecycle, IPC and asset-work execution |
 | `app/ui/` | Viewers, editor controls, styles and original branding |
 | `core/` | Native parsers/writers, project/build logic and authenticated runtime patch generation |
-| `tools/blender/` | Model FBX, morph-workspace and animation exchange bridges |
-| `tools/native/` | Original high-resolution font uploader source and profile build tools |
+| `tools/blender/` | Model/animation/cutscene exchange bridges, Blender Morph Tools and Blender regression scripts |
+| `tools/native/` | Font/model/world runtime sources, DLL/ASI asset loader, profile generators and native test hosts |
 | `tools/media/` | Verified optional media installer, manifest and notices |
 | `tests/` | Synthetic, self-contained regression suite, including native layout validation |
 | `docs/` | User workflows, patch behavior, validation and release instructions |
@@ -53,6 +53,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/native/build-font.ps1
 ```
 
 The script compiles an import-free x86 DLL and extracts a candidate profile into `build/native/font-runtime-profile.json`. The compiler used for the shipped profile was MSVC 14.51.36231. Linker/compiler metadata can vary, so byte identity is not promised across toolchains. Do not replace the committed profile until its relocations, entry point and runtime behavior have been independently validated. This script builds code; it does not patch or start the game.
+
+## Blender checks
+
+These checks use Blender's bundled Python and synthetic geometry; no game assets are required. In PowerShell, replace `blender` with your executable path if it is not on PATH:
+
+```powershell
+blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/blender/test_morph_transfer.py
+blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/blender/test_morph_landmarks.py
+blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/blender/test_morph_regions.py
+blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/blender/test_morph_workflow.py
+```
+
+The portable package copies the current `tools/blender/sh3_morph_transfer.py`. In 1.0.0 its add-on version is **1.3.2**. The Inspector's **Get Blender morph add-on…** action exports that bundled file; no separate download or Blender auto-install is performed.
 
 ## Packaging
 

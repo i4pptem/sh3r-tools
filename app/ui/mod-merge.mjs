@@ -1,0 +1,11 @@
+const node=(tag,text)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;return el;};
+export function mergeMods(plan,run,notify) {
+ const dialog=node('dialog'),form=node('form'),rows=[];dialog.className='replacement-dialog';form.method='dialog';
+ form.append(node('h2','Merge mods'),node('p',plan.items.length+' changed assets · '+plan.items.filter(i=>i.conflict).length+' conflicts · '+plan.duplicates+' identical changes combined.'));
+ form.append(node('p','Different assets in the same archive merge together. For each conflicting asset, choose the version to keep. Build mod will rebuild the combined archives and required runtime patches.'));
+ const table=node('div');table.className='replacement-table';
+ for(const item of plan.items){const row=node('label'),select=node('select');select.setAttribute('aria-label',item.name);if(item.conflict)select.add(new Option('Choose a version…',''));item.choices.forEach(c=>select.add(new Option(c.label+' · '+(c.size/1024).toFixed(1)+' KiB',c.index)));select.add(new Option('Restore original asset','-1'));select.value=item.conflict?'':'0';row.append(node('span',item.name+(item.collisionBinding?' · automatic collision binding disconnects if replaced':'')),select);table.append(row);rows.push({key:item.key,select});}
+ const actions=node('div');actions.className='replacement-actions';const cancel=node('button','Cancel'),apply=node('button','Merge & stage');cancel.type=apply.type='button';apply.className='primary';apply.disabled=!plan.items.length;cancel.onclick=()=>dialog.close();
+ apply.onclick=async()=>{if(rows.some(r=>r.select.value==='')){notify('Choose a version for every conflict.');return;}apply.disabled=true;const result=await run('applyModMerge',{token:plan.token,choices:Object.fromEntries(rows.map(r=>[r.key,Number(r.select.value)]))},'Validating combined assets…');apply.disabled=false;if(result){dialog.close();notify(result.mergeReport.assets+' assets merged and staged. Save the project or build the combined mod.',true);}};
+ actions.append(cancel,apply);form.append(table,actions);dialog.append(form);document.body.append(dialog);dialog.addEventListener('close',()=>{dialog.remove();window.studio.request('cancelModMerge',{token:plan.token}).catch(error=>notify(error.message));},{once:true});dialog.showModal();
+}

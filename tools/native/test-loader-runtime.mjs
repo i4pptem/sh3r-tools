@@ -1,0 +1,23 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import assert from 'node:assert/strict';
+import {peLayout} from '../../core/morph-runtime.mjs';
+import {encodeRuntimePlan} from '../../core/runtime-plan.mjs';
+import {writeOverlay,prepareAsiLoader} from '../../core/asi-overlay.mjs';
+import {sha256} from '../../core/binary.mjs';
+import profile from '../../core/asi-runtime-profile.json' with {type:'json'};
+
+const root=path.resolve('build/asi/loader-fixture-'+Date.now());fs.mkdirSync(root,{recursive:true});
+const exe=path.join(root,'test.exe');fs.copyFileSync('build/asi/test-loader-host.exe',exe);
+const source=fs.readFileSync(exe),layout=peLayout(source),expected=Buffer.from('543348534354415054534554','hex'),at=source.indexOf(expected);
+assert.ok(at>=0);const section=layout.sections.find(s=>at>=s.raw&&at<s.raw+s.rawSize),address=layout.imageBase+section.rva+at-section.raw;
+const plan=encodeRuntimePlan({imageBase:layout.imageBase,imageSize:source.readUInt32LE(layout.optional+56),sourceHash:sha256(source),regions:[{size:6,executable:true,data:Buffer.from('b85a000000c3','hex'),relocations:[]}],writes:[{address,expected,data:Buffer.alloc(12),relocations:[{offset:0,target:0,addend:0,relative:false}]}]});
+writeOverlay(root,{asi:Buffer.from(profile.bytes,'base64'),plan,loader:await prepareAsiLoader(path.resolve('build/asi/cache')),report:{originalExecutableHash:sha256(source)}});
+fs.mkdirSync(path.join(root,'data'));fs.mkdirSync(path.join(root,'plugins/SH3Tools/data'));
+fs.writeFileSync(path.join(root,'data/test.bin'),'ORIGINAL');fs.writeFileSync(path.join(root,'data/fallback.bin'),'FALLBACK');fs.writeFileSync(path.join(root,'plugins/SH3Tools/data/test.bin'),'MOD');
+const result=spawnSync(exe,[],{cwd:root,encoding:'utf8',windowsHide:true,timeout:30000});
+console.log(result.stdout);assert.equal(result.status,0,JSON.stringify(result));
+assert.equal(fs.readFileSync(path.join(root,'data/test.bin'),'utf8'),'ORIGINAL');assert.equal(sha256(fs.readFileSync(exe)),sha256(source));
+assert.match(fs.readFileSync(path.join(root,'plugins/SH3Tools/SH3Tools.log'),'utf8'),/Activated/);
+console.log('Production DLL + ASI bridge + pinned Ultimate ASI Loader passed:',root);

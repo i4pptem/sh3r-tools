@@ -8,6 +8,10 @@ Run **Install media.cmd** from the extracted application folder and restart the 
 
 Install Blender 4.2+ or set `SH3TOOLS_BLENDER` to the full executable path, then restart the tool. Exporting a model to GLB works without Blender. Blender 5.2.2 was tested; other releases can differ in FBX import/export behavior.
 
+## Blender Morph Tools is missing or still shows an older version
+
+The application includes the add-on file but does not install it into Blender. In 1.0.0, **Get Blender morph add-on…** exports version 1.3.2. Replace the old `sh3_morph_transfer.py` through Blender's Add-ons preferences, enable **Silent Hill 3 Morph Transfer**, restart Blender and open **3D View → Sidebar → SH3 Tools → Pose Morph Transfer → 1. Meshes**. The application card appears only on models with native morphs. See the [installation and morph guide](BLENDER-MORPH-TOOLS.md).
+
 ## “Skeleton edits are not supported by this import mode”
 
 The model must retain the original rig, hierarchy and bind transforms. Export from this tool, edit geometry/shape keys and use **Import model…**. The tool opens the rebuild setup when needed. Check that the DCC did not alter the armature, apply a nonidentity wrapper transform or drop skin data. The tool compares meaningful bind-pose drift; it does not simply ignore skeleton differences.
@@ -18,11 +22,11 @@ Use the morph workspace workflow to apply the same subdivision operation to the 
 
 ## The preview is correct but the game is distorted or crashes
 
-Confirm that you installed the **matching generated executable and data** when Build mod emitted both. Morph scratch, secondary storage and primary GPU indices are different runtime limits; an older morph-only executable may be insufficient. Check gameplay and a morph cutscene. Keep the build report and describe exactly where the result differs. For assets created before stable rebuilding templates were introduced, use a clean original MDL template as described in the workflow guide.
+For replacement-file builds, install the **matching generated executable and data** when both are emitted. For ASI overlay, use the original supported executable and the complete matching plugins folder; check plugins/SH3Tools/SH3Tools.log. Morph scratch, secondary storage and primary GPU indices are different runtime limits; an older morph-only executable may be insufficient. Check gameplay and a morph cutscene. Keep the build report and describe exactly where the result differs. For assets created before stable rebuilding templates were introduced, use a clean original MDL template as described in the workflow guide.
 
 ## The high-resolution font looks unchanged
 
-Normal and Small atlases are separate. Check which one was replaced, and install both the generated font archive and the generated executable. A higher-resolution atlas should preserve logical text size/spacing. A similar-looking upscale may be subtle; inspect glyph edges on the actual text screen.
+Normal and Small atlases are separate. Check which one was replaced. In replacement-file mode, install both the generated font archive and executable. In ASI overlay mode, install the complete plugins output and verify loader activation in SH3Tools.log. A higher-resolution atlas should preserve logical text size/spacing. A similar-looking upscale may be subtle; inspect glyph edges on the actual text screen.
 
 ## Full-size texture import works in preview but not in the game
 
@@ -30,7 +34,7 @@ Try the normal format-aware import first. Full-size mode is optional; the pictur
 
 ## Map edits are not in the output
 
-Map preview edits must be applied using the editor's Apply action before Build mod. Ctrl+Z undoes supported map operations; it does not uninstall a mod already copied into the game. Export a selected mesh for part exchange or export the full map for a complete reference scene.
+Build review links to every map with unapplied drafts. Apply or discard those rooms before continuing. Ctrl+Z undoes supported map operations; it does not uninstall a mod already copied into the game. Export a selected mesh for part exchange or export the full map for a complete reference scene.
 
 ## Asset library or Inspector disappeared
 

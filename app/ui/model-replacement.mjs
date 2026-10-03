@@ -1,3 +1,4 @@
+import {modelReview} from './model-review.mjs';
 import {modelCompatibility} from '../../core/model-compatibility.mjs';
 const node = (tag, text) => {const result = document.createElement(tag); if (text !== undefined) result.textContent = text; return result;};
 
@@ -49,19 +50,21 @@ export async function modelReplacement(state, run, notify, preparedInfo) {
     select.setAttribute('aria-label', `Shape key for ${name}`); row.append(node('span', `${index} · ${name}`), select); morphTable.append(row); morphs.push(select);
   }
   form.append(morphTable);
-  const detail = node('p', `Base-color images are imported with the model, including new consecutive Texture_N slots. Named slots without imported color data keep their existing images. Templates also control visibility in gameplay, cutscenes and equipment states. Parts are split automatically to fit bone palettes and transparent-mesh buffers; each chunk keeps its original material and visibility settings. Use at most 3 influences per vertex and ${info.limits.morphNodes.toLocaleString("en-US")} unique morph nodes per model. Above ${info.stockMorphNodes.toLocaleString("en-US")} morph nodes, 65,536 primary-group vertices, 1,024 transparent-part vertices or 2,048 transparent triangles, Build mod also creates a patched sh3.exe; install it together with the built archives. Build mod also checks the complete character-file memory budget, including embedded textures. The morph count is separate from the total vertex count.`); detail.className = 'hint'; form.append(detail);
+  const detail = node('p', `Base-color images are imported with the model, including new consecutive Texture_N slots. Named slots without imported color data keep their existing images. Templates also control visibility in gameplay, cutscenes and equipment states. Parts are split automatically to fit bone palettes and transparent-mesh buffers; each chunk keeps its original material and visibility settings. Use at most 3 influences per vertex and ${info.limits.morphNodes.toLocaleString("en-US")} unique morph nodes per model. Above ${info.stockMorphNodes.toLocaleString("en-US")} morph nodes, 65,536 primary-group vertices, 1,024 transparent-part vertices or 2,048 transparent triangles, Build mod also includes runtime patches, delivered through ASI overlay or a patched executable according to the build mode. Build mod also checks the complete character-file memory budget, including embedded textures. The morph count is separate from the total vertex count.`); detail.className = 'hint'; form.append(detail);
+  const shadow=node('input');shadow.type='checkbox';shadow.checked=!!info.shadowAvailable;shadow.disabled=!info.shadowAvailable;
+  const shadowLabel=node('label');shadowLabel.append(shadow,document.createTextNode(' Rebuild matching KG1 shadow volumes'));form.append(shadowLabel,node('p',info.shadowAvailable?'Creates simplified closed volumes for the new model. Both Heather shadow variants are rebuilt. Animated morphs and smooth skinning are approximated by rigid bone volumes.':'No matching KG1 is open. Open the character archive to rebuild shadows.'));
+  if(info.shadowResource){form.append(node('p',`Game shadow: ${info.shadowResource.name}.`));if(info.shadowResource.sharedModels.length)form.append(node('p',`Shared with: ${info.shadowResource.sharedModels.join(', ')}. These models use the same shadow file.`));}
   const actions = node('div'); actions.className = 'replacement-actions';
   const cancel = node('button', 'Cancel'); cancel.type = 'button'; cancel.onclick = () => dialog.close();
-  const build = node('button', 'Build & stage replacement'); build.type = 'button'; build.className = 'primary';
+  const build = node('button', 'Review replacement…'); build.type = 'button'; build.className = 'primary';
   build.onclick = async () => {
     const checked = meshes.filter(mesh => mesh.include.checked);
     if (!checked.length || checked.some(mesh => mesh.select.value === '') || morphs.some(select => select.value === '')) {notify('Choose each checked part’s template and map every morph slot. Use Neutral explicitly for unused slots.'); return;}
-    const selection = {meshes: checked.map(mesh => ({input: mesh.input, template: Number(mesh.select.value), ...(mesh.texture.value === '' ? {} : {texture: Number(mesh.texture.value)})})),
+    const selection = {rebuildShadow:shadow.checked,meshes: checked.map(mesh => ({input: mesh.input, template: Number(mesh.select.value), ...(mesh.texture.value === '' ? {} : {texture: Number(mesh.texture.value)})})),
       morphs: morphs.map(select => select.value === '__neutral' ? null : info.targetNames[Number(select.value)])};
     build.disabled = true;
-    const result = await run('rebuildModel', {key, token: info.token, selection}, 'Rebuilding native geometry and morph tables…');
-    build.disabled = false;
-    if (result) {dialog.close(); const report = result.rebuildReport; notify(`Model rebuilt: ${report.vertices.toLocaleString('en-US')} vertices, ${report.morphTargets} morph slots, ${report.morphNodes} morph nodes. ${(report.requiresModelTexturePatch || report.requiresMorphPatch || report.requiresSecondaryPatch || report.requiresPrimaryIndexPatch) ? "Build mod will include the required patched sh3.exe. " : ""}Inspect it with the original animations before building a game test.`, true);}
+    const result=await run('reviewModel',{key,token:info.token,selection},'Rebuilding candidate for review…');
+    build.disabled=false;if(result)modelReview(state,run,notify,result,()=>dialog.close());
   };
   actions.append(cancel, build); form.append(actions); dialog.append(form); document.body.append(dialog);
   dialog.addEventListener('close', () => dialog.remove(), {once: true}); dialog.showModal();

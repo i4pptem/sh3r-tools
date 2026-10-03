@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {openArchive} from '../../core/archives.mjs';
+import {writeCompactArchive,writeCompactManifest,readVirtualAfs} from '../../core/compact-overlay.mjs';
+const folder=path.resolve('build/asi/compact-fixture-'+Date.now());fs.mkdirSync(path.join(folder,'data'),{recursive:true});
+const arc=Buffer.alloc(256);arc.writeUInt32LE(0x20030507);arc.writeUInt32LE(1,4);arc.writeUInt32LE(16,8);arc.writeUInt32LE(64,16);arc.writeUInt32LE(32,20);arc.writeUInt32LE(10,24);arc.writeUInt32LE(10,28);
+const arcFile=path.join(folder,'data/test.arc');fs.writeFileSync(arcFile,arc);const a=openArchive(arcFile,[{index:0,name:'data/pcchr/test.mdl'}]);a.relativePath='test.arc';
+const afs=Buffer.alloc(4096);for(let i=0;i<afs.length;i++)afs[i]=i%251;afs.writeUInt32LE(0x00534641);afs.writeUInt32LE(2,4);afs.writeUInt32LE(2048,8);afs.writeUInt32LE(24,12);afs.writeUInt32LE(2100,16);afs.writeUInt32LE(20,20);afs.fill(0,24,32);
+const afsFile=path.join(folder,'data/demo.afs');fs.writeFileSync(afsFile,afs);const b=openArchive(afsFile);b.relativePath='demo.afs';
+const payloads=new Map([[0,Buffer.alloc(3001,0x88)],[1,Buffer.from('new streamed soundtrack')]]),update=path.join(folder,'plugins/SH3Tools');
+const reports=[writeCompactArchive(a,new Map([[0,Buffer.alloc(300000,0x42)]]),update),writeCompactArchive(b,payloads,update)];writeCompactManifest(update,reports);
+fs.writeFileSync(path.join(folder,'expected.afs'),readVirtualAfs(afs,reports[1],payloads,0,reports[1].virtualSize));
+const run=()=>spawnSync(path.resolve('build/asi/test-compact-host.exe'),[folder],{encoding:'utf8'});
+let result=run();process.stdout.write(result.stdout);if(result.status!==0)throw Error(result.stderr+' Exit '+result.status);
+const payload=path.join(update,reports[0].changes[0].file),clean=fs.readFileSync(payload);fs.writeFileSync(payload,Buffer.alloc(clean.length));result=run();if(result.status===0)throw Error('Corrupted payload accepted');fs.writeFileSync(payload,clean);
+fs.writeFileSync(afsFile,Buffer.alloc(afs.length));result=run();if(result.status===0)throw Error('Wrong original AFS accepted');fs.writeFileSync(afsFile,afs);
+console.log('Original archive and payload checksum rejection passed. Fixture:',folder);

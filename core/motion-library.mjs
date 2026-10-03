@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import {AnimationRangeCatalog} from './anm-ranges.mjs';
 import path from 'node:path';
 import {animationHeader, parseAnimation} from './animation.mjs';
-import {parseMorphAnimations} from './morph-animation.mjs';
+import {parseMorphAnimations,matchingCutsceneMorph} from './morph-animation.mjs';
 import {cutsceneAnimations, parseCutsceneAnimation} from './cutscene-animation.mjs';
 import {modelLayout} from './model.mjs';
 import {openArchive, entryBytes} from './archives.mjs';
@@ -90,8 +90,7 @@ export class MotionLibrary {
       this.validateSkeleton(model, clip);
       if (clip.type === 'morph') return clip;
       const motion = parseCutsceneAnimation(source.read(), clip.sectionIndex, model.modelId, model.parents);
-      const matches = available.filter(candidate => candidate.type === 'morph' && this.compatible(model, candidate));
-      return {...motion, ...this.metadata(clip), morphClip: matches.length === 1 ? matches[0] : null};
+      return {...motion, ...this.metadata(clip), morphClip: matchingCutsceneMorph(available,model.modelId,model.morphCount)};
     }
     const clip = this.external.get(id); requireThat(clip && this.compatible(model, clip), 'This motion is incompatible with the selected model.');
     this.validateSkeleton(model, clip);

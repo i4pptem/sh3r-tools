@@ -1,5 +1,6 @@
 """Build a joint-oriented DCC rest skeleton while preserving evaluated skin transforms."""
 import bpy
+from exchange_progress import frames as progress_frames, report
 from mathutils import Vector, Matrix
 
 
@@ -105,7 +106,7 @@ def reorient_for_authoring(rig, first=None, last=None):
     rest = {bone.name: bone.matrix_local.copy() for bone in rig.data.bones}
     tails = _joint_tails(rig)
     poses = []
-    for frame in frames:
+    for frame in progress_frames(frames[0], frames[-1], 'Reading original poses · ' + rig.name):
         scene.frame_set(frame)
         bpy.context.view_layer.update()
         evaluated = rig.evaluated_get(bpy.context.evaluated_depsgraph_get())
@@ -116,7 +117,7 @@ def reorient_for_authoring(rig, first=None, last=None):
         bpy.data.objects.remove(helper, do_unlink=True)
     changes = {bone.name: rest[bone.name].inverted() @ bone.matrix_local for bone in rig.data.bones}
     rotations = {}
-    for frame, pose in zip(frames, poses):
+    for frame, pose in zip(progress_frames(frames[0], frames[-1], 'Baking authoring rig · ' + rig.name), poses):
         scene.frame_set(frame)
         worlds = {name: value @ changes[name] for name, value in pose.items()}
         for bone in rig.pose.bones:
@@ -140,6 +141,7 @@ def reorient_for_authoring(rig, first=None, last=None):
 
 def save_authoring_scene(file, rig):
     """Save a self-contained Blender scene framed around the exported character."""
+    report('Packing textures and saving Blender file')
     bpy.ops.file.pack_all()
     points = [rig.matrix_world @ bone.head_local for bone in rig.data.bones]
     if points:

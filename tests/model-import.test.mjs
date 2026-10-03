@@ -110,9 +110,9 @@ test('model import stages geometry and texture pixels atomically, including orig
  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'sh3-import-'));
  try {
   const original=texturedModelFixture(4),file=path.join(folder,'model.glb'),wb=new Workbench();let data=original;
-  wb.bytes=()=>data;wb.stage=(_key,value)=>{data=value;wb.changes.set('model',{});return {entries:[]};};
+  wb.get=()=>({archive:{entries:[]},entry:{name:'model.mdl'}});wb.bytes=()=>data;wb.stage=(_key,value)=>{data=value;wb.changes.set('model',{});return {entries:[]};};
   const edited=exportGlb(parseModel(original),readTextures(original,true).map((image,i)=>i===0?{...image,png:picture([90,40,20,255])}:image));
-  fs.writeFileSync(file,edited);const result=await wb.importModel('model',file);assert.equal(result.modelImport,'attributes');assert.deepEqual([...readTextures(data,true)[0].rgba.slice(0,4)],[90,40,20,255]);
+  fs.writeFileSync(file,edited);const result=await wb.importModel('model',file);assert.equal(result.modelImport,'review');assert.equal(wb.changes.size,0);wb.applyModelReview('model',result.token,result.reviewHash);assert.deepEqual([...readTextures(data,true)[0].rgba.slice(0,4)],[90,40,20,255]);
   fs.writeFileSync(file,exchange(original,[0,4,5]));const plan=await wb.importModel('model',file);assert.equal(plan.modelImport,'rebuild');wb.rebuildModel('model',plan.token,choices(plan));
   fs.writeFileSync(path.join(folder,'original.mdl'),original);const second=await wb.importModel('model',file);
   const templates=wb.modelTemplates('model',second.token,path.join(folder,'original.mdl'));assert.equal(templates.textureSlots.length,6);

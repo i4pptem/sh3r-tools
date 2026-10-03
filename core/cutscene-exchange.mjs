@@ -4,7 +4,7 @@ import {exchangeRig} from './gltf-rig.mjs';
 import {packSections} from './pack.mjs';
 import {motionSection,parseCutsceneAnimation} from './cutscene-animation.mjs';
 import {applyCutscenePose} from './cutscene-sampling.mjs';
-import {parseMorphAnimations} from './morph-animation.mjs';
+import {parseMorphAnimations,matchingCutsceneMorph} from './morph-animation.mjs';
 import {sampleMorphAnimation} from './morph-sampling.mjs';
 import {animationImportRange,sampleExchange} from './animation-sampling.mjs';
 import {validateSamples,correctedSamples} from './motion-calibration.mjs';
@@ -37,8 +37,7 @@ export function cutsceneExchange(model,data,sectionIndex,modelId,start,end,fps) 
     const source=((start+f)*parents.length+bone)*3+axis,dest=(f*parents.length+bone)*24+axis*4;
     raw.writeFloatLE(clip.eulers[source],dest);raw.writeFloatLE(clip.translations[source],dest+12);
   }
-  const matches=parseMorphAnimations(data).filter(face=>face.modelId===modelId&&face.targetCount===model.morphNames.length);
-  const face=matches.length===1?matches[0]:null;
+  const face=matchingCutsceneMorph(parseMorphAnimations(data),modelId,model.morphNames.length);
   const morphSamples=face?Array.from({length:count},(_,f)=>sampleMorphAnimation(face,start+f)):null;
   const morph=face?{controlIndex:face.controlIndex,names:model.morphNames,weights:structuredClone(morphSamples),
     bindings:model.meshes.filter(mesh=>mesh.morphPositions.some(values=>values.some(v=>v!==0))).map(mesh=>({name:mesh.name,

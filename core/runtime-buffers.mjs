@@ -1,3 +1,5 @@
+import {restoreMapGeometryRuntime,expandMapGeometryRuntime} from './map-geometry-runtime.mjs';
+import {restoreBackgroundRuntime,expandBackgroundRuntime} from './background-runtime.mjs';
 import {restoreModelTextureRuntime, expandModelTextureRuntime} from './model-texture-runtime.mjs';
 import {restoreCharacterRuntime, expandCharacterRuntime} from './character-runtime.mjs';
 import {restoreFontRuntime, expandFontRuntime} from './font-runtime.mjs';
@@ -32,7 +34,9 @@ function replaceChecked(data, at, expected, replacement) {
 
 /** Reverse only our exact additions, then authenticate the entire supported executable. */
 function supportedBase(source) {
-  const textures = restoreModelTextureRuntime(source), character = restoreCharacterRuntime(textures.data), font = restoreFontRuntime(character.data), data = Buffer.from(font.data), layout = peLayout(data), {pe, optional, table, count, offset} = layout;
+  const originalLayout=peLayout(source);
+  requireThat(!originalLayout.sections.some((_,i)=>['.sh3anm1','.sh3abuf'].includes(source.toString('ascii',originalLayout.table+i*40,originalLayout.table+i*40+8))), 'This executable contains the removed Action-length extension. Select an original sh3.exe and restore original ANM banks before rebuilding.');
+  const geometry=restoreMapGeometryRuntime(source), background=restoreBackgroundRuntime(geometry.data), textures = restoreModelTextureRuntime(background.data), character = restoreCharacterRuntime(textures.data), font = restoreFontRuntime(character.data), data = Buffer.from(font.data), layout = peLayout(data), {pe, optional, table, count, offset} = layout;
   const hasPrimaryIndices = primary.patches.some(p => data.subarray(offset(p.address), offset(p.address) + p.replacement.length / 2).equals(Buffer.from(p.replacement, 'hex')));
   if (hasPrimaryIndices) for (const p of primary.patches) replaceChecked(data, offset(p.address), Buffer.from(p.replacement, 'hex'), Buffer.from(p.expected, 'hex'));
   const hasPicture = picture.patches.some(p => data.subarray(offset(p.address), offset(p.address) + p.replacement.length / 2).equals(Buffer.from(p.replacement, 'hex')));
@@ -55,7 +59,7 @@ function supportedBase(source) {
     data.writeUInt32LE(size, optional + 56);
     for (const value of [0, checksum(data, optional + 64)]) {
       data.writeUInt32LE(value, optional + 64);
-      if (knownHashes.has(sha256(data))) return {data, hasPicture, hasSecondary, hasPrimaryIndices, hasFonts: font.hasFonts, hasCharacter: character.hasCharacter, hasModelTextures: textures.hasModelTextures};
+      if (knownHashes.has(sha256(data))) return {data, hasPicture, hasSecondary, hasPrimaryIndices, hasFonts: font.hasFonts, hasCharacter: character.hasCharacter, hasModelTextures: textures.hasModelTextures, hasBackground: background.hasBackground, hasMapGeometry:geometry.hasMapGeometry};
     }
   }
   throw new Error('This executable does not match a supported original or a verified Silent Hill 3 Tools patch. Select a supported sh3.exe.');
@@ -96,6 +100,8 @@ export function expandRuntimeBuffers(source, requirements) {
   if (requirements.requiresFontPatch || normalized.hasFonts) {const expanded = expandFontRuntime(data); data = expanded.data; report.font = expanded.report;}
   if (requirements.requiresCharacterPatch || normalized.hasCharacter) {const expanded = expandCharacterRuntime(data); data = expanded.data; report.character = expanded.report;}
   if (requirements.requiresModelTexturePatch || normalized.hasModelTextures) {const expanded = expandModelTextureRuntime(data); data = expanded.data; report.modelTextures = expanded.report;}
+  if(requirements.requiresBackgroundPatch || normalized.hasBackground){const expanded=expandBackgroundRuntime(data);data=expanded.data;report.background=expanded.report;}
+  if(requirements.requiresMapGeometryPatch || normalized.hasMapGeometry){const expanded=expandMapGeometryRuntime(data);data=expanded.data;report.mapGeometry=expanded.report;}
   const layout = peLayout(data); data.writeUInt32LE(checksum(data, layout.optional + 64), layout.optional + 64);
   report.outputHash = sha256(data); report.alreadyExpanded = report.sourceHash === report.outputHash;
   return {data, report};

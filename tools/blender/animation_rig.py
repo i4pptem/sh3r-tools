@@ -2,6 +2,7 @@
 import math
 
 import bpy
+from exchange_progress import frames as progress_frames
 from mathutils import Matrix, Quaternion, Vector
 
 PROPERTY = 'sh3_anm_exchange'
@@ -109,7 +110,7 @@ def sample(rig, metadata, first=None, last=None):
     corrections = [(expected_object @ reference[i]).inverted() @ TO_BLENDER @ matrix(bone['world']) for i, bone in enumerate(bones)]
     rest = [reference[bone['parent']].inverted() @ reference[i] if bone['parent'] >= 0 else reference[i] for i, bone in enumerate(bones)]
     samples = []
-    for frame in range(first, last + 1):
+    for frame in progress_frames(first, last, 'Sampling skeleton · ' + rig.name):
         bpy.context.scene.frame_set(frame)
         bpy.context.view_layer.update()
         evaluated = rig.evaluated_get(bpy.context.evaluated_depsgraph_get())

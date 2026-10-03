@@ -31,5 +31,13 @@ if (characterHash !== characterProfile.sourceSha256) errors.push('Character aren
 const textureProfile = JSON.parse(fs.readFileSync(path.join(root, 'core/model-texture-runtime-profile.json'), 'utf8'));
 const textureSource = fs.readFileSync(path.join(root, 'tools/native/model-textures.c'), 'utf8').replace(/\r\n?/g, '\n');
 if (createHash('sha256').update(textureSource, 'utf8').digest('hex') !== textureProfile.sourceSha256) errors.push('Model texture source does not match its patch profile.');
+const asiProfile = JSON.parse(fs.readFileSync(path.join(root, 'core/asi-runtime-profile.json'), 'utf8'));
+const asiSource = ['tools/native/asi-runtime.c','tools/native/asset-overlay.c','tools/native/asi-loader.c'].map(file=>fs.readFileSync(path.join(root,file),'utf8').replace(/\r\n?/g,'\n')).join('\n');
+if (createHash('sha256').update(asiSource).digest('hex') !== asiProfile.sourceSha256) errors.push('ASI runtime source does not match its profile.');
+if (createHash('sha256').update(Buffer.from(asiProfile.bytes, 'base64')).digest('hex') !== asiProfile.sha256) errors.push('ASI runtime profile checksum differs.');
+if (createHash('sha256').update(Buffer.from(asiProfile.bootstrap.bytes, 'base64')).digest('hex') !== asiProfile.bootstrap.sha256) errors.push('DLL loader profile checksum differs.');
+const geometryProfile=JSON.parse(fs.readFileSync(path.join(root,'core/map-geometry-runtime-profile.json'),'utf8'));
+const geometrySource=fs.readFileSync(path.join(root,'tools/native/map-geometry.py'),'utf8').replace(/\r\n?/g,'\n');
+if(createHash('sha256').update(geometrySource).digest('hex')!==geometryProfile.sourceSha256)errors.push('MAP geometry source differs from its profile.');
 if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
 else console.log(`Repository check passed: ${files.length} public files; links, source types and native source hashes verified.`);

@@ -2,6 +2,7 @@
 import math
 
 import bpy
+from exchange_progress import frames as progress_frames
 
 
 def bindings(metadata):
@@ -37,7 +38,7 @@ def sample_morphs(metadata, first, last):
         return None
     controls = bindings(metadata)
     samples = []
-    for frame in range(first, last + 1):
+    for frame in progress_frames(first, last, 'Sampling facial morphs'):
         bpy.context.scene.frame_set(frame)
         bpy.context.view_layer.update()
         graph = bpy.context.evaluated_depsgraph_get()

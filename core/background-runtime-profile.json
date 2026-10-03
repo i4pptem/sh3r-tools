@@ -1,0 +1,32 @@
+{
+  "id": "sh3-background-primary-arena-256m-v1",
+  "imageBase": 4194304,
+  "primaryBytes": 268435456,
+  "stockPrimaryBytes": 37748736,
+  "arenaAlignment": 65536,
+  "base": 268435456,
+  "arena": 536870912,
+  "code": "c744240400000020c744240800000010e9fbc749f0",
+  "arenaPointerRelocations": [
+    4
+  ],
+  "primarySizeOffsets": [
+    12
+  ],
+  "externalRelativeBranches": [
+    17
+  ],
+  "entries": {
+    "initialize": 0
+  },
+  "patches": [
+    {
+      "address": 5827451,
+      "expected": "e890dcf0ff",
+      "entry": 0,
+      "kind": "call"
+    }
+  ],
+  "sourceSha256": "a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e",
+  "notes": "Replace CALL with CALL, not JMP. Shim rewrites only first two cdecl arguments, keeps original auxiliary arena and tail-jumps to native initializer. Apply before startup."
+}

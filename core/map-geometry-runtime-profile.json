@@ -1,0 +1,41 @@
+{
+  "id": "sh3-map-transparent-preflight-v1",
+  "imageBase": 4194304,
+  "base": 268500992,
+  "code": "9c60803d4408c0000074258b4424288b0db007c00003c83b0dac07c0007f0c813da007c000001000007c05e8f0555ef0619da04408c000e959595ef0909090909c60803d4408c0000074258b4424288b0dc407c00003c83b0dc007c0007f0c813da007c000001000007c05e8b0555ef0619da04408c000e969585ef0909090909c60803d4408c0000074258b4424288b0dd807c00003c83b0dd407c0007f0c813da007c000001000007c05e870555ef0619da04408c000e979595ef0",
+  "externalRelativeBranches": [
+    44,
+    56,
+    108,
+    120,
+    172,
+    184
+  ],
+  "patches": [
+    {
+      "address": 6248848,
+      "expected": "a04408c000",
+      "entry": 0,
+      "kind": "jump"
+    },
+    {
+      "address": 6248672,
+      "expected": "a04408c000",
+      "entry": 64,
+      "kind": "jump"
+    },
+    {
+      "address": 6249008,
+      "expected": "a04408c000",
+      "entry": 128,
+      "kind": "jump"
+    }
+  ],
+  "sourceSha256": "5b28a428bc68ff0454558b7640b672aef269b11e597f67e5d9ac7bb6de399c50",
+  "limits": {
+    "queueDescriptors": 4096,
+    "mapStreamVertices": 8192,
+    "effect28Vertices": 4096,
+    "effect24Vertices": 64
+  }
+}

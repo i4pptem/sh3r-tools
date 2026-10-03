@@ -15,10 +15,16 @@ export const ANM_MODELS = new Map(Object.entries({
 }).map(([id, [stride, model]]) => [Number(id), {stride, model}]));
 
 
+/** Reject retired appended-Action banks before preview, import or mod build. */
+export function assertFixedAnimation(buffer) {
+  requireThat(!buffer.subarray(-8).equals(Buffer.from('SH3ANM1\0')), 'This ANM uses the removed Action-length extension. Restore the original ANM and reimport the edited motion into its existing range with Fit enabled.');
+}
+
 export function animationHeader(buffer) {
   range(buffer, 0, 4, 'ANM header');
   const modelId = buffer.readUInt32LE(0), info = ANM_MODELS.get(modelId);
   requireThat(info, `Unsupported ANM model ID 0x${modelId.toString(16)}.`);
+  assertFixedAnimation(buffer);
   const frameCount = (buffer.length - 4) / info.stride;
   requireThat(Number.isInteger(frameCount) && frameCount > 0 && frameCount <= 200000, 'ANM size does not match its fixed frame layout.');
   return {modelId, frameCount, ...info};

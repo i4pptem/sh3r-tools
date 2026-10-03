@@ -26,24 +26,24 @@ function fixture(t) {
   const work = new Workbench(); work.open(file); return {folder, file, work};
 }
 
-test('reloading reordered ARC entries preserves safe replacements by file ID and clears already installed edits', t => {
+test('reloading relocated ARC block tables preserves catalog identities and clears installed edits', t => {
   const {work, file, folder} = fixture(t);
   work.stage('0:0', Buffer.from('edited A'), 'A'); work.stage('0:1', Buffer.from('edited B'), 'B');
   const oldMotion = work.motion, oldTextureRevision = work.textureLibrary.revision;
-  archive(file, [record(12, 'longer C after external edit'), record(10, 'original A'), record(11, 'edited B')]);
+  archive(file, [record(80, 'original A'), record(80, 'edited B'), record(80, 'longer C after external edit')]);
   assert.throws(() => entryBytes(work.archives[0], 0), {code: 'SOURCE_CHANGED'});
   assert.throws(() => work.saveProject(path.join(folder, 'stale.sh3project')), {code: 'SOURCE_CHANGED'});
   assert.equal(fs.existsSync(path.join(folder, 'stale.sh3project')), false);
   const preview = work.prepareSourceReload(); assert.equal(preview.kept, 1); assert.equal(preview.installed.length, 1); assert.equal(preview.conflicts.length, 0);
   // Preparing a reload never changes the active workspace.
-  assert.equal(work.changes.size, 2); assert.equal(work.archives[0].entries[0].fileId, 10);
+  assert.equal(work.changes.size, 2); assert.equal(work.archives[0].entries[0].chunkTableOffset, 10);
   const result = work.reloadSources(preview.token);
-  assert.equal(result.keyMap['0:0'], '0:1'); assert.equal(work.changes.size, 1);
-  assert.equal(work.bytes('0:1').toString(), 'edited A'); assert.equal(work.bytes('0:2').toString(), 'edited B');
+  assert.equal(result.keyMap['0:0'], '0:0'); assert.equal(work.changes.size, 1);
+  assert.equal(work.bytes('0:0').toString(), 'edited A'); assert.equal(work.bytes('0:1').toString(), 'edited B');
   assert.notEqual(work.motion, oldMotion); assert.ok(work.textureLibrary.revision > oldTextureRevision);
   assert.deepEqual(work.sourceChanges(), []);
   const saved = path.join(folder, 'fresh.sh3project'); work.saveProject(saved);
-  const restored = new Workbench(); restored.loadProject(saved); assert.equal(restored.bytes('0:1').toString(), 'edited A');
+  const restored = new Workbench(); restored.loadProject(saved); assert.equal(restored.bytes('0:0').toString(), 'edited A');
 });
 
 test('conflicting edits require explicit discard and unrelated edits survive', t => {
@@ -64,7 +64,7 @@ test('source changes while the reload dialog is open invalidate its plan atomica
   assert.equal(work.changes.size, 1); assert.equal(work.bytes('0:1').toString(), 'my B');
 });
 
-test('missing or duplicate ARC identities are conflicts, never silently attached to another asset', t => {
+test('changed ARC record order conflicts instead of treating block offsets as identities', t => {
   const {work, file} = fixture(t); work.stage('0:0', Buffer.from('A'), 'A'); work.stage('0:1', Buffer.from('B'), 'B');
   archive(file, [record(11, 'original B'), record(11, 'different payload'), record(12, 'original C')]);
   const plan = work.prepareSourceReload(); assert.equal(plan.conflicts.length, 2); assert.equal(plan.kept, 0);

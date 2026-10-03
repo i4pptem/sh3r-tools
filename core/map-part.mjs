@@ -3,7 +3,7 @@ import {parseMap} from './world-formats.mjs';
 import {exportGlb, readGlb} from './gltf.mjs';
 import {gltfHierarchy} from './gltf-rig.mjs';
 import {requireThat} from './binary.mjs';
-import {commitGeometry, preserveVisibility} from './map-edit.mjs';
+import {commitGeometry, updateMapVisibility} from './map-edit.mjs';
 import {repackMapPart} from './map-repack.mjs';
 
 const equal=(a,b)=>a.length===b.length && a.every((v,i)=>Math.fround(v)===Math.fround(b[i]));
@@ -19,7 +19,7 @@ function replacementGeometry(glb, source) {
   const {doc,accessor}=readGlb(glb);
   requireThat(doc.meshes?.length===1 && !doc.skins?.length,'Export exactly one unskinned mesh for the selected MAP part.');
   const info=doc.asset.extras?.sh3MapPart;
-  if(info) requireThat(info.name===source.name && info.objectType===source.objectType && info.partId===source.partId,'This GLB was exported for a different MAP part.');
+  if(info) requireThat(info.name===source.name && (info.objectType===source.objectType || info.objectType===1 && source.objectType===0) && info.partId===source.partId,'This GLB was exported for a different MAP part.');
   const mesh=doc.meshes[0]; requireThat(mesh.primitives?.length===1,'Use one material slot on the replacement mesh.');
   const p=mesh.primitives[0];requireThat((p.mode??4)===4 && !p.extensions && !p.targets?.length,'Use uncompressed triangles without shape keys.');
   const nodes=(doc.nodes||[]).map((node,index)=>({node,index})).filter(({node})=>node.mesh===0);
@@ -90,10 +90,9 @@ export function importMapPart(data, name, glb, referenceData=data) {
   const world=parseMap(data), source=findPart(world,name), edited=replacementGeometry(glb,source);
   if(edited.positions.length===source.positions.length && equal(edited.indices,source.indices)) return commitGeometry(data,[{source,edited}],referenceData);
   const reference=parseMap(referenceData), original=findPart(reference,name);
-  if(source.textureSource===2 || source.transparency===1) requireThat(edited.indices.length<=original.indices.length,'Increasing transparent MAP triangle counts requires runtime validation. Keep this part’s original triangle budget.');
   const output=repackMapPart(data,source,vertexStrip(source,edited,data));
   const actual=findPart(parseMap(output),name);
   requireThat(actual.indices.length===edited.indices.length,'Rebuilt strip triangle count differs from the imported mesh.');
-  preserveVisibility(actual,original,reference);
+  updateMapVisibility(output,actual,original,reference);
   return output;
 }

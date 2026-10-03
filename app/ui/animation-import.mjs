@@ -1,3 +1,4 @@
+import {showChannels} from './animation-channels.mjs';
 const node=(tag,text)=>{const element=document.createElement(tag);if(text!==undefined)element.textContent=text;return element;};
 
 /** Choose explicit, inclusive source and destination ranges before staging animation. */
@@ -27,8 +28,9 @@ export function animationImportDialog(info,selectedStart,apply) {
       const policyLabel=node('label','Missing native channels');policy.setAttribute('aria-label','Missing native channels');
       policy.add(new Option('Preserve unsupported channels and report skipped motion','keep'));
       policy.add(new Option('Stop if any motion cannot be written','reject'));policyLabel.append(policy);form.append(policyLabel);
-      const note=node('p','ANM banks have fixed native channels. Adding a key in Blender cannot create a game channel. Preserved channels are listed in the import result. In-game action length, loop points and events are stored outside ANM and are not changed.');note.className='hint';form.append(note);
+      const note=node('p','ANM banks have fixed native channels. Adding a key in Blender cannot create a game channel. Preserved channels are listed in the import result. Import preserves bank length and game action/loop tables. Fit source motion to the existing destination range if its duration differs.');note.className='hint';form.append(note);
     }
+    if(info.channels){const channels=node('button','View writable channels…');channels.type='button';channels.onclick=()=>showChannels(info.channels);form.append(channels);}
     if(info.ignoredBones.length)form.append(node('p','Control bones ignored: '+info.ignoredBones.join(', ')));
     const actions=node('div');actions.className='replacement-actions';const cancel=node('button','Cancel'),submit=node('button','Stage animation');cancel.type=submit.type='button';submit.className='primary';
     cancel.onclick=()=>dialog.close();actions.append(cancel,submit);form.append(actions);

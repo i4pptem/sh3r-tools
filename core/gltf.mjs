@@ -5,7 +5,7 @@ import {gltfAccessor} from './gltf-accessors.mjs';
 import {parseModel} from './model.mjs';
 import {requireThat, range, align} from './binary.mjs';
 
-export function exportGlb(model, textures = [], motion = null) {
+export function exportGlb(model, textures = [], motion = null, options = {}) {
   const parts = [], views = [], accessors = []; let byteLength = 0;
   const blob = (bytes, target) => {
     const padding = align(byteLength, 4) - byteLength;
@@ -24,7 +24,7 @@ export function exportGlb(model, textures = [], motion = null) {
     }
     accessors.push(accessor); return accessors.length - 1;
   };
-  const nodes = [], sceneNodes = [], meshes = [], skins = [], worldMaterials = [], materialKeys = new Map();
+  const nodes = [], sceneNodes = [], meshes = [], skins = [], worldMaterials = [], characterMaterials = textures.map((_, i) => ({name: `Texture_${i}`, pbrMetallicRoughness: {baseColorTexture: {index: i}, metallicFactor: 0, roughnessFactor: 1}, doubleSided: true, alphaMode: 'MASK', alphaCutoff: 0.1})), materialKeys = new Map();
   const {locals, worlds: boneMatrices} = exchangeRig(model.bones);
   for (const [i, bone] of model.bones.entries()) {
     const matrix = locals[i];
@@ -37,20 +37,30 @@ export function exportGlb(model, textures = [], motion = null) {
     const attributes = {POSITION: attribute(mesh.positions, 'VEC3', 5126, true), NORMAL: attribute(mesh.normals, 'VEC3'), TEXCOORD_0: attribute(mesh.uv, 'VEC2')};
     if (mesh.colors) attributes.COLOR_0 = attribute(mesh.colors, 'VEC3');
     if (skins.length) { attributes.JOINTS_0 = attribute(mesh.joints, 'VEC4', 5123); attributes.WEIGHTS_0 = attribute(mesh.weights, 'VEC4'); }
+    const nativeMapSides=options.nativeMapSides&&model.world&&mesh.transparency!==1;
     const primitive = {attributes, indices: attribute(mesh.indices, 'SCALAR', 5125), mode: 4};
     if (model.world) {
       const key = mesh.texture + ':' + mesh.transparency;
       if (!materialKeys.has(key)) {
         materialKeys.set(key, worldMaterials.length); const pbr = {metallicFactor: 0, roughnessFactor: 1};
         if (mesh.texture >= 0 && mesh.texture < textures.length) pbr.baseColorTexture = {index: mesh.texture};
-        worldMaterials.push({name: 'World_' + key, pbrMetallicRoughness: pbr, doubleSided: true, alphaMode: mesh.transparency === 1 ? 'BLEND' : mesh.transparency === 3 ? 'MASK' : 'OPAQUE', extensions: {KHR_materials_unlit: {}}, extras: {sh3Transparency: mesh.transparency}});
+        worldMaterials.push({name: 'World_' + key, pbrMetallicRoughness: pbr, doubleSided: !nativeMapSides, alphaMode: mesh.transparency === 1 ? 'BLEND' : mesh.transparency === 3 ? 'MASK' : 'OPAQUE', extensions: {KHR_materials_unlit: {}}, extras: {sh3Transparency: mesh.transparency}});
       }
       primitive.material = materialKeys.get(key);
-    } else if (mesh.texture >= 0 && mesh.texture < textures.length) primitive.material = mesh.texture;
+    } else if (mesh.texture >= 0 && mesh.texture < textures.length) {
+      if (mesh.group === 1) {
+        const key = 'blend:' + mesh.texture;
+        if (!materialKeys.has(key)) {
+          materialKeys.set(key, characterMaterials.length);
+          characterMaterials.push({...characterMaterials[mesh.texture], alphaMode: 'BLEND', alphaCutoff: undefined});
+        }
+        primitive.material = materialKeys.get(key);
+      } else primitive.material = mesh.texture;
+    }
     if (mesh.morphPositions.length) primitive.targets = mesh.morphPositions.map((p, i) => ({POSITION: attribute(p, 'VEC3', 5126, true), NORMAL: attribute(mesh.morphNormals[i], 'VEC3')}));
-    const glMesh = {name: mesh.name, primitives: [primitive], extras: {targetNames: model.morphNames, sh3VertexOrder: true, sh3Template: mesh.templateName}};
+    const glMesh = {name: mesh.name, primitives: [primitive], extras: {sh3_scene_mesh: mesh.name, targetNames: model.morphNames, sh3VertexOrder: true, sh3Template: mesh.templateName}};
     if (primitive.targets) glMesh.weights = new Array(primitive.targets.length).fill(0);
-    const node = {name: mesh.name, mesh: meshes.length}; if (skins.length) node.skin = 0;
+    const node = {name: mesh.name, mesh: meshes.length, extras: {sh3_scene_mesh: mesh.name}}; if (skins.length) node.skin = 0;
     meshes.push(glMesh); sceneNodes.push(nodes.length); nodes.push(node);
   }
   const animations = [];
@@ -76,7 +86,7 @@ export function exportGlb(model, textures = [], motion = null) {
   const doc = {asset: {version: '2.0', generator: 'Silent Hill 3 Tools', extras: {...model.exchangeExtras, sh3SourceHash: model.sourceHash}}, scene: 0,
     scenes: [{nodes: sceneNodes}], nodes, meshes, skins, images, animations: animations.length ? animations : undefined, textures: textures.map((_, i) => ({source: i})),
     extensionsUsed: model.world ? ['KHR_materials_unlit'] : undefined,
-    materials: model.world ? worldMaterials : textures.map((_, i) => ({name: `Texture_${i}`, pbrMetallicRoughness: {baseColorTexture: {index: i}, metallicFactor: 0, roughnessFactor: 1}, doubleSided: true, alphaMode: 'MASK', alphaCutoff: 0.1})),
+    materials: model.world ? worldMaterials : characterMaterials,
     bufferViews: views, accessors, buffers: [{byteLength}]};
   const jsonRaw = Buffer.from(JSON.stringify(doc)), json = Buffer.alloc(align(jsonRaw.length, 4), 32); jsonRaw.copy(json);
   const binRaw = Buffer.concat(parts), bin = Buffer.alloc(align(binRaw.length, 4)); binRaw.copy(bin);

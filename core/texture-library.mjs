@@ -1,3 +1,4 @@
+import {canResizeMapTextures,rebuildMapTexture} from './map-texture.mjs';
 import {readBitmap, replaceBitmap} from './bitmap.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -57,11 +58,12 @@ export class TextureLibrary {
         if (source.offset) {requireThat(source.offset >= 80, 'Invalid MAP texture offset.'); range(data, source.offset, 32, 'MAP textures');}
         source.references = mapTextureNames(entry.name).filter(([family, name]) => name && data.readUInt32LE(24 + family * 4)).map(([, name]) => 'data/tmp/' + name.toLowerCase());
       }
-      source.items = images(data, source, false).map(image => ({
+      const metadata=images(data,source,false),mapResize=source.kind==='map'&&canResizeMapTextures(data,metadata);
+      source.items = metadata.map(image => ({
         id: entry.key + '/' + image.index, key: entry.key, index: image.index, name: entry.name, archiveName: entry.archiveName,
         kind: source.kind, width: image.width, height: image.height, format: image.format,
         label: source.kind === 'font' ? (image.index ? 'Small' : 'Normal') : 'Texture ' + image.index,
-        fullSize: ['model', 'texture'].includes(source.kind) && !rasterFormats.has(source.format) && !image.layout?.sharedPalette,
+        fullSize: (mapResize || ['model', 'texture'].includes(source.kind)) && !rasterFormats.has(source.format) && !image.layout?.sharedPalette,
         font: source.kind === 'font'
       }));
     } catch (error) {
@@ -145,6 +147,7 @@ export class TextureLibrary {
     if (source.kind === 'font') output = replaceFont(data, item.index, input, {highResolution: mode === 'fontHires'});
     else if (source.format === 'bmp') output = replaceBitmap(data, input);
     else if (source.format === 'png') {pngImage(input, true); output = input;}
+    else if(mode==='fullSize'&&source.kind==='map')output=rebuildMapTexture(data,item.index,input);
     else if (mode === 'fullSize') output = rebuildTexture(data, item.index, input, source.kind === 'model', source.options);
     else {
       const replaced = replaceTexture(data.subarray(source.offset), item.index, input, source.kind === 'model', {...source.options, adapt: true});

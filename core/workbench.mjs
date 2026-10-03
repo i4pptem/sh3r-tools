@@ -1,3 +1,25 @@
+import {inspectShadowProxy,exportShadowProxy,importShadowProxy} from './shadow-proxy.mjs';
+import {animationChannels} from './animation-channels.mjs';
+import {modelDiagnostics} from './model-review.mjs';
+import {buildReview,buildFingerprint} from './build-review.mjs';
+import {writeCompactArchive,writeCompactManifest} from './compact-overlay.mjs';
+import {prepareCutsceneImport,applyCutsceneImport} from './cutscene-import.mjs';
+import {shadowCompanion,shadowBinding,stageModelWithShadow} from './shadow-rebuild.mjs';
+import {worldName,bankName} from './world-action-names.mjs';
+import {modelName} from './model-names.mjs';
+import {assertFixedAnimation} from './animation.mjs';
+import {animationHeader} from './animation.mjs';
+import {prepareModMerge,applyModMerge,exportModPackage} from './mod-merge.mjs';
+import {exportCutscene} from './cutscene-export.mjs';
+import {CutsceneLibrary} from './cutscene-library.mjs';
+import {saveProject} from './save-project.mjs';
+import {validateBackgroundMemory} from './map-memory.mjs';
+import {rebuildMapTexture} from './map-texture.mjs';
+import {editRoom} from './room-edit.mjs';
+import {worldReferences, worldReference} from './world-references.mjs';
+import {collisionOptions, collisionPlan, updateBoundCollision, stageWorld, undoWorld, loadCollisionBindings} from './map-collision.mjs';
+import {editCameras, importCameras} from './camera-edit.mjs';
+import {prepareOverlay, writeOverlay} from './asi-overlay.mjs';
 import {workspaceSources, changedSources, assertSources} from './source-state.mjs';
 import {prepareSourceReload, validateSourceReload} from './source-reload.mjs';
 import {loadModelFile} from './model-import.mjs';
@@ -19,6 +41,7 @@ import {cutsceneAnimations} from './cutscene-animation.mjs';
 import {openWorkspace} from './workspace.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
+import {parseMap} from './world-formats.mjs';
 import {inspectWorld} from './world-formats.mjs';
 import {parseAdx, decodeAdx, parseAix, decodeAix, parseSoundBank, decodeSoundBank, waveFile, importAixWave, importSoundBankWave} from './audio.mjs';
 import {readMessages, replaceMessages} from './messages.mjs';
@@ -26,7 +49,7 @@ import {fontSource} from './font-hires.mjs';
 import {readFonts, replaceFont} from './fonts.mjs';
 import {modelTemplate} from './model-provenance.mjs';
 import {replacementInfo, rebuildModel} from './model-rebuild.mjs';
-import {looseBytes, sourceRecord, verifySource, buildLoose} from './loose-files.mjs';
+import {looseBytes, verifySource, buildLoose} from './loose-files.mjs';
 import {decodeMovie, createMoviePreview, exportMovie, importMovie} from './media.mjs';
 import {MotionLibrary} from './motion-library.mjs';
 import path from 'node:path';
@@ -52,13 +75,17 @@ export function assetKind(extension) {
 }
 
 export class Workbench {
-  constructor(progress = () => {}, cacheFolder = path.join(os.tmpdir(), 'sh3tools-media-cache')) { this.sources = []; this.reloadPlan = null; this.archives = []; this.changes = new Map(); this.input = null; this.catalogPath = null; this.dataRoot = null; this.progress = progress; this.motion = new MotionLibrary(this); this.cacheFolder = cacheFolder; this.modelPlan = null; this.animationPlan = null; this.mapHistory = new Map(); this.textureLibrary = new TextureLibrary(this); }
+  constructor(progress = () => {}, cacheFolder = path.join(os.tmpdir(), 'sh3tools-media-cache')) { this.sources = []; this.reloadPlan = null; this.mergePlan = null; this.archives = []; this.changes = new Map(); this.input = null; this.catalogPath = null; this.dataRoot = null; this.progress = progress; this.motion = new MotionLibrary(this); this.cutscenes = new CutsceneLibrary(this); this.cacheFolder = cacheFolder; this.modelPlan = null; this.animationPlan = null; this.scenePlan = null; this.mapHistory = new Map(); this.mapCollisions = new Map(); this.textureLibrary = new TextureLibrary(this); }
   open(input) {
     const workspace = openWorkspace(input), sources = workspaceSources(workspace);
     assertSources(sources);
-    Object.assign(this, workspace); this.sources = sources; this.reloadPlan = null; this.textureLibrary.reset(); this.mapHistory.clear(); this.changes.clear(); this.modelPlan = null; this.animationPlan = null; this.motion = new MotionLibrary(this);
+    Object.assign(this, workspace); this.sources = sources; this.reloadPlan = null; this.mergePlan = null; this.textureLibrary.reset(); this.mapHistory.clear(); this.mapCollisions.clear(); this.changes.clear(); this.modelPlan = null; this.animationPlan = null; this.scenePlan = null; this.motion = new MotionLibrary(this); this.cutscenes = new CutsceneLibrary(this);
     return this.snapshot();
   }
+  prepareModMerge(files) {return prepareModMerge(this,files);}
+  applyModMerge(token,choices) {return applyModMerge(this,token,choices);}
+  cancelModMerge(token) {if(this.mergePlan?.token===token)this.mergePlan=null;}
+  exportModPackage(file) {return exportModPackage(this,file);}
   sourceChanges() {return changedSources(this.sources);}
   assertSources() {assertSources(this.sources);}
   prepareSourceReload() {
@@ -70,8 +97,8 @@ export class Workbench {
     const plan = this.reloadPlan;
     validateSourceReload(this, plan, token, discardConflicts);
     Object.assign(this, plan.workspace); this.sources = plan.sources; this.changes = plan.changes;
-    this.textureLibrary.reset(); this.mapHistory.clear(); this.modelPlan = null; this.animationPlan = null;
-    this.motion = new MotionLibrary(this); this.reloadPlan = null;
+    this.textureLibrary.reset(); this.mapHistory.clear(); this.mapCollisions.clear(); this.modelPlan = null; this.animationPlan = null; this.scenePlan = null;
+    this.motion = new MotionLibrary(this); this.cutscenes = new CutsceneLibrary(this); this.reloadPlan = null; this.mergePlan = null; this.mapCollisions=plan.collisionBindings;
     return {...this.snapshot(), keyMap: plan.keyMap, reloadSummary: {kept: plan.changes.size, installed: plan.installed.length, discarded: plan.conflicts.length}};
   }
   get(key) {
@@ -83,6 +110,12 @@ export class Workbench {
   bytes(key) {const {archive, entry} = this.get(key); return this.changes.get(key)?.data || this.originalBytes(archive, entry);}
   format(key) {const {entry} = this.get(key), changed = this.changes.get(key); return changed ? assetFormat(changed.data, entry.extension) : entry.detectedFormat || entry.extension;}
   textureOptions(key) {return {picture: /(?:^|\/)data\/pic\//i.test(this.get(key).entry.name.replaceAll('\\', '/'))};}
+  exportCutscene(id,options,file) {return exportCutscene(this,id,options,file);}
+  prepareCutsceneImport(id,file) {return prepareCutsceneImport(this,id,file);}
+  cancelCutsceneImport(token) {if(this.scenePlan?.token===token)this.scenePlan=null;return null;}
+  applyCutsceneImport(id,token,options) {return applyCutsceneImport(this,id,token,options);}
+  cutsceneCatalog(force) {return this.cutscenes.catalog(force);}
+  cutscenePreview(id,options) {return this.cutscenes.load(id,options);}
   textureCatalog(force) {return this.textureLibrary.catalog(force);}
   textureThumbnails(ids) {return this.textureLibrary.thumbnailBatch(ids);}
   texturePreview(id) {return this.textureLibrary.preview(id);}
@@ -97,25 +130,43 @@ export class Workbench {
       const companion = entries.find(e => e.name.toLowerCase() === 'data/tmp/' + name.toLowerCase());
       return companion ? {key: companion.key, name: companion.name, data: this.bytes(companion.key)} : null;
     });
-    for (const mesh of world.model.meshes) mesh.replacementIssue = mapPartReplacementIssue(data,mesh) || ((mesh.textureSource===2 || mesh.transparency===1) ? 'Transparent part: new topology must stay within the original triangle budget.' : null);
-    return world;
+    for (const mesh of world.model.meshes) mesh.replacementIssue = mapPartReplacementIssue(data,mesh);
+    world.collision = collisionOptions(this,key); world.references = worldReferences(this,key); return world;
   }
   exportArchive(id, folder, mode) {return exportArchive(this, id, folder, mode);}
   exportAllArchives(folder, mode) {return exportAllArchives(this, folder, mode);}
   snapshot() {
     return {textureRevision: this.textureLibrary.revision, input: this.input, dataRoot: this.dataRoot, archiveCount: this.archives.length,
       archives: this.archives.map((a, i) => ({id: i, section: a.section, name: a.name, format: a.format, size: a.size, count: a.entries.length})),
-      entries: this.archives.flatMap((a, i) => a.entries.map(e => ({key: `${i}:${e.index}`, archive: i, section: a.section, archiveName: a.name, index: e.index, name: e.name,
-        extension: e.extension, detectedFormat: this.format(`${i}:${e.index}`), kind: assetKind(this.format(`${i}:${e.index}`)), size: e.size, offset: e.offset, fileId: e.fileId,
+      entries: this.archives.flatMap((a, i) => a.entries.map(e => ({key: `${i}:${e.index}`, archive: i, section: a.section, archiveName: a.name, index: e.index, name: e.name, friendlyName:modelName(e.name)?.name||worldName(e.name)?.name||bankName(e.name)||'', searchAliases:modelName(e.name)?.aliases||worldName(e.name)?.aliases||'',
+        extension: e.extension, detectedFormat: this.format(`${i}:${e.index}`), kind: assetKind(this.format(`${i}:${e.index}`)), size: e.size, offset: e.offset, chunkTableOffset: e.chunkTableOffset,
         changed: this.changes.has(`${i}:${e.index}`), newSize: this.changes.get(`${i}:${e.index}`)?.data.length}))),
       changes: [...this.changes].map(([key, c]) => ({key, name: this.get(key).entry.name, label: c.label, originalSize: this.get(key).entry.size, size: c.data.length}))};
   }
   mapReference(key) {const {archive,entry}=this.get(key); return this.originalBytes(archive,entry);}
   stageMap(key, data, label, targetKey=key) {
-    const before=this.bytes(targetKey);if(data.equals(before))return this.snapshot();
-    const history=[...(this.mapHistory.get(key)||[]),{key:targetKey,data:Buffer.from(before),afterHash:sha256(data)}];
-    while(history.length>20 || (history.length>1 && history.reduce((n,edit)=>n+edit.data.length,0)>64*1024*1024))history.shift();
-    const result=this.stage(targetKey,data,label);this.mapHistory.set(key,history);return result;
+    const updates=[{key:targetKey,data}];
+    const collision=targetKey===key && this.format(key)==='map' ? updateBoundCollision(this,key,data) : null;
+    if(collision)updates.push(collision.update);
+    return stageWorld(this,key,updates,label,collision?.plan);
+  }
+  worldReference(key, target) {return worldReference(this,key,target);}
+  previewMapCollision(key,hash,options) {
+    requireThat(this.format(key)==='map'&&sha256(this.bytes(key))===hash,'Map changed. Select it again before rebuilding collision.');
+    const {plan,update}=collisionPlan(this,key,options),before=inspectWorld(plan.base,'cld'),after=inspectWorld(update.data,'cld');
+    return {groups:after.groups.map((g,i)=>({name:g.name,count:g.count,original:before.groups[i].count})),bytes:update.data.length};
+  }
+  collisionInfo(key, target) {
+    requireThat(this.format(key)==='map','Select a MAP asset.');
+    const options=collisionOptions(this,key);
+    requireThat(options.candidates.some(candidate=>candidate.key===target),'Select a companion CLD from the same archive.');
+    const collision=inspectWorld(this.mapCollisions.get(key)?.base || this.bytes(target),'cld');
+    return {mode:collision.groups.some(g=>g.spatialCells.slice(1).some(list=>list.length))?'grid':'room',groups:collision.groups.slice(0,4).map(g=>({name:g.name,count:g.count,materials:[...new Set(g.records.map(r=>r.material))]}))};
+  }
+  bindMapCollision(key, hash, options) {
+    requireThat(this.format(key)==='map' && sha256(this.bytes(key))===hash,'Map changed. Select it again before configuring collision.');
+    const {plan,update}=collisionPlan(this,key,options);
+    return stageWorld(this,key,update?[update]:[],'Rebuilt map collision',plan);
   }
   editMap(key, hash, edits) {
     requireThat(this.format(key)==='map' && sha256(this.bytes(key))===hash,'Map changed. Select it again before editing.');
@@ -123,6 +174,11 @@ export class Workbench {
     let data = this.bytes(key); const reference = this.mapReference(key);
     for (const edit of edits) data = editMap(data, edit, reference);
     return this.stageMap(key, data, 'MAP part / material edits');
+  }
+  editRoom(key,hash,edits,references) {return editRoom(this,key,hash,edits,references);}
+  editCameras(key, hash, edits) {
+    requireThat(this.format(key)==='cam' && sha256(this.bytes(key))===hash,'Camera file changed. Select it again before editing.');
+    return this.stageMap(key,editCameras(this.bytes(key),edits),'Camera zone edits');
   }
   exportMapPart(key, part, file) {
     requireThat(this.format(key)==='map','Select a MAP asset.');
@@ -133,20 +189,18 @@ export class Workbench {
     const data=importMapPart(this.bytes(key),part,readRange(file,0,fs.statSync(file).size),this.mapReference(key));
     return this.stageMap(key,data,'MAP part from GLB: '+part);
   }
-  replaceMapTexture(key, hash, index, file) {
+  replaceMapTexture(key, hash, index, file, mode='fit') {
+    requireThat(['fit','fullSize'].includes(mode),'Choose Fit or Full size texture import.');
     requireThat(this.format(key)==='map' && sha256(this.bytes(key))===hash, 'Map changed. Select it again before editing.');
     const texture = this.worldAsset(key).textures[index]; requireThat(texture, 'Select a resolved map texture.');
     const sourceKey = texture.sourceKey ?? key, data = this.bytes(sourceKey), offset = texture.sourceOffset;
     const png = readRange(file, 0, fs.statSync(file).size);
-    const fragment = replaceTexture(data.subarray(offset), texture.sourceIndex, png, false, {adapt:true});
-    const output = Buffer.from(data); fragment.copy(output, offset);
+    let output;
+    if(mode==='fullSize')output=sourceKey===key?rebuildMapTexture(data,texture.sourceIndex,png):rebuildTexture(data,texture.sourceIndex,png);
+    else {const fragment=replaceTexture(data.subarray(offset),texture.sourceIndex,png,false,{adapt:true});output=Buffer.from(data);fragment.copy(output,offset);}
     return this.stageMap(key,output,sourceKey===key?'MAP embedded texture':'Shared MAP texture: '+path.basename(file),sourceKey);
   }
-  undoMap(key) {
-    const history=[...(this.mapHistory.get(key)||[])]; requireThat(history.length,'No map edits to undo in this session.');
-    const previous=history.pop(); requireThat(sha256(this.bytes(previous.key))===previous.afterHash,'This asset changed outside the map editor. Undo its later edits first.');
-    const result=this.stage(previous.key,previous.data,'MAP edit'); this.mapHistory.set(key,history); return result;
-  }
+  undoMap(key) {return undoWorld(this,key);}
   morphWorkspaceMetadata(key) {
     const data=modelTemplate(this.bytes(key));return {templateHash:sha256(data.subarray(0,data.readUInt32LE(12))),meshNames:parseModel(this.bytes(key)).meshes.map(mesh=>mesh.name)};
   }
@@ -167,13 +221,15 @@ export class Workbench {
     try {edited = importGlb(data, glb);}
     catch {return {...this.prepareModelBytes(key, glb, textures), modelImport: 'rebuild'};}
     const output = rebuildModelTextures(edited, textures.replacements);
-    return {...this.stage(key, output, 'Model and textures: ' + path.basename(file)), modelImport: 'attributes', importedTextures: textures.summary};
+    const token=sha256(Buffer.concat([Buffer.from(key+Date.now()),glb]));
+    this.modelPlan={key,token,sourceHash:sha256(data),output,label:'Model and textures: '+path.basename(file)};
+    return {...this.reviewModel(key,token),modelImport:'review'};
   }
   prepareModelBytes(key,glb,textures) {
     const data=this.bytes(key); textures ||= modelTexturePlan(data,glb); glb = textures.glb;
     const info=replacementInfo(data,glb,textures.count);
     const token = sha256(Buffer.concat([Buffer.from(key + Date.now()), glb]));
-    this.modelPlan = {key, glb, textures, sourceHash: sha256(data), token}; return {token, ...info, importedTextures: textures.summary, newTextureSlots: textures.added};
+    this.modelPlan = {key, glb, textures, sourceHash: sha256(data), token}; return {token, ...info, shadowAvailable:!!shadowCompanion(this,key),shadowResource:shadowBinding(this,key), importedTextures: textures.summary, newTextureSlots: textures.added};
   }
   modelTemplates(key, token, file) {
     const plan=this.modelPlan, current=this.bytes(key);
@@ -183,16 +239,35 @@ export class Workbench {
     requireThat(JSON.stringify(model.bones)===JSON.stringify(existing.bones),'Original template skeleton differs from this model.');
     let template=Buffer.concat([original.subarray(0,original.readUInt32LE(12)),current.subarray(current.readUInt32LE(12))]);
     template.writeUInt32LE(current.readUInt32LE(8),8); template=syncModelImageTable(template);
-    const info=replacementInfo(template,plan.glb,plan.textures.count); plan.template=template; return {...info,token,importedTextures:plan.textures.summary,newTextureSlots:plan.textures.added};
+    const info=replacementInfo(template,plan.glb,plan.textures.count); plan.template=template; return {...info,token,shadowAvailable:!!shadowCompanion(this,key),shadowResource:shadowBinding(this,key),importedTextures:plan.textures.summary,newTextureSlots:plan.textures.added};
   }
-  rebuildModel(key, token, selection) {
-    const plan = this.modelPlan, data = this.bytes(key);
-    requireThat(plan && plan.key === key && plan.token === token && plan.sourceHash === sha256(data), 'The model changed. Prepare the replacement again.');
-    const rebuilt = rebuildModel(plan.template || data, plan.glb, selection, plan.textures); this.modelPlan = null; this.animationPlan = null;
-    const snapshot = this.stage(key, rebuilt.data, 'Rebuilt topology and native morphs (runtime test required)');
-    const change = this.changes.get(key); if (change) change.rebuildReport = rebuilt.report;
-    return {...snapshot, rebuildReport: rebuilt.report};
+
+  reviewModel(key,token,selection) {
+    const plan=this.modelPlan,data=this.bytes(key);
+    requireThat(plan&&plan.key===key&&plan.token===token&&plan.sourceHash===sha256(data),'The model changed. Prepare the replacement again.');
+    const rebuilt=plan.output?{data:plan.output,report:null}:rebuildModel(plan.template||data,plan.glb,selection,plan.textures);
+    const reference=parseModel(modelTemplate(data));
+    const serialize=bytes=>{const model=parseModel(bytes);return {model,diagnostics:modelDiagnostics(model,reference),textures:readTextures(bytes,true).map(({png,width,height,index})=>({width,height,index,url:'data:image/png;base64,'+png.toString('base64')}))};};
+    plan.candidate={...rebuilt,selection,hash:sha256(rebuilt.data)};
+    return {key,token,reviewHash:plan.candidate.hash,before:serialize(data),after:serialize(rebuilt.data),report:rebuilt.report};
   }
+  applyModelReview(key,token,reviewHash) {
+    const plan=this.modelPlan;
+    requireThat(plan&&plan.key===key&&plan.token===token&&plan.sourceHash===sha256(this.bytes(key))&&plan.candidate?.hash===reviewHash,'The reviewed model changed. Preview it again before applying.');
+    const candidate=plan.candidate,diagnostics=modelDiagnostics(parseModel(candidate.data));
+    requireThat(!diagnostics.issues.some(issue=>issue.severity==='error'),'Resolve invalid model weights or texture slots before staging.');
+    const snapshot=stageModelWithShadow(this,key,candidate.data,plan.label||'Reviewed model topology and morph replacement',candidate.selection?.rebuildShadow!==false);
+    if(this.changes.has(key))this.changes.get(key).rebuildReport=candidate.report;
+    this.modelPlan=null;this.animationPlan=null;this.scenePlan=null;
+    return {...snapshot,rebuildReport:candidate.report};
+  }
+  rebuildModel(key,token,selection){const review=this.reviewModel(key,token,selection);return this.applyModelReview(key,token,review.reviewHash);}
+
+  shadowPreview(key){const binding=shadowBinding(this,key);requireThat(binding,'No matching KG1 is open.');const data=this.bytes(binding.key);return {key,binding,hash:sha256(data),...inspectShadowProxy(parseModel(this.bytes(key)),data)};}
+  exportShadowProxy(key,file){const binding=shadowBinding(this,key);requireThat(binding,'No matching KG1 is open.');writeNew(file,exportShadowProxy(parseModel(this.bytes(key)),this.bytes(binding.key)));return {file};}
+  importShadowProxy(key,hash,file,decisions=[]){const binding=shadowBinding(this,key);requireThat(binding&&sha256(this.bytes(binding.key))===hash,'KG1 changed. Reopen the shadow tools.');const {archive,entry}=this.get(binding.key),result=importShadowProxy(parseModel(this.bytes(key)),this.bytes(binding.key),this.originalBytes(archive,entry),file?readRange(file,0,fs.statSync(file).size):null,decisions);return {...this.stage(binding.key,result.data,'Edited rigid KG1 shadow proxy'),shadowReport:{...result.report,resource:binding.name,sharedModels:binding.sharedModels}};}
+  rebuildModelShadow(key) {requireThat(shadowCompanion(this,key),'No named KG1 companion is available. Open the game data folder, or the original archive beside its arc.arc catalog; then select the MDL.');return stageModelWithShadow(this,key,this.bytes(key),'Model with rebuilt shadow',true,true);}
+  animationChannels(key,id) {const source=this.animationSource(key,id);requireThat(source.clip.sourceFormat==='anm','Choose a gameplay ANM bank for this table.');return animationChannels(source.model,source.data);}
   animationSource(key,id) {
     return {model:parseModel(this.bytes(key)),...this.motion.exchangeSource(key,id)};
   }
@@ -202,6 +277,7 @@ export class Workbench {
   }
   async exportAnimation(key,id,start,end,fps,file) {
     const source=this.animationSource(key,id),exchange=this.animationExchange(source,start,end,fps);
+    exchange.metadata.actionId=source.clip.ranges?.find(action=>action.start===start&&action.end===end)?.id;
     exchange.metadata.bankName=source.clip.sourceFormat==='pack'?source.clip.name:this.get(source.target).entry.name;
     const outputType=path.extname(file).slice(1).toLowerCase();
     requireThat(['fbx','blend'].includes(outputType), 'Choose FBX or Blender animation output.');
@@ -218,7 +294,7 @@ export class Workbench {
     this.animationPlan={key,id,target,exchange,token,modelHash:sha256(this.bytes(key)),bankHash:sha256(data)};
     return {token,format:clip.sourceFormat,sourceFile:path.basename(file),sourceBank:exchange.metadata.bankName,targetBank:bankName,
       sameBank:bankName===exchange.metadata.bankName&&(clip.sourceFormat!=='pack'||exchange.metadata.sectionIndex===clip.sectionIndex),
-      sourceStart:exchange.sampleStart,sourceEnd:exchange.sampleEnd,exportStart:exchange.metadata.start,targetFrames:identity.metadata.frameCount,fps:exchange.metadata.fps,...result.report};
+      channels:clip.sourceFormat==='anm'?animationChannels(source.model,data):null,sourceStart:exchange.sampleStart,sourceEnd:exchange.sampleEnd,exportStart:exchange.metadata.start,targetFrames:identity.metadata.frameCount,fps:exchange.metadata.fps,...result.report};
   }
   applyAnimationImport(key,id,token,options={}) {
     const plan=this.animationPlan;
@@ -230,6 +306,7 @@ export class Workbench {
     report.sourceStart=rebuilt.report.sourceStart;report.sourceEnd=rebuilt.report.sourceEnd;
     this.animationPlan=null;
     const snapshot=this.stage(target,rebuilt.data,clip.sourceFormat==='pack'?'Cutscene animation range import':'Animation range import');
+    if(this.changes.has(target))this.changes.get(target).animationReport=report;
     const animationId=clip.sourceFormat==='pack'?this.motion.list(key).clips.find(item=>item.assetKey===target&&item.type==='skeletal'&&item.sectionIndex===clip.sectionIndex)?.id:id;
     return {...snapshot,animationId,animationReport:report};
   }
@@ -253,7 +330,7 @@ export class Workbench {
   }
   preview(key, audioIndex = 0) {
     const {entry} = this.get(key), data = this.bytes(key), format = this.format(key), kind = assetKind(format);
-    const base = {key, kind, mapUndo: this.mapHistory.get(key)?.length || 0, rebuildReport: this.changes.get(key)?.rebuildReport, size: data.length, hash: sha256(data), hex: data.subarray(0, 1024).toString('hex'), textures: []};
+    const base = {key, kind, shadowResource:kind==='model'?shadowBinding(this,key):null, mapUndo: this.mapHistory.get(key)?.length || 0, rebuildReport: this.changes.get(key)?.rebuildReport, size: data.length, hash: sha256(data), hex: data.subarray(0, 1024).toString('hex'), textures: []};
     try {
       if (kind === 'video') return createMoviePreview(data, this.cacheFolder).then(({file, info}) => ({...base, videoFile: file, mediaInfo: info})).catch(error => ({...base, previewError: error.message}));
       if (['adx', 'aix', 'bd', 'hd'].includes(format)) {
@@ -285,20 +362,25 @@ export class Workbench {
     } catch (error) { base.previewError = error.message; }
     return base;
   }
+  prepareChange(key, data, label) {
+    const {archive,entry}=this.get(key); requireThat(data.length>0 && data.length<=MAX_ASSET,'Replacement must be between 1 byte and 256 MiB.');
+    requireThat(archive.format!=='ARC' || entry.size===entry.size2,'This compressed ARC variant is read-only.');
+    if(['map','cld','cam'].includes(entry.extension))inspectWorld(data,entry.extension);
+    if(entry.extension==='mdl')parseModel(data);
+    if(entry.extension==='000')decodeMovie(data);
+    if(entry.extension==='wav')requireThat(data.toString('ascii',0,4)==='RIFF' && data.toString('ascii',8,12)==='WAVE','Expected a WAV file. Convert audio to the original game format first.');
+    const original=this.originalBytes(archive,entry);
+    return data.equals(original)?null:{data,label,originalHash:sha256(original)};
+  }
   stage(key, data, label) {
-    const {archive, entry} = this.get(key); requireThat(data.length > 0 && data.length <= MAX_ASSET, 'Replacement must be between 1 byte and 256 MiB.');
-    requireThat(archive.format !== 'ARC' || entry.size === entry.size2, 'This compressed ARC variant is read-only.');
-    if (entry.extension === 'map') {inspectWorld(data, 'map'); this.mapHistory.delete(key);}
-    if (entry.extension === 'mdl') parseModel(data);
-    if (entry.extension === '000') decodeMovie(data);
-    if (entry.extension === 'wav') requireThat(data.toString('ascii', 0, 4) === 'RIFF' && data.toString('ascii', 8, 12) === 'WAVE', 'Expected a WAV file. Convert audio to the original game format first.');
-    const original = this.originalBytes(archive, entry);
-    if (data.equals(original)) this.changes.delete(key);
-    else this.changes.set(key, {data, label, originalHash: sha256(original)});
-    this.textureLibrary.invalidate(key);
-    return this.snapshot();
+    validateBackgroundMemory(this,[{key,data}]);
+    const change=this.prepareChange(key,data,label);
+    if(change)this.changes.set(key,change);else this.changes.delete(key);
+    if(['map','cam'].includes(this.get(key).entry.extension))this.mapHistory.delete(key);
+    this.textureLibrary.invalidate(key); return this.snapshot();
   }
   replace(key, file, mode = 'native', textureIndex = 0) {
+    if (mode === 'cameraJson') {requireThat(this.format(key)==='cam','Select a CAM asset.'); return this.stageMap(key,importCameras(this.bytes(key),JSON.parse(readRange(file,0,fs.statSync(file).size).toString('utf8'))),'Camera structure from JSON');}
     if (mode === 'mapGlb') {requireThat(this.format(key)==='map', 'Select a MAP asset.'); return this.stageMap(key,importMapGlb(this.bytes(key),readRange(file,0,fs.statSync(file).size),this.mapReference(key)),'MAP geometry from GLB');}
     if (mode === 'audio') {
       const source = this.audioAsset(key, textureIndex);
@@ -318,6 +400,7 @@ export class Workbench {
     else if (mode === 'textureExperimental') result = rebuildTexture(this.bytes(key), textureIndex, data, ['mdl', 'mdl_'].includes(this.get(key).entry.extension), this.textureOptions(key));
     else if (mode === 'texture') result = replaceTexture(this.bytes(key), textureIndex, data, this.get(key).entry.extension === 'mdl', {...this.textureOptions(key), adapt: true});
     else throw new Error('Unknown import mode.');
+    if(mode==='native' && ['map','cam'].includes(this.format(key)))return this.stageMap(key,result,'Native world replacement');
     return this.stage(key, result, `${mode === 'textureExperimental' ? 'Experimental texture ' + data.readUInt32BE(16) + ' × ' + data.readUInt32BE(20) + ' (game test required)' : mode}: ${path.basename(file)}`);
   }
   bakeMorph(key, target, factor) {
@@ -326,7 +409,12 @@ export class Workbench {
     for (const delta of doc.targets[target].deltas) for (const attr of ['position', 'normal']) delta[attr] = delta[attr].map(v => Math.round(v * factor));
     return this.stage(key, replaceMorphs(data, doc), `Morph ${target}: intensity ×${factor}`);
   }
-  undo(key) {this.get(key); this.changes.delete(key); this.mapHistory.delete(key); this.textureLibrary.invalidate(key); return this.snapshot();}
+  undo(key) {
+    this.get(key); const binding=this.mapCollisions.get(key);
+    requireThat(![...this.mapCollisions].some(([owner,p])=>owner!==key&&p.target===key),'This CLD is linked to a map. Restore and disconnect its collision binding in the map editor.');
+    if(binding)stageWorld(this,key,[{key,data:this.mapReference(key)},{key:binding.target,data:binding.base}],'Reverted map and collision',null);
+    this.changes.delete(key); this.mapHistory.delete(key); this.textureLibrary.invalidate(key); return this.snapshot();
+  }
   async exportModelScene(key, file) {
     requireThat(!fs.existsSync(file), 'Output already exists. Choose a new filename.');
     requireThat(['mdl', 'mdl_'].includes(this.get(key).entry.extension), 'Blender/FBX model export requires a PC MDL.');
@@ -366,13 +454,7 @@ export class Workbench {
     for (const [i, item] of outputs.entries()) {writeNew(item.file, this.bytes(item.key)); this.progress({message: 'Exporting assets', done: i + 1, total: outputs.length});}
     return {folder, count: outputs.length};
   }
-  saveProject(file) {
-    this.assertSources();
-    const doc = {format: 'sh3tools-project-v2', source: this.input,
-      sources: this.archives.map(sourceRecord),
-      changes: [...this.changes].map(([key, c]) => ({key, label: c.label, originalHash: c.originalHash, rebuildReport: c.rebuildReport, data: c.data.toString('base64')}))};
-    writeNew(file, JSON.stringify(doc)); return {file};
-  }
+  saveProject(file,drafts=[]) {return saveProject(this,file,drafts);}
   loadProject(file) {
     requireThat(fs.statSync(file).size <= 512 * 1024 * 1024, 'Project is too large.');
     const doc = JSON.parse(fs.readFileSync(file, 'utf8')); requireThat(['sh3tools-project-v1', 'sh3tools-project-v2'].includes(doc.format), 'Unknown project version.');
@@ -390,14 +472,26 @@ export class Workbench {
       requireThat(sourceIndices[sourceIndex] !== undefined, 'Replacement has no source.');
       const key = sourceIndices[sourceIndex] + ':' + entryIndex;
       requireThat(sha256(candidate.bytes(key)) === change.originalHash, 'Replacement source hash mismatch.');
-      candidate.stage(key, Buffer.from(change.data, 'base64'), String(change.label));
+      const prepared=candidate.prepareChange(key,Buffer.from(change.data,'base64'),String(change.label)); if(prepared)candidate.changes.set(key,prepared);else candidate.changes.delete(key);
+      if(change.animationReport&&candidate.changes.has(key))candidate.changes.get(key).animationReport=change.animationReport;
       if (change.rebuildReport && candidate.changes.has(key)) candidate.changes.get(key).rebuildReport = change.rebuildReport;
     }
-    this.textureLibrary.reset(); this.mapHistory.clear(); this.sources = candidate.sources; this.reloadPlan = null; this.archives = candidate.archives; this.changes = candidate.changes; this.input = candidate.input; this.catalogPath = candidate.catalogPath; this.dataRoot = candidate.dataRoot; this.modelPlan = null; this.animationPlan = null; this.motion = new MotionLibrary(this);
+    const remap=key=>{requireThat(typeof key==='string' && /^\d+:\d+$/.test(key),'Invalid collision asset key.');const [a,i]=key.split(':').map(Number);requireThat(sourceIndices[a]!==undefined,'Collision source is missing.');return sourceIndices[a]+':'+i;};
+    validateBackgroundMemory(candidate,[...candidate.changes].map(([key,change])=>({key,data:change.data})));
+    loadCollisionBindings(candidate,doc.collisionBindings || [],remap);
+    this.textureLibrary.reset(); this.mapHistory.clear(); this.mapCollisions.clear(); this.sources = candidate.sources; this.reloadPlan = null; this.mergePlan = null; this.archives = candidate.archives; this.changes = candidate.changes; this.input = candidate.input; this.catalogPath = candidate.catalogPath; this.dataRoot = candidate.dataRoot; this.modelPlan = null; this.animationPlan = null; this.scenePlan = null; this.motion = new MotionLibrary(this); this.cutscenes = new CutsceneLibrary(this); this.mapCollisions=candidate.mapCollisions;
     return this.snapshot();
   }
+  buildReview() {return buildReview(this);}
+  validateBuildReview(token) {requireThat(token===buildFingerprint(this),'Staged changes changed. Review the build again.');return this.buildRequirements();}
   buildRequirements() {
+    const background=validateBackgroundMemory(this,[...this.changes].map(([key,change])=>({key,data:change.data})));
+    const requiresBackgroundPatch=background.some(stage=>stage.requiresBackgroundPatch);
+    const transparentTriangles=data=>parseMap(data).model.meshes.filter(m=>m.textureSource===2||m.transparency===1).reduce((n,m)=>n+m.indices.length/3,0);
+    const mapGeometry=[...this.changes].filter(([key])=>this.get(key).entry.extension==='map').map(([key,change])=>({name:this.get(key).entry.name,original:transparentTriangles(this.mapReference(key)),triangles:transparentTriangles(change.data)}));
+    const requiresMapGeometryPatch=mapGeometry.some(map=>map.triangles>map.original||map.triangles>2730);
     this.assertSources();
+    for(const [key,plan] of this.mapCollisions)requireThat(updateBoundCollision(this,key,this.bytes(key)).plan.outputHash===plan.outputHash,'Map collision is out of sync. Rebuild its binding before building the mod.');
     const morphNodes = Math.max(0, ...[...this.changes].filter(([key]) => ['mdl', 'mdl_'].includes(this.get(key).entry.extension)).map(([, change]) => modelLayout(change.data).morphBaseCount));
     requireThat(morphNodes <= MODEL_LIMITS.morphNodes, 'A staged model exceeds the native signed morph-index range.');
     let textureSlots = 0, primaryTextureRuns = 0, secondaryTextureRuns = 0, requiresModelTexturePatch = false;
@@ -431,17 +525,26 @@ export class Workbench {
       const entries = workspace.archives.flatMap(archive => archive.entries.map(entry => ({name: entry.name, size: staged.get(entry.name.toLowerCase()) ?? entry.size})));
       character = characterRequirements(entries);
     }
+    for(const entry of this.snapshot().entries.filter(e=>/^anm_?$/.test(e.extension))) assertFixedAnimation(this.bytes(entry.key));
     const executable = this.dataRoot ? path.join(path.dirname(this.dataRoot), 'sh3.exe') : null;
-    return {...character, textureSlots, primaryTextureRuns, secondaryTextureRuns, requiresModelTexturePatch, fontScale, requiresFontPatch, morphNodes, primaryVertices, requiresPrimaryIndexPatch, secondaryVertices, secondaryTriangles, pictureBytes, requiresMorphPatch, requiresSecondaryPatch, requiresPicturePatch,
-      requiresRuntimePatch: requiresModelTexturePatch || character.requiresCharacterPatch || requiresFontPatch || requiresPrimaryIndexPatch || requiresMorphPatch || requiresSecondaryPatch || requiresPicturePatch, executable: executable && fs.existsSync(executable) ? executable : null};
+    return {...character, mapGeometry, requiresMapGeometryPatch, background, requiresBackgroundPatch, textureSlots, primaryTextureRuns, secondaryTextureRuns, requiresModelTexturePatch, fontScale, requiresFontPatch, morphNodes, primaryVertices, requiresPrimaryIndexPatch, secondaryVertices, secondaryTriangles, pictureBytes, requiresMorphPatch, requiresSecondaryPatch, requiresPicturePatch,
+      requiresRuntimePatch: requiresMapGeometryPatch || requiresBackgroundPatch || requiresModelTexturePatch || character.requiresCharacterPatch || requiresFontPatch || requiresPrimaryIndexPatch || requiresMorphPatch || requiresSecondaryPatch || requiresPicturePatch, executable: executable && fs.existsSync(executable) ? executable : null};
   }
-  build(folder, gameExecutable) {
+  build(folder, gameExecutable, options = {}) {
     requireThat(this.changes.size, 'No replacements are staged.');
     requireThat(!fs.existsSync(folder), 'Build into a new, empty destination.');
     const root = path.resolve(folder);
     for (const archive of this.archives) requireThat(!archive.file.toLowerCase().startsWith(root.toLowerCase() + path.sep), 'Build output cannot contain source archives.');
-    const requirements = this.buildRequirements(); let runtime;
-    if (requirements.requiresRuntimePatch) {
+    const mode = options.mode || 'replace';
+    requireThat(['replace', 'overlay'].includes(mode), 'Unknown mod build mode.');
+    const contentRoot = mode === 'overlay' ? path.join(folder, 'plugins', 'SH3Tools') : folder;
+    const requirements = this.buildRequirements(); let runtime, overlay;
+    if (mode === 'overlay') {
+      const executable = gameExecutable || requirements.executable;
+      requireThat(executable, 'Choose the original sh3.exe for this ASI mod.');
+      overlay = prepareOverlay(fs.readFileSync(executable), requirements, options.loader ? Buffer.from(options.loader) : null);
+    }
+    if (mode === 'replace' && requirements.requiresRuntimePatch) {
       const executable = gameExecutable || requirements.executable;
       requireThat(executable, 'Select a supported sh3.exe to build the required runtime buffer patch.');
       runtime = expandRuntimeBuffers(readRange(executable, 0, fs.statSync(executable).size), requirements);
@@ -451,14 +554,16 @@ export class Workbench {
     for (const [i, archive] of this.archives.entries()) {
       const replacements = new Map([...this.changes].filter(([key]) => key.startsWith(`${i}:`)).map(([key, c]) => [Number(key.split(':')[1]), c.data]));
       if (!replacements.size) continue;
-      if (archive.format === 'FOLDER') {reports.push(buildLoose(archive, replacements, folder)); continue;}
+      if (archive.format === 'FOLDER') {reports.push(buildLoose(archive, replacements, contentRoot)); continue;}
+      if (overlay) {reports.push(writeCompactArchive(archive, replacements, contentRoot, this.progress)); continue;}
       const relative = archive.relativePath;
-      const output = safeOutput(path.join(folder, 'data'), relative); fs.mkdirSync(path.dirname(output), {recursive: true});
+      const output = safeOutput(path.join(contentRoot, 'data'), relative); fs.mkdirSync(path.dirname(output), {recursive: true});
       reports.push({...buildArchive(archive, replacements, output, this.progress), source: archive.file, sourceHash: fileHash(archive.file), outputHash: fileHash(output)});
     }
-    if (this.catalogPath) {fs.mkdirSync(path.join(folder, 'data'), {recursive: true}); fs.copyFileSync(this.catalogPath, path.join(folder, 'data/arc.arc'), fs.constants.COPYFILE_EXCL);}
+    if (this.catalogPath && !overlay) {fs.mkdirSync(path.join(contentRoot, 'data'), {recursive: true}); fs.copyFileSync(this.catalogPath, path.join(contentRoot, 'data/arc.arc'), fs.constants.COPYFILE_EXCL);}
+    if (overlay) {writeCompactManifest(contentRoot, reports, this.catalogPath); writeOverlay(folder, overlay);}
     if (runtime) {writeNew(path.join(folder, 'sh3.exe'), runtime.data); writeNew(path.join(folder, 'runtime-buffers.json'), JSON.stringify(runtime.report, null, 2));}
-    writeNew(path.join(folder, 'manifest.json'), JSON.stringify({format: 'sh3tools-build-v1', created: new Date().toISOString(), verified: true, archives: reports, runtime: runtime?.report}, null, 2));
-    return {folder, archives: reports.length, changes: this.changes.size, runtimePatch: runtime?.report};
+    writeNew(path.join(folder, 'manifest.json'), JSON.stringify({format: 'sh3tools-build-v1', mode, contentRoot: mode === 'overlay' ? 'plugins/SH3Tools' : '.', created: new Date().toISOString(), verified: true, archives: reports, runtime: overlay?.report || runtime?.report}, null, 2));
+    return {folder, mode, archives: reports.length, changes: this.changes.size, runtimePatch: overlay?.report || runtime?.report};
   }
 }

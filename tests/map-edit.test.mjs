@@ -29,9 +29,9 @@ test('MAP UV editing preserves positions, strip separators and unknown payload',
  assert.deepEqual(modified.subarray(512+2*36,512+3*36),modified.subarray(512+3*36,512+4*36));assert.ok(Math.abs(b.uv[0]-.45)<1e-7);
  for(let i=0;i<data.length;i++)if(data[i]!==modified[i])assert.ok(Array.from({length:4},(_,v)=>512+v*36+24).some(at=>i>=at&&i<at+8));
 });
-test('MAP static geometry can shrink but cannot leave its original visibility envelope',()=>{
+test('MAP static expansion uses native unpartitioned visibility and preserves the grid anchor',()=>{
  const data=fixture(),modified=editMap(data,{...edit(),scale:[.5,.5,.5]});assert.equal(parseMap(modified).model.triangleCount,1);
- assert.throws(()=>editMap(data,{...edit(),translation:[100,0,0]}),/visibility bounds/);assert.throws(()=>editMap(data,{...edit(),scale:[-1,1,1]}),/positive/);
+ const expanded=editMap(data,{...edit(),translation:[100,0,0]});assert.equal(parseMap(expanded).model.meshes[0].objectType,0);assert.deepEqual(expanded.subarray(80,304),data.subarray(80,304));assert.equal(parseMap(modified).model.meshes[0].objectType,1);assert.throws(()=>editMap(fixture(2),{...edit(),translation:[100,0,0]}),/visibility bounds/);assert.throws(()=>editMap(data,{...edit(),scale:[-1,1,1]}),/positive/);
 });
 test('MAP type3 geometry uses its matching absolute object matrix',()=>{
  const data=fixture(3),model=parseMap(data).model;assert.deepEqual(model.meshes[0].positions.slice(0,3),[-10,-20,30]);

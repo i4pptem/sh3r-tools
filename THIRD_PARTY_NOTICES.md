@@ -8,6 +8,7 @@ Original Silent Hill 3 Tools code and artwork are Copyright © 2026 i4pptem, und
 | --- | --- | --- |
 | Electron | 44.4.3 | MIT plus Chromium and other third-party terms; [Electron source](https://github.com/electron/electron/tree/v44.4.3) |
 | Three.js | 0.186.0 | MIT; [source](https://github.com/mrdoob/three.js/tree/r186) |
+| meshoptimizer | 1.3.0 | MIT; [source and license](https://github.com/zeux/meshoptimizer) |
 | pngjs | 7.0.0 | MIT; [source](https://github.com/pngjs/pngjs) |
 | jpeg-js | 0.4.4 | BSD-3-Clause encoder and Apache-2.0 decoder; [source and notices](https://github.com/jpeg-js/jpeg-js) |
 
@@ -17,7 +18,7 @@ The UI bundle incorporates Three.js and pngjs-related application imports as con
 
 ## Optional tools installed separately
 
-**Blender** is GPL software distributed by the [Blender project](https://www.blender.org/about/license/). It is not included. The application invokes the user's installation as a separate background process with our Python bridge scripts. Those scripts are part of this repository under GPL-3.0-only.
+**Blender** is GPL software distributed by the [Blender project](https://www.blender.org/about/license/). It is not included. The application invokes the user's installation as a separate background process with our Python bridge scripts. Those scripts and the bundled Blender Morph Tools 1.3.2 add-on are original parts of this repository under GPL-3.0-only.
 
 **FFmpeg** is not included in the public portable/source ZIPs. `Install media.cmd` or `pnpm setup:media` downloads a pinned shared LGPL build directly from [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds), verifies SHA-256 and preserves the publisher's files. It runs as a separate command-line process. The downloaded runtime's `LICENSE.txt` contains LGPLv3; `tools/media/LICENSE-GPLv3.txt` contains the incorporated GPLv3 terms. Its exact URL, hash, source tag and build recipes are recorded in [tools/media/README.md](tools/media/README.md). FFmpeg and its enabled dependencies retain their individual licenses.
 
@@ -28,3 +29,7 @@ If you redistribute that optional binary runtime yourself, you take on its redis
 esbuild (MIT), Electron Packager (BSD-2-Clause), pnpm (MIT), Python/pefile and optional development/analysis tools retain their own terms. The lockfile records the JavaScript dependency graph. Development `node_modules`, tool caches and reverse-engineering environments are excluded from the source and portable releases.
 
 The format research repositories are listed in [CREDITS.md](CREDITS.md) with their specific roles. Those references are not bundled plugins. Silent Hill 3 is a Konami title; this project is not affiliated with or endorsed by Konami.
+
+## Ultimate ASI Loader
+
+ASI overlay builds optionally download Ultimate ASI Loader 9.7.0 Win32 from its official GitHub release, verify both archive and DLL SHA-256, and include its MIT notice. The source repository does not bundle the third-party DLL. See [the license](tools/native/ual-license.txt) and [upstream source](https://github.com/ThirteenAG/Ultimate-ASI-Loader/tree/v9.7.0).

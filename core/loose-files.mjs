@@ -15,7 +15,7 @@ export function looseFolder(folder, section, files = folderFiles(folder)) {
   folder = path.resolve(folder);
   const entries = files.map((sourceFile, index) => {
     const relative = path.relative(folder, sourceFile).replaceAll('\\', '/'), stat = fs.statSync(sourceFile);
-    return {index, fileId: index, name: 'data/' + section + '/' + relative, extension: path.extname(relative).slice(1).toLowerCase(), sourceFile, size: stat.size, size2: stat.size, mtime: stat.mtimeMs, ctime: stat.ctimeMs, offset: 0};
+    return {index, chunkTableOffset: index, name: 'data/' + section + '/' + relative, extension: path.extname(relative).slice(1).toLowerCase(), sourceFile, size: stat.size, size2: stat.size, mtime: stat.mtimeMs, ctime: stat.ctimeMs, offset: 0};
   });
   return {format: 'FOLDER', section, name: section, file: folder, entries, size: entries.reduce((n, e) => n + e.size, 0)};
 }

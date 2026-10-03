@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560" fill="none">
+  <title>Silent Hill 3 Tools 1.0.0 — by i4pptem</title>
+  <desc>A charcoal and copper release cover using the application's original emblem.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1600" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#232122"/><stop offset=".62" stop-color="#151719"/><stop offset="1" stop-color="#101214"/>
+    </linearGradient>
+    <radialGradient id="copper"><stop stop-color="#aa7562" stop-opacity=".18"/><stop offset="1" stop-color="#aa7562" stop-opacity="0"/></radialGradient>
+    <linearGradient id="version" x1="1190" y1="110" x2="1310" y2="315" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#dfbcaa"/><stop offset="1" stop-color="#865b50"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="560" rx="24" fill="url(#background)"/>
+  <rect x=".5" y=".5" width="1599" height="559" rx="23.5" stroke="#493c38"/>
+  <ellipse cx="1260" cy="230" rx="530" ry="420" fill="url(#copper)"/>
+  <g stroke="#aa7562" stroke-opacity=".09">
+    <circle cx="1245" cy="199" r="235"/><circle cx="1245" cy="199" r="208"/>
+    <path d="M1010 199h470M1245 0v369"/>
+  </g>
+  <g transform="translate(72 120) scale(2.125)">
+    <rect x="1" y="1" width="62" height="62" rx="16" fill="#211c1c" stroke="#755048" stroke-width="2"/>
+    <circle cx="32" cy="32" r="21" stroke="#cc8d78" stroke-width="2"/>
+    <path d="M32 14 48 42H16L32 14Z" stroke="#e7d5bf" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M32 25v17M23 34h18" stroke="#cc8d78" stroke-width="2"/>
+    <g fill="#e7d5bf" stroke="#211c1c" stroke-width="2"><circle cx="32" cy="14" r="4"/><circle cx="48" cy="42" r="4"/><circle cx="16" cy="42" r="4"/></g>
+  </g>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="76" y="59" fill="#bd8a76" font-size="14" font-weight="600" letter-spacing="4">THE 1.0 RELEASE</text>
+    <text x="1524" y="59" text-anchor="end" fill="#a59c96" font-size="14" letter-spacing="2">SILENT HILL 3 PC</text>
+    <text x="252" y="146" fill="#e6dace" font-size="43" font-weight="300" letter-spacing="7">SILENT HILL 3</text>
+    <text x="247" y="264" fill="#f4e9dd" font-size="112" font-weight="600" letter-spacing="13">TOOLS</text>
+    <text x="254" y="315" fill="#b8aaa1" font-size="23" font-weight="300" letter-spacing="1">A new chapter for PC modding.</text>
+    <text x="1470" y="260" text-anchor="end" fill="url(#version)" font-size="178" font-weight="300" letter-spacing="-4">1.0.0</text>
+    <text x="1464" y="314" text-anchor="end" fill="#ad8878" font-size="13" letter-spacing="3">EXPLORE. RESHAPE. REBUILD.</text>
+    <path d="M76 365H1524" stroke="#594239"/>
+    <text x="76" y="414" fill="#c0907d" font-size="13" letter-spacing="2">01 / WORLD &amp; SCENES</text>
+    <text x="76" y="447" fill="#d9cfc5" font-size="18">Maps, cameras, collisions, cutscenes.</text>
+    <path d="M527 401v57" stroke="#42352f"/>
+    <text x="564" y="414" fill="#c0907d" font-size="13" letter-spacing="2">02 / MODELS &amp; MORPHS</text>
+    <text x="564" y="447" fill="#d9cfc5" font-size="18">Review replacements. Transfer expressions.</text>
+    <path d="M1018 401v57" stroke="#42352f"/>
+    <text x="1056" y="414" fill="#c0907d" font-size="13" letter-spacing="2">03 / COMPACT MODS</text>
+    <text x="1056" y="447" fill="#d9cfc5" font-size="18">Changed assets. Original files preserved.</text>
+    <text x="76" y="524" fill="#817a75" font-size="13" letter-spacing="1">WINDOWS x64  /  BLENDER MORPH TOOLS 1.3.2</text>
+    <text x="1524" y="524" text-anchor="end" fill="#bd8a76" font-size="15" letter-spacing="1">BY i4pptem</text>
+  </g>
+</svg>

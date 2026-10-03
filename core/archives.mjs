@@ -62,7 +62,7 @@ export function openArchive(file, names = []) {
     requireThat(offset + size <= stat.size && (!size || offset >= table.length), `Entry ${index} is outside the archive.`);
     const storedName = attributes?.subarray(index * 48, index * 48 + 32).toString('utf8').split('\0')[0];
     const name = nameMap.get(index) || storedName || `entry_${String(index).padStart(5, '0')}.bin`;
-    return {index, offset, size, name, fileId: format === 'ARC' ? table.readUInt32LE(p + 4) : index,
+    return {index, offset, size, name, chunkTableOffset: format === 'ARC' ? table.readUInt32LE(p + 4) : index,
       size2: format === 'ARC' ? table.readUInt32LE(p + 12) : size,
       extension: path.extname(name).slice(1).toLowerCase(), detectedFormat: assetFormat(readRange(file, offset, Math.min(size, 32)), path.extname(name).slice(1).toLowerCase()), tableOffset: p};
   });
@@ -78,6 +78,30 @@ export function entryBytes(archive, index) {
   return readRange(archive.file, entry.offset, entry.size);
 }
 
+/** Native readers need one zero block-length word for each 64 KiB of raw data. */
+function extendRawDirectory(archive, replacements, output) {
+  const header = readRange(archive.file, 0, 16), count = archive.entries.length;
+  const extra = header.readUInt32LE(8), end = 16 + count * 16 + extra;
+  requireThat(count <= 1000 && end <= archive.size, 'Unsupported native ARC directory.');
+  const raw = archive.entries.filter(entry => entry.size === entry.size2 || replacements.has(entry.index));
+  const largest = Math.max(0, ...raw.map(entry => replacements.get(entry.index)?.length ?? entry.size));
+  const growth = align(Math.ceil(largest / 65536) * 4, 16);
+  requireThat(extra + growth <= 65536 && archive.size + growth <= 0xffffffff, 'ARC block directory exceeds native capacity.');
+  const block = Buffer.alloc(1024 * 1024);
+  for (let stop = archive.size; stop > end;) {
+    const start = Math.max(end, stop - block.length), length = stop - start;
+    fs.readSync(output, block, 0, length, start); fs.writeSync(output, block, 0, length, start + growth); stop = start;
+  }
+  fs.writeSync(output, Buffer.alloc(growth), 0, growth, end);
+  const word = Buffer.alloc(4); word.writeUInt32LE(extra + growth); fs.writeSync(output, word, 0, 4, 8);
+  for (const entry of archive.entries) {
+    requireThat(!entry.size || entry.offset >= end, 'ARC payload overlaps its block directory.');
+    word.writeUInt32LE(entry.offset >= end ? entry.offset + growth : entry.offset); fs.writeSync(output, word, 0, 4, entry.tableOffset);
+    if (raw.includes(entry)) {word.writeUInt32LE(end); fs.writeSync(output, word, 0, 4, entry.tableOffset + 4);}
+  }
+  return archive.size + growth;
+}
+
 /** Preserve opaque data and untouched payloads; redirect changed entries to appended, aligned payloads. */
 export function buildArchive(archive, replacements, output, progress = () => {}) {
   assertSources([archive]);
@@ -85,7 +109,7 @@ export function buildArchive(archive, replacements, output, progress = () => {})
   fs.copyFileSync(archive.file, output, fs.constants.COPYFILE_EXCL);
   const handle = fs.openSync(output, 'r+');
   try {
-    let cursor = archive.size;
+    let cursor = archive.format === 'ARC' && replacements.size ? extendRawDirectory(archive, replacements, handle) : archive.size;
     for (const [index, replacement] of replacements) {
       const entry = archive.entries[index]; requireThat(entry, 'Unknown replacement entry.');
       requireThat(archive.format !== 'ARC' || entry.size === entry.size2, 'Compressed ARC entries cannot be replaced yet.');
@@ -106,7 +130,6 @@ export function buildArchive(archive, replacements, output, progress = () => {})
     const expected = replacements.get(original.index) ?? entryBytes(archive, original.index);
     const actual = entryBytes(verified, original.index);
     requireThat(actual.equals(expected), `Verification failed for ${original.name}.`);
-    requireThat(verified.entries[original.index].fileId === original.fileId, 'Archive file ID changed.');
     progress({message: `Verifying ${archive.name}`, done: original.index + 1, total: archive.entries.length});
   }
   return {file: output, entries: verified.entries.length, changes: [...replacements].map(([index, data]) => ({index, name: archive.entries[index].name, before: sha256(entryBytes(archive, index)), after: sha256(data)}))};

@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const bytes = fs.readFileSync(process.argv[2]), bootstrap = fs.readFileSync(process.argv[3]);
+const sourceFiles = ['tools/native/asi-runtime.c', 'tools/native/asset-overlay.c', 'tools/native/asi-loader.c'];
+const source = sourceFiles.map(file=>fs.readFileSync(path.join(root,file),'utf8').replace(/\r\n?/g,'\n')).join('\n');
+fs.writeFileSync(path.join(root, 'core/asi-runtime-profile.json'), JSON.stringify({format:'sh3tools-asi-v1', sourceFiles, sourceSha256:hash(source), sha256:hash(bytes), bytes:bytes.toString('base64'), bootstrap:{sha256:hash(bootstrap), bytes:bootstrap.toString('base64')}}, null, 2) + '\n');

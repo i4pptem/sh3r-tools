@@ -1,8 +1,16 @@
 # Credits
 
-**Silent Hill 3 Tools** — application, user experience and original project artwork by **[i4pptem](https://github.com/i4pptem)**.
+- [Ultimate ASI Loader — ThirteenAG](https://github.com/ThirteenAG/Ultimate-ASI-Loader): starts the ASI initializer and provides configurable file redirection for `plugins/SH3Tools` (optional pinned 9.7.0 Win32 download, MIT license).
+- [Silent Hill 2 Enhancements — Elisha Riedlinger and contributors](https://github.com/elishacloud/Silent-Hill-2-Enhancements): reference for separate mod-folder workflows. SH3-specific runtime implementation is independent.
+
+
+**Silent Hill 3 Tools** — application, Blender Morph Tools, user experience and original project artwork by **[i4pptem](https://github.com/i4pptem)**.
 
 Silent Hill 3 was created by Team Silent / Konami. Game content, names and screenshots remain the property of their respective rights holders. This is an independent community tool.
+
+## Community testing and feedback
+
+- **[a.fiend](https://linktr.ee/afiend)** - modder who tested the tool's capabilities, provided feedback and suggested new features.
 
 ## Format research and reference projects
 
@@ -32,6 +40,7 @@ The original research collection is [i4pptem's Silent Hill 3 tools list](https:/
 
 - [Electron](https://www.electronjs.org/) — desktop application runtime.
 - [Three.js](https://threejs.org/) — 3D preview rendering.
+- [meshoptimizer](https://github.com/zeux/meshoptimizer) — topology-preserving collision simplification.
 - [pngjs](https://github.com/pngjs/pngjs) — PNG exchange.
 - [Blender](https://www.blender.org/) — optional FBX and morph-workspace bridge, installed separately.
 - [FFmpeg](https://ffmpeg.org/) and [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds) — optional media conversion runtime, downloaded directly by the user through the included installer.

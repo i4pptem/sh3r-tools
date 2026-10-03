@@ -29,9 +29,10 @@ export function applySkeletalPose(clip, frame, bones, bind, parents, range = {})
 export class AnimationPlayer {
   constructor(viewport) {
     this.viewport = viewport; this.skeletal = null; this.morphClip = null;
-    this.frame = 0; this.start = 0; this.end = 0; this.fps = 30; this.speed = 1; this.loop = true; this.playing = false;
+    this.frame = 0; this.start = 0; this.end = 0; this.fps = 30; this.speed = 1; this.loop = true; this.autoReplay = false; this.playing = false;
     this.audition = false; this.target = 0; this.weight = 0; this.elapsed = 0;
   }
+  get repeats() {return this.loop || (this.autoReplay && this.skeletal?.sourceFormat === 'anm');}
   get frameCount() {return Math.max(this.skeletal?.frameCount || 1, this.morphClip?.frameCount || 1);}
   clip(type, clip) {
     if (type === 'skeletal') {
@@ -39,6 +40,7 @@ export class AnimationPlayer {
       else if (this.skeletal?.sourceFormat === 'pack') this.morphClip = null;
       this.skeletal = clip;
     } else {this.morphClip = clip; this.audition = false; this.weight = 0;}
+    this.viewport.visibility?.setCutscene(this.skeletal?.sourceFormat === 'pack');
     this.start = 0; this.end = this.frameCount - 1; this.frame = 0; this.playing = !!(this.skeletal || this.morphClip);
     this.apply(); this.onChange?.(this);
   }
@@ -55,7 +57,7 @@ export class AnimationPlayer {
     if (this.playing) {
       this.frame += seconds * this.fps * this.speed;
       if (this.frame >= this.end + 1) {
-        if (this.loop) this.frame = this.start + (this.frame - this.start) % (this.end - this.start + 1);
+        if (this.repeats) this.frame = this.start + (this.frame - this.start) % (this.end - this.start + 1);
         else {this.frame = this.end; this.playing = false;}
       }
     }

@@ -19,12 +19,13 @@ export function mapEditor(host, state, run, notify) {
   const modes = node('div'); modes.className = 'map-gizmo-modes'; panel.append(modes);
   for (const [label, mode] of [['Move','translate'],['Rotate','rotate'],['Scale','scale']]) {
     const button = node('button', label); button.type = 'button'; button.dataset.mode = mode; button.setAttribute('aria-label', `Gizmo ${label}`);
-    button.onclick = () => {state.mapMode = mode; state.viewport?.gizmoMode(mode); [...modes.children].forEach(b=>b.classList.toggle('active',b===button));};
+    button.onclick = () => {state.worldReferences?.meshSelection();state.mapSetMode(mode);};
     button.classList.toggle('active', (state.mapMode || 'translate') === mode); modes.append(button);
   }
+  state.mapSetMode=mode=>{state.mapMode=multi()?'translate':mode;state.viewport?.gizmoMode(state.mapMode);[...modes.children].forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mapMode));};
   const rows = new Map();
   for (const [field,label,count] of [['translation','Move',3],['rotation','Rotate °',3],['scale','Scale',3],['uvOffset','UV offset',2],['uvScale','UV scale',2]]) {
-    const row = node('label', label); row.className = 'map-fields'; const inputs = [];
+    const row = node('label', label); row.className = 'map-fields'; row.dataset.mapTransform = ''; const inputs = [];
     for(let i=0;i<count;i++) {const input = node('input'); input.type = 'number'; input.step = 'any'; input.setAttribute('aria-label', `${label} ${['X','Y','Z'][i]}`); row.append(input); inputs.push(input); input.onfocus = () => drafts.begin(key); input.onblur = () => {drafts.end(); updateUndo();}; input.oninput = () => {if(!drafts.transaction)drafts.begin(key);readFields();};}
     panel.append(row); rows.set(field, inputs);
   }
@@ -39,11 +40,12 @@ export function mapEditor(host, state, run, notify) {
   const actions = node('div'); actions.className = 'action-stack'; panel.append(actions);
   const action = (label, callback, parent = actions) => {const button = node('button', label); button.type = 'button'; button.onclick = callback; parent.append(button); return button;};
   action('Frame selected part', () => state.viewport?.frameParts(selected()));
-  action('Apply & stage map edits', () => {if(!readFields()) {notify('Enter finite transform values and a positive scale before applying.');return;} drafts.end(); return run('editMap', {key, hash: preview.hash, edits: drafts.edits(key)}, 'Writing and validating native MAP…');}).className = 'primary';
-  action('Discard preview edits', () => {drafts.discard(key); refresh();});
+  action('Apply & stage map edits', state.mapApply=() => {if(!readFields()) {notify('Enter finite transform values and a positive scale before applying.');return;} drafts.end(); return run('editRoom', {key, hash: preview.hash, edits: drafts.edits(key), references: drafts.references(key)}, 'Writing and validating native MAP…');}).className = 'primary';
+  action('Discard preview edits', state.mapDiscard=() => {drafts.discard(key); refresh(); state.worldReferences?.refresh();});
   const undo = action('Undo map action · Ctrl+Z', () => state.mapUndo());
   function updateUndo() {undo.dataset.unavailable=String(!drafts.canUndo(key) && !preview.mapUndo);undo.disabled=state.busy || undo.dataset.unavailable==='true';}
-  state.mapUndo = () => {if(state.busy)return;if(drafts.undo(key))refresh();else if(preview.mapUndo)run('undoMap',{key},'Undoing map edit…');};
+  state.mapUndo = () => {if(state.busy)return;if(drafts.undo(key)){refresh();state.worldReferences?.refresh();}else if(preview.mapUndo)run('undoMap',{key},'Undoing map edit…');};
+  state.mapSelection=selected;
   const exchange = node('div'); exchange.className = 'action-stack'; panel.append(node('h4','Selected part'),exchange);
   action('Export selected part GLB…', () => run('exportMapPart', {key, part: select.value}, 'Exporting selected mesh…'), exchange);
   action('Replace selected part GLB…', () => run('importMapPart', {key, hash: preview.hash, part: select.value}, 'Rebuilding selected MAP part…'), exchange);
@@ -58,14 +60,16 @@ export function mapEditor(host, state, run, notify) {
     return model.meshes.find(m=>m.group===group)?.texture ?? -1;
   };
   const pngExport = action('Export selected texture PNG…',()=>run('export',{key,mode:'worldTexture',textureIndex:textureForPart()},'Exporting texture…'),textureActions);
-  const pngReplace = action('Replace selected texture PNG…',()=>run('replaceMapTexture',{key,hash:preview.hash,textureIndex:textureForPart()},'Encoding map texture…'),textureActions);
-  panel.append(Object.assign(node('p','PNG is fitted to the native dimensions and palette. Shared TEX images update every map using that image. GLB replacement keeps the selected material; use the PNG action to change its image.'),{className:'hint'}));
+  const textureMode=node('select');textureMode.setAttribute('aria-label','Map texture import size');textureMode.add(new Option('Fit to original','fit'));textureMode.add(new Option('Full size · checked room memory','fullSize'));textureActions.append(textureMode);
+  const pngReplace = action('Replace selected texture PNG…',()=>run('replaceMapTexture',{key,hash:preview.hash,textureIndex:textureForPart(),mode:textureMode.value},'Encoding map texture…'),textureActions);
+  panel.append(Object.assign(node('p','Fit keeps native dimensions. Full size preserves the PNG resolution and checks the complete stage memory. Build mod adds the background memory extension only when required. Shared TEX edits affect every map using that image.'),{className:'hint'}));
   action('Import whole map GLB…', () => run('replace', {key, mode:'mapGlb'}, 'Validating MAP geometry…'), panel);
-  panel.append(Object.assign(node('p','Preview edits are applied only with Apply. Movement preserves native visibility bounds. Collision, events and cameras are separate assets.'),{className:'hint'}));
+  panel.append(Object.assign(node('p','Apply stages all room preview edits together. Bound collision meshes rebuild their CLD automatically. Edit native camera zones and collision records in the Room editor window; events remain separate.'),{className:'hint'}));
   function renderDraft() {
-    const edits = drafts.edits(key);
-    draftStatus.textContent = edits.length ? `${edits.length} part(s) with preview edits · not yet staged` : 'No unapplied preview edits';
-    state.viewport?.previewMapEdits(edits); updateUndo();
+    const edits = drafts.edits(key), references = drafts.references(key);
+    draftStatus.textContent = edits.length || references.length ? `${edits.length} map part(s), ${references.reduce((n,r)=>n+r.records.length,0)} reference record(s) · not yet staged` : 'No unapplied preview edits';
+    const failure=drafts.failures.get(key);if(failure)draftStatus.textContent+=` · Apply failed: ${failure}`;
+    state.viewport?.previewMapEdits(edits); updateUndo();state.worldReferences?.draftChanged();
   }
   function refresh() {
     const mesh = model.meshes.find(m=>m.name===select.value), edit = drafts.get(key,mesh.name);
@@ -80,7 +84,7 @@ export function mapEditor(host, state, run, notify) {
     for (const group of preview.world.groups.filter(g=>g.textureSource===mesh.textureSource)) material.add(new Option(`Group ${group.index} · texture ${group.textureIndex}`,group.index));
     material.value = edit.materialGroup ?? '';
     status.textContent = `${selected().length} selected · Material group ${mesh.group} · object type ${mesh.objectType}. Assignment changes all ${model.meshes.filter(m=>m.group===mesh.group).length} part(s) in this group.`;
-    topology.textContent = mesh.replacementIssue || 'New topology supported. Export one mesh with UVs, normals and vertex colors; keep its world placement.';
+    topology.textContent = mesh.replacementIssue || 'New topology supported. Expanded static parts use native unpartitioned visibility, increasing draw work while the map is loaded. Export UVs, normals and vertex colors. Events and room streaming are unchanged.';
     const index=textureForPart(), image=preview.textures[index];
     texturePreview.hidden = !image; if(image) texturePreview.src = image.url;
     textureStatus.textContent = image ? `${image.sourceName} · image ${image.sourceIndex} · ${image.width} × ${image.height}` : 'No resolved texture for this material.';
@@ -113,5 +117,5 @@ export function mapEditor(host, state, run, notify) {
     }
   };
   state.mapRefresh = refresh;
-  select.onchange = () => {drafts.end();if(!selected().length)select.options[0].selected=true;refresh();};refresh();
+  select.onchange = () => {state.worldReferences?.meshSelection();drafts.end();if(!selected().length)select.options[0].selected=true;refresh();};refresh();
 }

@@ -1,3 +1,4 @@
+import {showChannels} from './animation-channels.mjs';
 import {animationPanelLayout} from './animation-panel-layout.mjs';
 import {animationImportDialog,showAnimationReport} from './animation-import.mjs';
 const $ = selector => document.querySelector(selector);
@@ -5,6 +6,8 @@ const $ = selector => document.querySelector(selector);
 export function motionControls(state, notify, run) {
   let current = null, selectedKey = null, requestIds = {skeletal: 0, morph: 0}, lastTick = 0, availableClips = [];
   animationPanelLayout();
+  $('#animation-channels').onclick=async()=>{const info=await run('animationChannels',{key:selectedKey,id:current?.player.skeletal?.id},'Reading native channel flags…');if(info)showChannels(info);};
+  $('#motion-auto-play').checked = localStorage.getItem('sh3tools.animation.autoPlay') === 'true';
   const tabs = [...document.querySelectorAll('[data-motion-tab]')];
   function showTab(tab) {
     for (const button of tabs) {
@@ -28,7 +31,7 @@ export function motionControls(state, notify, run) {
     if (rangeClip !== player.skeletal) {
       rangeClip = player.skeletal; selectedRange = null;
       select.replaceChildren(new Option('Whole bank', ''), new Option('Custom range', 'custom'));
-      for (const range of ranges) select.append(new Option(`Action ${range.id} · ${range.start}–${range.end}${range.loop ? ' · loop' : ''}`, String(range.id)));
+      for (const range of ranges) select.append(new Option(`${range.name?range.name+' · ':''}Action ${range.id} · ${range.start}–${range.end}${range.loop ? ' · loop' : ''}`, String(range.id)));
       select.disabled = !player.skeletal;
       $('#motion-action-source').textContent = ranges.length ? `${ranges.length} actions · read from sh3.exe` : player.skeletal?.rangeNote || '';
       $('#motion-action-source').title = player.skeletal?.rangeNote || '';
@@ -47,7 +50,7 @@ export function motionControls(state, notify, run) {
     const player = current.player, range = player.skeletal?.ranges?.find(range => String(range.id) === value);
     if (range) {player.loop = range.loop; if (range.fps > 0) player.fps = range.fps; player.range(range.start,range.end);}
     else player.range(0,player.frameCount-1);
-    player.seek(player.start); sync(player,true);
+    player.seek(player.start); if (player.autoReplay && player.skeletal?.sourceFormat === 'anm') player.playing = true; sync(player,true);
   }
   $('#motion-action').onchange = () => selectRange($('#motion-action').value);
   for (const [id,step] of [['prev',-1],['next',1]]) $('#motion-action-'+id).onclick = () => {
@@ -57,16 +60,18 @@ export function motionControls(state, notify, run) {
   const controls = {skeletal: $('#skeletal-clip'), morph: $('#morph-clip')};
   function sync(player, full = false) {
     const pack=player.skeletal?.sourceFormat==='pack',asset=player.skeletal?.id?.startsWith('asset:');
+    $('#animation-channels').disabled=state.busy||player.skeletal?.sourceFormat!=='anm';
     $('#export-animation').disabled=state.busy || !(asset||pack);
     $('#import-animation').disabled=state.busy || !(asset||(pack&&player.skeletal.assetKey));
     $('#export-animation').textContent=pack?'Export cutscene range…':'Export ANM range…';
+    $('#motion-auto-play').disabled = player.skeletal?.sourceFormat !== 'anm';
     $('#motion-current').textContent = player.skeletal?.name || player.morphClip?.name || 'Bind pose';
     $('#motion-current').title = $('#motion-current').textContent;
     $('#play-motion').textContent = player.playing ? 'Pause' : 'Play';
     $('#play-motion').disabled = !(player.skeletal || player.morphClip);
     $('#stop-motion').disabled = !(player.skeletal || player.morphClip);
     $('#motion-frame').min = player.start; $('#motion-frame').max = player.end; $('#motion-frame').value = player.frame;
-    const rangeText = `${player.start}–${player.end} inclusive · ${player.end-player.start+1} frames · ${player.loop ? 'loops to '+player.start : 'stops at '+player.end}`;
+    const rangeText = `${player.start}–${player.end} inclusive · ${player.end-player.start+1} frames · ${player.loop ? 'loops to '+player.start : player.repeats ? 'auto-replays from '+player.start : 'stops at '+player.end}`;
     $('#motion-range-info').textContent = rangeText; $('#motion-exchange-range').textContent = rangeText;
     $('#motion-time').textContent = `${Math.floor(player.frame)} / ${player.end}`;
     $('#animate-morph').classList.toggle('active', player.audition);
@@ -152,6 +157,12 @@ export function motionControls(state, notify, run) {
   $('#stop-motion').onclick = () => current?.player.stop();
   $('#motion-frame').oninput = () => current?.player.seek(Number($('#motion-frame').value));
   $('#motion-loop').onchange = () => {if (current) {current.player.loop = $('#motion-loop').checked;sync(current.player);}};
+  $('#motion-auto-play').onchange = () => {
+    const enabled = $('#motion-auto-play').checked; localStorage.setItem('sh3tools.animation.autoPlay', String(enabled));
+    if (!current) return; const player = current.player; player.autoReplay = enabled;
+    if (enabled && player.skeletal?.sourceFormat === 'anm' && player.frame >= player.end) {player.seek(player.start); player.playing = true;}
+    sync(player);
+  };
   $('#motion-speed').onchange = () => {if (current) current.player.speed = Number($('#motion-speed').value);};
   $('#motion-fps').onchange = () => {
     if (!current) return; const fps = Number($('#motion-fps').value);
@@ -172,6 +183,7 @@ export function motionControls(state, notify, run) {
     async attach(viewport, key) {
       if(selectedKey!==key)$('#animation-import-result').hidden=true;
       current = viewport; selectedKey = key; requestIds.skeletal++; requestIds.morph++;
+      viewport.player.autoReplay = $('#motion-auto-play').checked;
       viewport.player.onChange = player => sync(player, true);
       viewport.player.onTick = player => {if (performance.now() - lastTick > 70) {lastTick = performance.now(); sync(player);}};
       sync(viewport.player, true);

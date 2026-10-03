@@ -1,0 +1,723 @@
+{
+  "schemaVersion": 1,
+  "scope": "SH3 PC verified 1763-frame Heather banks / original MAP prefixes",
+  "prefixes": {
+    "mr": {
+      "name": "Shopping mall",
+      "aliases": "Central Square shopping center mall normal торговый центр",
+      "backgroundStage": 1,
+      "nativeStages": [
+        "mall_face_1f",
+        "mall_face_2f"
+      ],
+      "stageIds": [
+        1,
+        2
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "mu": {
+      "name": "Shopping mall — Otherworld",
+      "aliases": "Central Square shopping center mall nightmare otherworld торговый центр",
+      "backgroundStage": 2,
+      "nativeStages": [
+        "mall_back_1f",
+        "mall_back_2f",
+        "mall_back_3f"
+      ],
+      "stageIds": [
+        3,
+        4,
+        5
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "tr": {
+      "name": "Subway",
+      "aliases": "Hazel Street subway station platform train метро поезд",
+      "backgroundStage": 3,
+      "nativeStages": [
+        "subway_station",
+        "subway_platform",
+        "subway_train"
+      ],
+      "stageIds": [
+        6,
+        7,
+        8
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "us": {
+      "name": "Sewers",
+      "aliases": "sewer upper lower underground канализация",
+      "backgroundStage": 4,
+      "nativeStages": [
+        "sewer_upper",
+        "sewer_lower"
+      ],
+      "stageIds": [
+        9,
+        10
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "bc": {
+      "name": "Construction site",
+      "aliases": "construction building стройка",
+      "backgroundStage": 5,
+      "nativeStages": [
+        "construct_building"
+      ],
+      "stageIds": [
+        11
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "br": {
+      "name": "Office building",
+      "aliases": "Hilltop Center office building normal офис",
+      "backgroundStage": 6,
+      "nativeStages": [
+        "building_face_2f",
+        "building_face_3f",
+        "building_face_5f"
+      ],
+      "stageIds": [
+        12,
+        13,
+        14
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "bu": {
+      "name": "Office building — Otherworld",
+      "aliases": "Hilltop Center office building otherworld nightmare офис",
+      "backgroundStage": 7,
+      "nativeStages": [
+        "building_back_1f",
+        "building_back_2f",
+        "building_back_4f",
+        "building_back_5f"
+      ],
+      "stageIds": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "tg": {
+      "name": "City streets",
+      "aliases": "city street outside город улица",
+      "backgroundStage": 8,
+      "nativeStages": [
+        "city"
+      ],
+      "stageIds": [
+        19
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "am": {
+      "name": "Apartments",
+      "aliases": "Heather Harry apartment home Daisy Villa Apartments квартира дом",
+      "backgroundStage": 9,
+      "nativeStages": [
+        "apart"
+      ],
+      "stageIds": [
+        20
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "cm": {
+      "name": "Car",
+      "aliases": "car Douglas journey автомобиль машина",
+      "backgroundStage": 10,
+      "nativeStages": [
+        "car"
+      ],
+      "stageIds": [
+        21
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "ot": {
+      "name": "Motel",
+      "aliases": "Jack motel inn hotel мотель гостиница",
+      "backgroundStage": 11,
+      "nativeStages": [
+        "motel"
+      ],
+      "stageIds": [
+        22
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "cc": {
+      "name": "Silent Hill streets",
+      "aliases": "Silent Hill town South Vale street город улица",
+      "backgroundStage": 12,
+      "nativeStages": [
+        "town"
+      ],
+      "stageIds": [
+        23
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "th": {
+      "name": "Heaven’s Night",
+      "aliases": "heaven night bar Heaven’s Night бар",
+      "backgroundStage": 13,
+      "nativeStages": [
+        "heaven"
+      ],
+      "stageIds": [
+        24
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "hp": {
+      "name": "Hospital",
+      "aliases": "Brookhaven hospital normal больница",
+      "backgroundStage": 14,
+      "nativeStages": [
+        "hospital_face_1f",
+        "hospital_face_2f",
+        "hospital_face_3f",
+        "hospital_face_bf"
+      ],
+      "stageIds": [
+        25,
+        26,
+        27,
+        28
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "hc": {
+      "name": "Hospital — Transition",
+      "aliases": "Brookhaven hospital transition turning больница переход",
+      "backgroundStage": 15,
+      "nativeStages": [
+        "hospital_turning"
+      ],
+      "stageIds": [
+        29
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "hu": {
+      "name": "Hospital — Otherworld",
+      "aliases": "Brookhaven hospital otherworld nightmare больница",
+      "backgroundStage": 16,
+      "nativeStages": [
+        "hospital_back_1f",
+        "hospital_back_2f",
+        "hospital_back_3f"
+      ],
+      "stageIds": [
+        30,
+        31,
+        32
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "tp": {
+      "name": "Amusement park",
+      "aliases": "Lakeside amusement park carousel roller coaster парк аттракцион карусель",
+      "backgroundStage": 17,
+      "nativeStages": [
+        "amusement_west",
+        "amusement_east",
+        "amusement_south"
+      ],
+      "stageIds": [
+        33,
+        34,
+        35
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "cr": {
+      "name": "Church — Chapel",
+      "aliases": "church chapel Claudia церковь часовня",
+      "backgroundStage": 18,
+      "nativeStages": [
+        "church_chapel"
+      ],
+      "stageIds": [
+        36
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "cu": {
+      "name": "Church",
+      "aliases": "church upper lower церковь",
+      "backgroundStage": 19,
+      "nativeStages": [
+        "church_upper",
+        "church_lower"
+      ],
+      "stageIds": [
+        37,
+        38
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    },
+    "cz": {
+      "name": "Church — Final area",
+      "aliases": "church final boss God церковь финал",
+      "backgroundStage": 20,
+      "nativeStages": [
+        "church_last"
+      ],
+      "stageIds": [
+        39
+      ],
+      "scope": "area",
+      "evidence": "native-stage-tables"
+    }
+  },
+  "banks": {
+    "chhaa_basic1_none.anm": {
+      "name": "Unarmed",
+      "weaponClass": 0,
+      "actionStart": 201,
+      "actionEnd": 217
+    },
+    "chhaa_basic1_hand.anm": {
+      "name": "Handgun",
+      "weaponClass": 1,
+      "actionStart": 218,
+      "actionEnd": 249
+    },
+    "chhaa_basic2_shot.anm": {
+      "name": "Shotgun",
+      "weaponClass": 2,
+      "actionStart": 250,
+      "actionEnd": 269
+    },
+    "chhaa_basic2_mach.anm": {
+      "name": "Submachine gun",
+      "weaponClass": 3,
+      "actionStart": 270,
+      "actionEnd": 275
+    },
+    "chhaa_basic1_knif.anm": {
+      "name": "Knife",
+      "weaponClass": 4,
+      "actionStart": 276,
+      "actionEnd": 290
+    },
+    "chhaa_basic3_pipe.anm": {
+      "name": "Steel pipe",
+      "weaponClass": 5,
+      "actionStart": 291,
+      "actionEnd": 307
+    },
+    "chhaa_basic1_blad.anm": {
+      "name": "Katana",
+      "weaponClass": 6,
+      "actionStart": 308,
+      "actionEnd": 324
+    },
+    "chhaa_basic3_hamm.anm": {
+      "name": "Maul",
+      "weaponClass": 7,
+      "actionStart": 325,
+      "actionEnd": 333
+    },
+    "chhaa_basic1_stun.anm": {
+      "name": "Stun gun",
+      "weaponClass": 8,
+      "actionStart": 334,
+      "actionEnd": 342
+    },
+    "chhaa_basic1_sabe.anm": {
+      "name": "Beam saber",
+      "weaponClass": 9,
+      "actionStart": 343,
+      "actionEnd": 356
+    },
+    "chhaa_basic2_flam.anm": {
+      "name": "Flamethrower",
+      "weaponClass": 10,
+      "actionStart": 357,
+      "actionEnd": 360
+    }
+  },
+  "actions": {
+    "101": {
+      "name": "Idle",
+      "group": "Shared",
+      "evidence": "default-state",
+      "confidence": "native-state"
+    },
+    "201": {
+      "name": "Unarmed — Enter ready stance",
+      "group": "Unarmed",
+      "bank": "chhaa_basic1_none.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "203": {
+      "name": "Unarmed — Ready stance",
+      "group": "Unarmed",
+      "bank": "chhaa_basic1_none.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "202": {
+      "name": "Unarmed — Leave ready stance",
+      "group": "Unarmed",
+      "bank": "chhaa_basic1_none.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "270": {
+      "name": "Submachine gun — Enter ready stance",
+      "group": "Submachine gun",
+      "bank": "chhaa_basic2_mach.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "271": {
+      "name": "Submachine gun — Ready stance",
+      "group": "Submachine gun",
+      "bank": "chhaa_basic2_mach.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "272": {
+      "name": "Submachine gun — Leave ready stance",
+      "group": "Submachine gun",
+      "bank": "chhaa_basic2_mach.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "276": {
+      "name": "Knife — Enter ready stance",
+      "group": "Knife",
+      "bank": "chhaa_basic1_knif.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "277": {
+      "name": "Knife — Ready stance",
+      "group": "Knife",
+      "bank": "chhaa_basic1_knif.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "278": {
+      "name": "Knife — Leave ready stance",
+      "group": "Knife",
+      "bank": "chhaa_basic1_knif.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "291": {
+      "name": "Steel pipe — Enter ready stance",
+      "group": "Steel pipe",
+      "bank": "chhaa_basic3_pipe.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "292": {
+      "name": "Steel pipe — Ready stance",
+      "group": "Steel pipe",
+      "bank": "chhaa_basic3_pipe.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "293": {
+      "name": "Steel pipe — Leave ready stance",
+      "group": "Steel pipe",
+      "bank": "chhaa_basic3_pipe.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "308": {
+      "name": "Katana — Enter ready stance",
+      "group": "Katana",
+      "bank": "chhaa_basic1_blad.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "309": {
+      "name": "Katana — Ready stance",
+      "group": "Katana",
+      "bank": "chhaa_basic1_blad.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "310": {
+      "name": "Katana — Leave ready stance",
+      "group": "Katana",
+      "bank": "chhaa_basic1_blad.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "325": {
+      "name": "Maul — Enter ready stance",
+      "group": "Maul",
+      "bank": "chhaa_basic3_hamm.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "326": {
+      "name": "Maul — Ready stance",
+      "group": "Maul",
+      "bank": "chhaa_basic3_hamm.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "327": {
+      "name": "Maul — Leave ready stance",
+      "group": "Maul",
+      "bank": "chhaa_basic3_hamm.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "334": {
+      "name": "Stun gun — Enter ready stance",
+      "group": "Stun gun",
+      "bank": "chhaa_basic1_stun.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "335": {
+      "name": "Stun gun — Ready stance",
+      "group": "Stun gun",
+      "bank": "chhaa_basic1_stun.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "336": {
+      "name": "Stun gun — Leave ready stance",
+      "group": "Stun gun",
+      "bank": "chhaa_basic1_stun.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "343": {
+      "name": "Beam saber — Enter ready stance",
+      "group": "Beam saber",
+      "bank": "chhaa_basic1_sabe.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "344": {
+      "name": "Beam saber — Ready stance",
+      "group": "Beam saber",
+      "bank": "chhaa_basic1_sabe.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "345": {
+      "name": "Beam saber — Leave ready stance",
+      "group": "Beam saber",
+      "bank": "chhaa_basic1_sabe.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "357": {
+      "name": "Flamethrower — Enter ready stance",
+      "group": "Flamethrower",
+      "bank": "chhaa_basic2_flam.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "358": {
+      "name": "Flamethrower — Ready stance",
+      "group": "Flamethrower",
+      "bank": "chhaa_basic2_flam.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "359": {
+      "name": "Flamethrower — Leave ready stance",
+      "group": "Flamethrower",
+      "bank": "chhaa_basic2_flam.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "218": {
+      "name": "Handgun — Enter ready stance",
+      "group": "Handgun",
+      "bank": "chhaa_basic1_hand.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "222": {
+      "name": "Handgun — alternate stance — Enter ready stance",
+      "group": "Handgun",
+      "bank": "chhaa_basic1_hand.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "219": {
+      "name": "Handgun — Leave ready stance",
+      "group": "Handgun",
+      "bank": "chhaa_basic1_hand.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "223": {
+      "name": "Handgun — alternate stance — Leave ready stance",
+      "group": "Handgun",
+      "bank": "chhaa_basic1_hand.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "226": {
+      "name": "Handgun — Ready stance",
+      "group": "Handgun",
+      "bank": "chhaa_basic1_hand.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "228": {
+      "name": "Handgun — alternate stance — Ready stance",
+      "group": "Handgun",
+      "bank": "chhaa_basic1_hand.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "250": {
+      "name": "Shotgun — Enter ready stance (aim variant 1)",
+      "group": "Shotgun",
+      "bank": "chhaa_basic2_shot.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "253": {
+      "name": "Shotgun — Ready stance (aim variant 1)",
+      "group": "Shotgun",
+      "bank": "chhaa_basic2_shot.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "256": {
+      "name": "Shotgun — Leave ready stance (aim variant 1)",
+      "group": "Shotgun",
+      "bank": "chhaa_basic2_shot.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "251": {
+      "name": "Shotgun — Enter ready stance (aim variant 2)",
+      "group": "Shotgun",
+      "bank": "chhaa_basic2_shot.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "254": {
+      "name": "Shotgun — Ready stance (aim variant 2)",
+      "group": "Shotgun",
+      "bank": "chhaa_basic2_shot.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "257": {
+      "name": "Shotgun — Leave ready stance (aim variant 2)",
+      "group": "Shotgun",
+      "bank": "chhaa_basic2_shot.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    },
+    "252": {
+      "name": "Shotgun — Enter ready stance (aim variant 3)",
+      "group": "Shotgun",
+      "bank": "chhaa_basic2_shot.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C55C0",
+      "confidence": "native-selector"
+    },
+    "255": {
+      "name": "Shotgun — Ready stance (aim variant 3)",
+      "group": "Shotgun",
+      "bank": "chhaa_basic2_shot.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C53C0",
+      "confidence": "native-selector"
+    },
+    "258": {
+      "name": "Shotgun — Leave ready stance (aim variant 3)",
+      "group": "Shotgun",
+      "bank": "chhaa_basic2_shot.anm",
+      "evidence": "ready-selectors",
+      "selector": "0x4C5700",
+      "confidence": "native-selector"
+    }
+  },
+  "unknownPolicy": "Keep native Action <id>; never infer a specific movement from ID order or clip duration.",
+  "roomPolicy": "Append room code as an identifier. A MAP hex suffix is a grid code, not a floor or the stg_name.h event room ID.",
+  "sources": {
+    "nativeExeSha256": "a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e",
+    "memoryOfAlessa": "https://github.com/dreamingmoths/memory-of-alessa/tree/3da51d3af9d81e077c4f80e7db024c937e598090/silent-hill-3",
+    "sh3redux": "https://github.com/Palm-Studios/sh3redux/tree/50d10aef1b9afbfbf2ae5946a511a2c5e0a2f106"
+  }
+}

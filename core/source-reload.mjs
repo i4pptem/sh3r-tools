@@ -1,3 +1,4 @@
+import {saveCollisionBindings,loadCollisionBindings} from './map-collision.mjs';
 import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 import {openWorkspace} from './workspace.mjs';
@@ -7,7 +8,7 @@ import {sha256, requireThat} from './binary.mjs';
 import {workspaceSources, assertSources} from './source-state.mjs';
 
 const identity = (archive, entry) => JSON.stringify([path.resolve(archive.file), archive.format,
-  archive.format === 'FOLDER' ? path.resolve(entry.sourceFile) : entry.fileId]);
+  archive.format === 'FOLDER' ? path.resolve(entry.sourceFile) : [entry.index, entry.name.toLowerCase()]]);
 
 function entriesByIdentity(workspace) {
   const entries = new Map();
@@ -36,13 +37,20 @@ export function prepareSourceReload(workbench) {
     else if (sha256(data) === change.originalHash) changes.set(next.key, change);
     else conflicts.push({key, name: old.entry.name, reason: 'Both the file on disk and your staged replacement changed.'});
   }
+  const collisionWorkspace=new workbench.constructor(workbench.progress,workbench.cacheFolder);
+  Object.assign(collisionWorkspace,workspace,{sources,changes});
+  for(const binding of saveCollisionBindings(workbench)) {
+    try {loadCollisionBindings(collisionWorkspace,[binding],key=>keyMap[key]);}
+    catch(error) {conflicts.push({key:binding.key,name:workbench.get(binding.key).entry.name,reason:'Automatic collision binding must be reset: '+error.message});}
+  }
   assertSources(sources);
-  return {token: randomUUID(), workspace, sources, changes, conflicts, installed, keyMap, previousChanges: new Map(workbench.changes)};
+  return {collisionBindings:collisionWorkspace.mapCollisions,previousCollisionBindings:new Map(workbench.mapCollisions),token: randomUUID(), workspace, sources, changes, conflicts, installed, keyMap, previousChanges: new Map(workbench.changes)};
 }
 
 export function validateSourceReload(workbench, plan, token, discardConflicts) {
   requireThat(plan?.token === token, 'Reload preview expired. Check the sources again.');
   requireThat(discardConflicts || !plan.conflicts.length, 'Review conflicting replacements before reloading.');
   requireThat(workbench.changes.size === plan.previousChanges.size && [...workbench.changes].every(([key, change]) => plan.previousChanges.get(key) === change), 'Staged replacements changed. Check the sources again.');
+  requireThat(workbench.mapCollisions.size===plan.previousCollisionBindings.size && [...workbench.mapCollisions].every(([key,value])=>plan.previousCollisionBindings.get(key)===value),'Collision bindings changed. Check the sources again.');
   assertSources(plan.sources);
 }

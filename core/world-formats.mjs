@@ -24,26 +24,27 @@ function polygonMesh(name, polygons) {
 export function parseCollision(data) {
   range(data, 0, 0x174, 'CLD header');
   const origin = floats(data, 0, 2), groups = [], meshes = [];
-  const names = ['Floor', 'Walls', 'Group 2', 'Furniture', 'Cylinders'];
+  const names = ['Floor', 'Walls', 'Other surfaces (rays)', 'Special walls', 'Cylinders'];
   for (let group = 0; group < 5; group++) {
     const length = data.readUInt32LE(8 + group * 4), offset = data.readUInt32LE(0x160 + group * 4), stride = group === 4 ? 48 : 80;
     requireThat(length >= stride && length % stride === 0, 'Invalid CLD group size.'); range(data, offset, length, 'CLD group');
     const records = [], polygons = [];
     for (let p = offset; p < offset + length; p += stride) {
-      const flags = data.readUInt32LE(p), type = data.readUInt32LE(p + 4), material = data.readUInt32LE(p + 8);
-      if (flags === 0 && type === 0 && material === 0) break;
+      const kind=data[p], shape=data[p+1], weight=data.readUInt32LE(p+4), material=data.readUInt32LE(p+8), flags=data.readUInt32LE(p+12);
+      if (kind===0) break;
+      requireThat(group===4 ? shape===3 : shape===0 || shape===1, 'Unsupported CLD shape.');
       if (group < 4) {
-        const points = Array.from({length: flags & 0x100 ? 4 : 3}, (_, i) => floats(data, p + 16 + i * 16, 3));
-        records.push({flags, type, material, vertices: points}); polygons.push(points);
+        const points = Array.from({length: shape === 1 ? 4 : 3}, (_, i) => floats(data, p + 16 + i * 16, 3));
+        records.push({kind, shape, weight, flags, material, vertices: points}); polygons.push(points);
       } else {
-        const position = floats(data, p + 16, 3), height = floats(data, p + 32, 3), radius = data.readFloatLE(p + 44);
+        const position = floats(data, p + 16, 3), axis = floats(data, p + 32, 3), topY = axis[1], radius = data.readFloatLE(p + 44);
         requireThat(Number.isFinite(radius) && radius >= 0, 'Invalid CLD cylinder radius.');
-        records.push({flags, type, material, position, height, radius});
+        records.push({kind, shape, weight, flags, material, position, topY, reservedAxis: [axis[0],axis[2]], radius});
         for (let i = 0; i < 20; i++) {
           const angle = i * Math.PI / 10, next = (i + 1) * Math.PI / 10;
           const a = [position[0] + Math.cos(angle) * radius, position[1], position[2] + Math.sin(angle) * radius];
           const b = [position[0] + Math.cos(next) * radius, position[1], position[2] + Math.sin(next) * radius];
-          polygons.push([a, b, b.map((v, k) => v + height[k]), a.map((v, k) => v + height[k])]);
+          polygons.push([a, b, [b[0],topY,b[2]], [a[0],topY,a[2]]]);
         }
       }
     }
@@ -57,7 +58,7 @@ export function parseCollision(data) {
     groups.push({name: names[group], count: records.length, records, spatialCells: lists});
     if (polygons.length) meshes.push(polygonMesh(names[group], polygons));
   }
-  return {format: 'SH3 collision geometry', origin, groups, model: model(data, meshes)};
+  return {format: 'SH3 collision geometry', origin, disabled: data.readUInt32LE(0x1c)!==0, groups, model: model(data, meshes)};
 }
 
 function zonePolygons(ground, heights) {
@@ -72,11 +73,12 @@ export function parseCameras(data) {
   const details=cameraRecords(data),meshes=[];
   for(const record of details.records) {
     for(const [name,ground,heights] of [['Activation',record.activeGroundPoints,record.activeHeights],['Constraint',record.constraintGroundPoints,record.constraintHeights]]) {
+      if (name === 'Constraint' && [6, 7].includes(record.cameraMovementType)) continue;
       const polygons=zonePolygons(ground,heights);
-      if(polygons.length)meshes.push(polygonMesh(`Zone_${record.index}_${name}`,polygons));
+      if(polygons.length)meshes.push({...polygonMesh(`Zone_${record.index}_${name}`,polygons),cameraZone:name.toLowerCase()});
     }
   }
-  return {...details,model:model(data,meshes)};
+  return {...details,cameraEditable:true,model:model(data,meshes)};
 }
 function linkedRecords(data, start, minimum, visit) {
   const seen = new Set(); let offset = start;
@@ -119,7 +121,7 @@ export function parseMap(data) {
     });
   });
   return {format: 'SH3 PC map geometry', editable: true, transforms, groups, textureOffset: data.readUInt32LE(16), localTextureCount: data.readUInt16LE(68), globalTextureGroupCount: data.readUInt16LE(66), transparentTextureGroupCount: data.readUInt16LE(70),
-    note: 'MAP geometry and object transforms. Native lighting is not reproduced. Static geometry edits preserve the original visibility bounds.', model: {...model(data, meshes), editable: true}};
+    note: 'MAP geometry and object transforms. Native lighting is not reproduced. Expanded static parts use native unpartitioned visibility while their map is loaded.', model: {...model(data, meshes), editable: true}};
 }
 
 export function inspectWorld(data, extension) {

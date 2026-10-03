@@ -1,3 +1,4 @@
+import {actionName} from './world-action-names.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -143,9 +144,9 @@ export class AnimationRangeCatalog {
     }
     if (!cached.banks) return unsupported(`Action ranges are unavailable: ${cached.message}`);
     return {
-      ranges: cached.banks.get(basename).map(clip => ({ ...clip })),
+      ranges: cached.banks.get(basename).map(clip => ({ ...clip, name:actionName(clip.id,basename) })),
       rangeSource: 'Native sh3.exe action table',
-      rangeNote: 'Inclusive frame ranges. Default rate uses the native 60 Hz clock; gameplay may adjust speed and blend upper/lower-body actions. Action IDs are verified; movement names are not yet mapped.',
+      rangeNote: 'Inclusive frame ranges. Default rate uses the native 60 Hz clock; gameplay may adjust speed and blend upper/lower-body actions. Names are shown only for verified native states; other actions keep their IDs.',
     };
   }
 }

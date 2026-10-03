@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.0.0 — Asset authoring and compact mods
+
+Changes since **0.9.0**, including the intermediate development previews. See the [illustrated release notes](docs/releases/1.0.0.md) for screenshots, installation and the full feature tour.
+
+### Models and Blender Morph Tools
+
+- Bundle Blender Morph Tools **1.3.2**: explicit source/replacement selection, labelled neutral-surface picking, face/hair/cloth landmarks, protected lip/eyelid regions, smoothing and local landmark-motion constraints.
+- Add single-morph comparison previews, region coverage, unmatched-vertex selection and per-expression facial depth controls. Preserve Basis, topology, UVs, skin weights and unchanged input objects.
+- Review the serialized model replacement beside the original before staging, including geometry, textures, UVs, weights, visibility groups, morphs and original motion.
+- Resolve character shadows from native actor/costume resource tables, including shared KG1 files. Rebuild proxies or edit individual bone objects through GLB, with quantized geometry validation and explicit disable/source restoration.
+
+### Maps and world editing
+
+- Add World Inspector with verified area names and code/name filtering; move layer controls into the right Inspector.
+- Edit MAP, CLD and CAM together with reference overlays, shared room undo, multi-selection transforms, direct picking, simplified collision bindings and camera study with a movable reference character.
+- Add WASD/X/C flight navigation, E/R/T transform shortcuts, a draggable/resizable Room editor and full-height map previews.
+- Support larger static parts, full-size embedded/shared map textures, stage-wide memory checks and conditional background/transparent-queue extensions.
+
+### Cutscenes and animation
+
+- Add full Cutscene Inspector playback with environment, character/morph tracks, cameras, sound and moving objects.
+- Export complete scenes to Blender and reimport existing motion, morph, camera, light and prop channels. Preserve native scene length, channel identities and unedited data.
+- Apply PACK visibility to matching MAP event groups, correct opaque wall facing, filter duplicate character parts and account for supported stage-script rules, carousel motion and audio lead-in.
+- Add per-bone ANM channel tables, saved skipped-channel reports, 43 verified Heather Action-state names and Auto-play for one-shot actions.
+- Remove the experimental Action-length extension. ANM imports preserve native lengths/ranges; Fit resamples edited motion into an existing range. Retired experimental banks/executables require restoration before rebuilding.
+
+### Building and daily use
+
+- Add compact ASI overlay builds: `plugins/SH3Tools.dll`, a small ASI initializer and changed ARC/AFS entries or loose files under `plugins/SH3Tools/data`. Apply required patches in memory while retaining original files on disk.
+- Add portable asset packages and Merge mods with explicit per-asset conflicts; support original and current overlay layouts.
+- Add shared Build review with changed sizes, errors, warnings, pending room links and conditional patch reasons.
+- Add verified model names/aliases, themed build/exit/reload prompts, Save / Don't save / Cancel on exit, and detailed progress inside long-export dialogs.
+- Update installation, Blender workflows, format boundaries, runtime patch documentation and release instructions for 1.0.0.
+
+The main application remains Windows x64. The bundled add-on can be used independently in Blender, including macOS. Native skeletons and ANM layouts remain fixed; KG1 does not follow facial morphs; map/cutscene scripting and internal MDL/MAP conflict merging are outside this release. See [release notes](docs/releases/1.0.0.md) and [validation](docs/VALIDATION.md).
+
 ## 0.9.0 — Animation & Cutscene Workflows
 
 ### Cutscene animation

@@ -85,3 +85,9 @@ export function parseMorphAnimations(buffer) {
   }
   return clips;
 }
+
+/** Match the first native control in PACK section order; later duplicates never override it. */
+export function matchingCutsceneMorph(clips,modelId,targetCount) {
+  const first=clips.find(clip=>clip.type==='morph'&&clip.modelId===modelId);
+  return first?.targetCount===targetCount?first:null;
+}

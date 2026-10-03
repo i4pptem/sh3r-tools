@@ -42,7 +42,10 @@ try {
       `Silent Hill 3 Tools ${manifest.version}\r\nDeveloped by i4pptem. GPL-3.0-only.\r\n\r\n` +
       'Run Silent Hill 3 Tools.exe. Keep all files together.\r\n' +
       'For media conversion, close the app and run Install media.cmd once (internet required).\r\n' +
-      'For FBX and morph workspaces, install Blender 4.2+ separately.\r\n\r\n' +
+      'For FBX / .blend models, animations and cutscenes, install Blender 4.2+ separately.\r\n' +
+      'Blender Morph Tools 1.3.2 is included: resources/app/tools/blender/sh3_morph_transfer.py\r\n' +
+      'Install that .py file from Blender Preferences > Add-ons > Install from Disk.\r\n' +
+      'Morph guide: resources/app/docs/BLENDER-MORPH-TOOLS.md\r\n\r\n' +
       'Documentation: resources/app/README.md and resources/app/docs/\r\n' +
       'Source and releases: https://github.com/i4pptem/sh3r-tools\r\n' +
       'Back up game files before installing a built mod. No game files are included.\r\n');

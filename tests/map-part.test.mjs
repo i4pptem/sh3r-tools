@@ -39,8 +39,8 @@ test('special payload parts allow original-topology round trips and reject arbit
   assert.throws(()=>importMapPart(data,name,replacement(data)),/special native payload/);
 });
 
-test('transparent replacement respects original triangle budget and malformed attributes never stage',()=>{
-  const data=mapFixture({family:2});assert.throws(()=>importMapPart(data,name,replacement(data)),/transparent MAP/);
+test('transparent replacement supports new topology and malformed attributes never stage',()=>{
+  const data=mapFixture({family:2});assert.equal(parseMap(importMapPart(data,name,replacement(data))).model.meshes[0].triangleCount,4);
   const world=parseMap(mapFixture());world.model.meshes=[subdividedPart(world.model.meshes[0])];delete world.model.meshes[0].colors;
   assert.throws(()=>importMapPart(mapFixture(),name,exportGlb(world.model)),/vertex colors/);
 });
