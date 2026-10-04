@@ -2,6 +2,7 @@ import {inspectShadowProxy,exportShadowProxy,importShadowProxy} from './shadow-p
 import {animationChannels} from './animation-channels.mjs';
 import {modelDiagnostics} from './model-review.mjs';
 import {buildReview,buildFingerprint} from './build-review.mjs';
+import {validateAfsReplacement} from './afs-layout.mjs';
 import {writeCompactArchive,writeCompactManifest} from './compact-overlay.mjs';
 import {prepareCutsceneImport,applyCutsceneImport} from './cutscene-import.mjs';
 import {shadowCompanion,shadowBinding,stageModelWithShadow} from './shadow-rebuild.mjs';
@@ -9,6 +10,7 @@ import {worldName,bankName} from './world-action-names.mjs';
 import {modelName} from './model-names.mjs';
 import {assertFixedAnimation} from './animation.mjs';
 import {animationHeader} from './animation.mjs';
+import {prepareBatchReplace, applyBatchReplace} from './batch-replace.mjs';
 import {prepareModMerge,applyModMerge,exportModPackage} from './mod-merge.mjs';
 import {exportCutscene} from './cutscene-export.mjs';
 import {CutsceneLibrary} from './cutscene-library.mjs';
@@ -82,6 +84,9 @@ export class Workbench {
     Object.assign(this, workspace); this.sources = sources; this.reloadPlan = null; this.mergePlan = null; this.textureLibrary.reset(); this.mapHistory.clear(); this.mapCollisions.clear(); this.changes.clear(); this.modelPlan = null; this.animationPlan = null; this.scenePlan = null; this.motion = new MotionLibrary(this); this.cutscenes = new CutsceneLibrary(this);
     return this.snapshot();
   }
+  prepareBatchReplace(folder, options) {return prepareBatchReplace(this, folder, options);}
+  applyBatchReplace(token, ids) {return applyBatchReplace(this, token, ids);}
+  cancelBatchReplace(token) {if (this.batchPlan?.token === token) this.batchPlan = null;}
   prepareModMerge(files) {return prepareModMerge(this,files);}
   applyModMerge(token,choices) {return applyModMerge(this,token,choices);}
   cancelModMerge(token) {if(this.mergePlan?.token===token)this.mergePlan=null;}
@@ -365,6 +370,7 @@ export class Workbench {
   prepareChange(key, data, label) {
     const {archive,entry}=this.get(key); requireThat(data.length>0 && data.length<=MAX_ASSET,'Replacement must be between 1 byte and 256 MiB.');
     requireThat(archive.format!=='ARC' || entry.size===entry.size2,'This compressed ARC variant is read-only.');
+    validateAfsReplacement(archive,entry.index,data);
     if(['map','cld','cam'].includes(entry.extension))inspectWorld(data,entry.extension);
     if(entry.extension==='mdl')parseModel(data);
     if(entry.extension==='000')decodeMovie(data);

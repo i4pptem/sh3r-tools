@@ -97,8 +97,9 @@ export function motionControls(state, notify, run) {
       for (const [format, label] of [['anm', 'Gameplay / ANM'], ['pack', 'Cutscenes / PACK']]) {
         const clips = result.clips.filter(clip => clip.type === type && clip.sourceFormat === format);
         if (!clips.length) continue;
+        if (format === 'anm') clips.sort((a, b) => Number(b.actionCount > 0) - Number(a.actionCount > 0));
         const group = document.createElement('optgroup'); group.label = label;
-        for (const clip of clips) group.append(new Option(`${clip.name} · ${clip.frameCount} frames`, clip.id));
+        for (const clip of clips) group.append(new Option(`${clip.name} · ${clip.frameCount} frames${clip.actionCount ? ` · ${clip.actionCount} actions` : ''}`, clip.id));
         select.append(group);
       }
       select.value = selected || '';

@@ -2,6 +2,48 @@
 
 Validation combines synthetic regression tests, local real-asset checks, exchange comparisons and selected user-confirmed game tests. Private game assets and development trace dumps are not redistributed. The source test suite is self-contained.
 
+## 1.0.1
+
+The following checks cover the consolidated release. Intermediate suite counts record the checks performed when each feature was implemented; the final complete suite contains 394 tests.
+
+### Action catalogs and implicit skin weights
+
+The self-contained Node suite passed **394/394 tests**. New coverage checks native residual weights and distinct fourth palette indices, unchanged MDL/GLB round trips, invalid bone references, per-bank descriptor bounds and identity, placeholders, model/frame-layout restrictions, and reflection hierarchy compatibility. Repository source checks and the production UI build passed.
+
+The original executable yielded **510 additional bank/Action pairs** across 30 bank profiles, alongside the 11 existing Heather gameplay profiles. Descriptor IDs, sample bounds, native filename mappings, loader selectors and relevant function fingerprints were verified. Two original enemy Action setters passed **818 isolated x86 emulation checks** over all 409 enemy IDs. No live game process was attached or patched for this work.
+
+All 41 recognized real bank layouts produced bounded Action catalogs. Forty banks decoded with their matching installed models. The legacy en_ded1.mdl_ has a different/incomplete hierarchy and still cannot decode en_ded1.anm; its Action table alone does not resolve that model mismatch. All 28 installed Heather/player reflection variants accepted the unarmed bank and its 101 Actions.
+
+All **157 original PC MDLs** passed parsing after the skin correction. The supplied third-party archive's **28 MDLs** and standalone model also opened. The standalone 12,035-vertex, 57-part model exported to textured GLB and reimported without edits **byte-for-byte**. Synthetic checks also cover a fourth influence distinct from the first three. Original supplied files were not modified. New-topology writing remains limited to three authored influences.
+
+An isolated Electron UI check selected and played enemy, Heather costume/reflection and Game Over Actions through the actual controls, and previewed the supplied MDL through native replacement staging. It used a separate app profile and supplied file-dialog selections through the test harness. These are app/file-level and isolated native-code checks, not a new in-game acceptance test of every animation or replacement model.
+
+### Folder-based replacement
+
+The complete Node suite passed **380/380 tests**, with no skipped tests. Batch regression coverage includes unchanged inputs, AFS duplicate names and explicit entry indices, archive scoping, two texture slots in one MDL (fit and full size), MAP geometry preservation, overlapping inputs, malformed WAV/PNG, the native SD buffer cap, stale reviews and a file changing midway through an atomic batch. Repository source/profile checks and the production UI build passed.
+
+An isolated Electron instance exercised the actual folder-dialog handlers and review UI: ready/error/unmatched audio rows, selective WAV staging, then PNG staging from Texture Inspector. The preview image was read back and compared; no renderer exceptions occurred. Native dialog results were provided by the test harness. The review was visually inspected through an Electron capture.
+
+On the original PC Heather model, a batch of two texture slots produced exactly the same MDL bytes as sequential individual imports, while the other slots stayed unchanged. A two-sample HD/BD fixture was converted through the installed FFmpeg runtime; both replacements composed into the same BD without modifying its original files. These are file-level checks, not a new in-game acceptance test of arbitrary replacement packs.
+
+Antivirus reports on the development snapshots and the investigation limits are documented in [Antivirus verification](ANTIVIRUS.md).
+
+### Persistent file dialogs
+
+The complete Node suite passed **370/370 tests**, with no skipped tests. Six new tests exercise restart persistence, separate data/build locations, shared model export/import folders, cancellation, multi-selection, removed folders and malformed preferences. Syntax and repository checks passed.
+
+An isolated Electron integration check opened the original data folder through the real IPC handler, exported Heather to GLB, exported the add-on to another directory, exited the process and started a new one with the same test profile. Captured native-dialog options retained the independent data/model/add-on locations, and cancellation left preferences unchanged. Dialog results were supplied by the test harness; this verifies actual application routing and persistence, not a visual interaction with Windows Explorer.
+
+The separate antivirus investigation is recorded in [Antivirus verification](ANTIVIRUS.md). It does not certify the software malware-free or establish that every scanner will accept the new release.
+
+### AFS audio replacement
+
+The complete self-contained Node suite passed **364/364 tests**, with no skipped tests. New regression coverage includes replacements that grow/shrink across sector boundaries, first/middle/last entries, repeated builds, untouched entry preservation, native directory limits, and the `sd.afs` WAV buffer limit. Physical and compact output are compared byte-for-byte. Repository source/profile checks and the production UI build passed.
+
+The original game's x86 AFS parser was executed under emulation against the original and rebuilt 378-entry `sd.afs`. All rebuilt entry addresses agree with the native cumulative sector calculation. A separate 32-bit runtime harness passed **300 virtual I/O checks**, including cursor/completion handling, EOF and source/payload verification.
+
+The WAV attached to issue #2 was installed through the compact overlay in the user's actual game. Runtime capture confirmed that all **5,656 PCM bytes** matched the supplied 16,600 Hz mono sample, the native DirectSound buffer was created successfully, and an untouched sample remained byte-identical to the original. The user confirmed audible menu sounds. The existing three asset replacements were retained, and the original game executable and archives were not modified. The rebuilt physical AFS was checked against the compact virtual output; the audible game check used the DLL overlay.
+
 ## 1.0.0 release preparation
 
 On 2026-10-03, the complete self-contained Node suite passed **348/348 tests** with no skipped tests. All four Morph Tools regression scripts passed in Blender 5.2.2. Dependencies installed successfully from the frozen lockfile. The application bundles Morph Tools **1.3.2**; release preparation changes packaging/version and documentation without changing the transfer algorithm or native asset workflows.

@@ -1,5 +1,6 @@
 /* Native ARC substitution and scoped virtual AFS reads. Included by asi-runtime.c. */
-typedef struct { DWORD kind, size, virtualSize, entries; WCHAR path[MAX_PATH]; HANDLE base; } AssetSource;
+typedef struct { DWORD offset, sourceOffset, size; } AssetExtent;
+typedef struct { DWORD kind, size, virtualSize, entries, headerSize, extentCount; BYTE *header; AssetExtent *extents; WCHAR path[MAX_PATH]; HANDLE base; } AssetSource;
 typedef struct { DWORD source, index, size, offset; char name[1024]; WCHAR path[MAX_PATH]; HANDLE file; } AssetFile;
 typedef struct VirtualOpen { HANDLE handle; AssetSource *source; uint64_t position; struct VirtualOpen *next; } VirtualOpen;
 static AssetSource *assetSources;
@@ -49,14 +50,36 @@ static void readAssetSources(Reader *r,const WCHAR *game) {
     for(DWORD i=0;i<assetSourceCount;i++){
         AssetSource *source=assetSources+i;char relative[1024];WCHAR conflict[MAX_PATH];
         source->kind=number(r);source->size=number(r);source->virtualSize=number(r);assetString(r,relative,sizeof(relative));
-        if((source->kind!=1&&source->kind!=2)||!source->size||source->virtualSize<source->size || strncmp(relative,"data/",5))fail("Invalid compact archive descriptor.");
+        if((source->kind!=1&&source->kind!=2)||!source->size||!source->virtualSize || strncmp(relative,"data/",5))fail("Invalid compact archive descriptor.");
         assetPath(game,relative,source->path);assetPath(directory,relative,conflict);
         if(GetFileAttributesW(conflict)!=INVALID_FILE_ATTRIBUTES)fail("A full archive overlay conflicts with compact assets for the same archive. Remove the old build files before installing this mod.");
         for(DWORD n=0;n<i;n++)if(!_wcsicmp(source->path,assetSources[n].path))fail("Duplicate compact archive source.");
         source->base=verifiedAssetFile(source->path,source->size,take(r,32));
         if(source->kind==2){DWORD header[2],read;SetFilePointer(source->base,0,NULL,FILE_BEGIN);
             if(!ReadFile(source->base,header,8,&read,NULL)||read!=8||header[0]!=0x00534641||header[1]>100000||(uint64_t)8+header[1]*8>source->size)fail("Invalid original AFS directory.");source->entries=header[1];}
-
+        source->headerSize=number(r);
+        if(source->kind==1&&source->headerSize)fail("Unexpected ARC virtual header.");
+        if(source->kind==2&&(source->headerSize!=16+source->entries*8||source->virtualSize%2048))fail("Invalid virtual AFS header size.");
+        source->header=HeapAlloc(GetProcessHeap(),0,source->headerSize+1);if(!source->header)fail("Cannot allocate virtual header.");
+        memcpy(source->header,take(r,source->headerSize),source->headerSize);
+        if(source->kind==2){
+            DWORD *header=(DWORD *)source->header;uint64_t cursor=header[2];
+            if(header[0]!=0x00534641||header[1]!=source->entries||!source->entries||cursor<source->headerSize||cursor%2048||cursor/2048>65535)fail("Invalid virtual AFS directory.");
+            for(DWORD n=0;n<source->entries;n++){
+                uint64_t size=header[3+n*2],sectors=(size+2047)/2048;
+                if(header[2+n*2]!=cursor||sectors>65535)fail("AFS entries must follow the native sector order.");
+                cursor+=sectors*2048;if(cursor>source->virtualSize)fail("AFS entry exceeds virtual file.");
+            }
+        }
+        source->extentCount=number(r);
+        if(source->extentCount>source->entries+3||(source->kind==1&&source->extentCount))fail("Invalid virtual AFS extent count.");
+        source->extents=HeapAlloc(GetProcessHeap(),0,(source->extentCount+1)*sizeof(AssetExtent));if(!source->extents)fail("Cannot allocate virtual AFS extents.");
+        uint64_t end=0;
+        for(DWORD n=0;n<source->extentCount;n++){
+            AssetExtent *extent=source->extents+n;extent->offset=number(r);extent->sourceOffset=number(r);extent->size=number(r);
+            if(!extent->size||extent->offset<end||(uint64_t)extent->sourceOffset+extent->size>source->size||(uint64_t)extent->offset+extent->size>source->virtualSize)fail("Invalid virtual AFS source extent.");
+            end=(uint64_t)extent->offset+extent->size;
+        }
     }
 }
 static void readAssetFiles(Reader *r) {
@@ -68,7 +91,15 @@ static void readAssetFiles(Reader *r) {
         if(file->source>=assetSourceCount||!file->size||file->size>256*1024*1024 || strncmp(relative,"data/",5))fail("Invalid compact payload descriptor.");
         AssetSource *source=assetSources+file->source;
         if(source->kind==1){if(strncmp(file->name,"data/",5)||file->offset)fail("Invalid native ARC asset name.");}
-        else if(file->index>=source->entries || (uint64_t)8+file->index*8+8>source->size || file->offset<source->size || file->offset%2048 || (uint64_t)file->offset+file->size>source->virtualSize)fail("Invalid virtual AFS payload bounds.");
+        else if(file->index>=source->entries || (uint64_t)8+file->index*8+8>source->size || file->offset%2048 || (uint64_t)file->offset+file->size>source->virtualSize)fail("Invalid virtual AFS payload bounds.");
+        if(source->kind==2){
+            DWORD *record=(DWORD *)(source->header+8+file->index*8);
+            if(record[0]!=file->offset||record[1]!=file->size)fail("AFS payload and directory disagree.");
+            for(DWORD n=0;n<source->extentCount;n++){
+                AssetExtent *extent=source->extents+n;
+                if(file->offset<(uint64_t)extent->offset+extent->size&&extent->offset<(uint64_t)file->offset+file->size)fail("AFS replacement overlaps an original extent.");
+            }
+        }
         for(DWORD n=0;n<i;n++){
             AssetFile *other=assetFiles+n;
             if((source->kind==1&&!_stricmp(other->name,file->name))||(other->source==file->source&&other->index==file->index))fail("Duplicate compact asset identity.");
@@ -126,18 +157,21 @@ static BOOL backendRead(HANDLE file,uint64_t offset,BYTE *target,DWORD size) {
     if(!SetFilePointerEx(file,at,NULL,FILE_BEGIN)||!ReadFile(file,target,size,&read,NULL))return FALSE;
     if(read!=size){SetLastError(ERROR_READ_FAULT);return FALSE;}return TRUE;
 }
-static BOOL intersectRead(HANDLE file,uint64_t start,DWORD size,uint64_t offset,DWORD length,BYTE *output) {
+static BOOL intersectRead(HANDLE file,uint64_t sourceOffset,uint64_t start,DWORD size,uint64_t offset,DWORD length,BYTE *output) {
     uint64_t first=offset>start?offset:start,end=offset+length,limit=start+size;if(end>limit)end=limit;
-    return first>=end || backendRead(file,first-start,output+(SIZE_T)(first-offset),(DWORD)(end-first));
+    return first>=end || backendRead(file,sourceOffset+first-start,output+(SIZE_T)(first-offset),(DWORD)(end-first));
 }
 static BOOL virtualRead(VirtualOpen *record,BYTE *output,DWORD requested,uint64_t offset,DWORD *read) {
     AssetSource *source=record->source;*read=offset>=source->virtualSize?0:(DWORD)(((uint64_t)source->virtualSize-offset)<requested?source->virtualSize-offset:requested);
     if(!*read)return TRUE;memset(output,0,*read);
-    if(!intersectRead(source->base,0,source->size,offset,*read,output))return FALSE;
+    for(DWORD i=0;i<source->extentCount;i++){
+        AssetExtent *extent=source->extents+i;
+        if(!intersectRead(source->base,extent->sourceOffset,extent->offset,extent->size,offset,*read,output))return FALSE;
+    }
+    if(offset<source->headerSize){DWORD count=(DWORD)min((uint64_t)*read,source->headerSize-offset);memcpy(output,source->header+(SIZE_T)offset,count);}
     for(DWORD i=0;i<assetCount;i++)if(assetFiles[i].source==(DWORD)(source-assetSources)){
-        AssetFile *file=assetFiles+i;DWORD table[2]={file->offset,file->size};uint64_t at=8+(uint64_t)file->index*8,first=offset>at?offset:at,end=offset+*read;
-        if(end>at+8)end=at+8;if(first<end)memcpy(output+(SIZE_T)(first-offset),(BYTE *)table+(SIZE_T)(first-at),(SIZE_T)(end-first));
-        if(!intersectRead(file->file,file->offset,file->size,offset,*read,output))return FALSE;
+        AssetFile *file=assetFiles+i;
+        if(!intersectRead(file->file,0,file->offset,file->size,offset,*read,output))return FALSE;
     }
     return TRUE;
 }
@@ -206,7 +240,7 @@ static BOOL loadCompactAssets(const WCHAR *game) {
     BYTE *file=readFile(path,4*1024*1024+32,&size);if(size<52)fail("Truncated compact asset index.");
     hashBytes(file,size-32,hash);if(memcmp(hash,file+size-32,32))fail("Compact asset index checksum differs.");
     Reader reader={file,file+size-32};
-    if(memcmp(take(&reader,8),"SH3DATA1",8)||number(&reader)!=1)fail("Unsupported compact asset index.");
+    if(memcmp(take(&reader,8),"SH3DATA2",8)||number(&reader)!=2)fail("Unsupported compact asset index.");
     assetSourceCount=number(&reader);assetCount=number(&reader);
     if(assetSourceCount>512||assetCount>32768)fail("Compact asset index exceeds supported limits.");
     assetSources=HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,(assetSourceCount+1)*sizeof(*assetSources));

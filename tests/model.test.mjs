@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {parseModel, morphDocument, replaceMorphs} from '../core/model.mjs';
 import {exportGlb, importGlb} from '../core/gltf.mjs';
 import {align} from '../core/binary.mjs';
+import {modelFixture} from './helpers/model-fixture.mjs';
+import {modelLayout} from '../core/model.mjs';
 function fixture() {
   const data = Buffer.alloc(1024), base = 96, mesh = 304;
   data.writeUInt32LE(base, 20); data.writeUInt32LE(0xffff0003, base);
@@ -38,3 +40,43 @@ test('Corrupt MDL pointers fail before reading geometry', () => {const b = fixtu
 
 test('PC morph normals keep the render orientation at zero delta', () => {const m = parseModel(fixture()).meshes[0]; assert.deepEqual(m.morphNormals[0].slice(0, 3), [0, 0, 0]);});
 test('PC morph normal deltas invert the packed normal convention before bone transformation', () => {const b = fixture(); b.writeInt16LE(2048, 710); const m = parseModel(b).meshes[0]; assert.deepEqual(m.morphNormals[0].slice(0, 3), [.5, 0, 0]);});
+
+test('zero explicit MDL weights use the implicit fourth palette influence', () => {
+  const b = fixture(), at = 400;
+  b.fill(0, at + 12, at + 24);
+  const mesh = parseModel(b).meshes[0];
+  assert.deepEqual(mesh.weights.slice(0, 4), [0, 0, 0, 1]);
+  assert.deepEqual(mesh.joints.slice(0, 4), [0, 0, 0, 0]);
+  assert.deepEqual(importGlb(b, exportGlb(parseModel(b))), b);
+});
+
+test('partial explicit MDL weights retain their residual instead of being renormalized away', () => {
+  const b = fixture(), at = 400;
+  b.writeFloatLE(.25, at + 12); b.writeFloatLE(.125, at + 16); b.writeFloatLE(.125, at + 20);
+  assert.deepEqual(parseModel(b).meshes[0].weights.slice(0, 4), [.25, .125, .125, .5]);
+  assert.deepEqual(importGlb(b, exportGlb(parseModel(b))), b);
+});
+
+test('the implicit weight validates the fourth palette index only when it contributes', () => {
+  const b = fixture(), at = 400;
+  b[at + 27] = 255;
+  assert.doesNotThrow(() => parseModel(b));
+  b.writeFloatLE(0, at + 12);
+  assert.throws(() => parseModel(b), /Mesh_0_0, vertex 0: invalid skin bone reference for influence 4/);
+});
+
+test('invalid explicit weights still fail with the affected mesh and vertex', () => {
+  const b = fixture(); b.writeFloatLE(-.5, 412);
+  assert.throws(() => parseModel(b), /Mesh_0_0, vertex 0: invalid skin weights/);
+});
+
+test('four native palette indices remain independent in GLB skin data', () => {
+  const b = modelFixture(4), h = modelLayout(b), mesh = h.groups[0][1], at = mesh + b.readUInt32LE(mesh + 8);
+  b.writeUInt32LE(4, mesh + 28); b.writeUInt32LE(168, mesh + 32);
+  for (let i = 0; i < 4; i++) {b.writeUInt16LE(i, mesh + 168 + i * 2); b[at + 24 + i] = i;}
+  [.125, .25, .125].forEach((w, i) => b.writeFloatLE(w, at + 12 + i * 4));
+  const m = parseModel(b).meshes[0];
+  assert.deepEqual(m.weights.slice(0, 4), [.125, .25, .125, .5]);
+  assert.deepEqual(m.joints.slice(0, 4), [0, 1, 2, 3]);
+  assert.deepEqual(importGlb(b, exportGlb(parseModel(b))), b);
+});

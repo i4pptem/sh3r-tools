@@ -113,14 +113,16 @@ export function parseModel(buffer) {
         normals.push(...vec(v3(buffer, a + (skinned ? 28 : 12)), matrix, true));
         uv.push(...floats(buffer, a + (skinned ? 40 : 24), 2));
         const ws = skinned ? v3(buffer, a + 12) : [1, 0, 0];
-        requireThat(ws.every(w => w >= -0.001 && w <= 1.001), 'Invalid skin weights.');
-        const sum = ws.reduce((a, b) => a + b, 0); requireThat(sum > 0.0001, 'Zero skin weights.');
-        weights.push(...ws.map(w => w / sum), 0);
-        for (let j = 0; j < 3; j++) {
+        requireThat(ws.every(w => w >= -0.001 && w <= 1.001), `Mesh_${group}_${index}, vertex ${n}: invalid skin weights.`);
+        // The native shader supplies a fourth influence as 1 - (w0 + w1 + w2).
+        ws.push(Math.max(0, 1 - ws.reduce((a, b) => a + b, 0)));
+        const sum = ws.reduce((a, b) => a + b, 0);
+        weights.push(...ws.map(w => w / sum));
+        for (let j = 0; j < 4; j++) {
           const bone = skinned && ws[j] > 0 ? boneMap[buffer[a + 24 + j]] : 0;
-          requireThat(!bones.length || bone < bones.length, 'Invalid skin bone reference.'); joints.push(bone || 0);
+          requireThat(!bones.length || bone < bones.length, `Mesh_${group}_${index}, vertex ${n}: invalid skin bone reference for influence ${j + 1}.`);
+          joints.push(bone || 0);
         }
-        joints.push(0);
       }
       const strip = Array.from({length: indexCount}, (_, i) => buffer.readUInt32LE(indexOffset + i * 4));
       requireThat(strip.every(i => i < vertexCount), 'Invalid triangle strip index.');

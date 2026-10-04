@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import {AnimationRangeCatalog, readHeatherAnimationRanges} from '../core/anm-ranges.mjs';
+import {AnimationRangeCatalog, readAnimationRanges} from '../core/anm-ranges.mjs';
 
 test('unverified banks and modified layouts never acquire guessed action ranges', () => {
   const catalog = new AnimationRangeCatalog();
@@ -28,5 +28,25 @@ test('truncated PE section tables are rejected before reading animation descript
   const pe = Buffer.alloc(128); pe.writeUInt16LE(0x5a4d); pe.writeUInt32LE(64,0x3c);
   pe.writeUInt32LE(0x4550,64);pe.writeUInt16LE(0x14c,68);pe.writeUInt16LE(2,70);pe.writeUInt16LE(32,84);
   pe.writeUInt16LE(0x10b,88);pe.writeUInt32LE(0x400000,116);
-  assert.throws(() => readHeatherAnimationRanges(pe), /Truncated PE/);
+  assert.throws(() => readAnimationRanges(pe, 'chhaa_basic1_none.anm'), /Truncated PE/);
+});
+
+test('enemy profiles require their own model ID, frame count and non-test bank path', () => {
+  const catalog = new AnimationRangeCatalog(), base = {bankName:'data/chr/en/en_nse.anm',modelId:515,frameCount:1433};
+  assert.match(catalog.forBank(base).rangeNote, /Open the game data folder/);
+  assert.match(catalog.forBank({...base,frameCount:1763}).rangeNote, /1433-frame/);
+  assert.match(catalog.forBank({...base,modelId:256}).rangeNote, /model ID 0x203/);
+  assert.match(catalog.forBank({...base,bankName:'test/en_nse.anm'}).rangeNote, /No verified/);
+  assert.match(catalog.forBank({...base,bankName:'data\\chr\\en\\test\\en_nse.anm'}).rangeNote, /No verified/);
+  assert.match(catalog.forBank({...base,bankName:'DATA/CHR/EN/EN_NSE.ANM'}).rangeNote, /Open the game data folder/);
+});
+
+test('Game Over actions distinguish Heather and Split Worm while requiring their 996-frame layout', () => {
+  const catalog = new AnimationRangeCatalog();
+  for (const [prefix,modelId] of [['htr',256],['spi',530]]) {
+    const args = {bankName:prefix+'_gameover_none.anm',modelId,frameCount:996};
+    assert.match(catalog.forBank(args).rangeNote, /Open the game data folder/);
+    assert.match(catalog.forBank({...args,frameCount:1763}).rangeNote, /996-frame/);
+    assert.match(catalog.forBank({...args,modelId:modelId===256?530:256}).rangeNote, /model ID/);
+  }
 });

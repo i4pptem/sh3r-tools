@@ -25,7 +25,7 @@ Success notifications dismiss after five seconds; errors dismiss after eight sec
 
 ## Model export and workspace layout
 
-Select a PC MDL. In **Inspector → Export model**, choose **Export GLB** or **Export FBX**. Both include meshes, original mesh names, skeleton, skin weights, texture bindings and pose morph shape keys. FBX embeds textures and uses the installed Blender; it exports the model in its bind pose. Use the animation exchange controls for a selected ANM range. Use **Export Blender (.blend)** for a native Blender authoring scene. The single Import model action accepts GLB, GLTF, FBX and .blend; FBX and .blend require Blender.
+Select a PC MDL. In **Inspector → Export model**, choose **Export GLB** or **Export FBX**. Both include meshes, original mesh names, skeleton, skin weights, texture bindings and pose morph shape keys. Existing MDL skinning includes the native implicit fourth influence. Three zero stored weights mean full weight on the fourth palette index, rather than an unbound vertex. New-topology rebuilding still accepts at most three authored influences per vertex. FBX embeds textures and uses the installed Blender; it exports the model in its bind pose. Use the animation exchange controls for a selected ANM range. Use **Export Blender (.blend)** for a native Blender authoring scene. The single Import model action accepts GLB, GLTF, FBX and .blend; FBX and .blend require Blender.
 
 **Import model…** detects compatible attribute edits and topology/morph changes automatically. The morph workspace, native morph JSON, embedded textures, mesh visibility and native file actions are grouped in expandable Inspector sections. Asset information and integrity details are below the editing tools.
 
@@ -104,11 +104,13 @@ A cutscene starts character motion and its matching facial track together on the
 
 The model viewer previews and edits the selected character. The separate [Cutscene Inspector](CUTSCENES.md) loads the scene camera, characters, environment and audio together. Playback itself does not stage changes.
 
-### Find actions in Heather gameplay banks
+### Find actions in character and enemy banks
 
 Open the game's data folder with its **sh3.exe** in the parent folder. Select Heather and a **Gameplay / ANM** bank, then use **Action range**. The arrows step through the native action IDs. Selecting an action applies its inclusive first/last frame, loop flag and default playback rate. Custom frame bounds remain editable, and **Whole bank** restores the complete timeline. Export uses the currently selected bounds. **Auto-play**, beside Loop, repeats even actions whose native loop flag is off and starts each newly selected ANM action. It is a persistent preview preference; Pause and Stop still work. Turning it off restores the selected action’s loop behavior. It does not change bank data or PACK playback.
 
-The verified set covers 11 original 1763-frame chhaa_basic banks: none, hand, shot, mach, knif, pipe, blad, hamm, stun, sabe and flam. Action numbers come from the executable; descriptive movement names have not been mapped. Identical or overlapping intervals can be distinct native actions. Test banks, other models and unsupported executable profiles do not receive guessed ranges. The app reads this metadata locally and does not patch the executable for range discovery.
+Verified ranges cover the 11 original 1763-frame chhaa_basic banks, 17 enemy banks, the six htr_gameover and six spi_gameover banks, and en_zbb. The selector shows the number of Actions and places banks with verified ranges first. Compatible Heather costumes use the same gameplay banks. Reflection models (rchh*, model ID 0x180) can use Heather ANM when the loaded chhaa.mdl has the same 73-bone hierarchy; open the complete data folder to provide that reference. Memory of Alessa uses her own en_shb bank and Actions.
+
+Action numbers, inclusive bounds, loop flags and default rates come from the local executable. Only independently verified movement names are displayed; other entries retain Action IDs. Identical or overlapping intervals can be distinct native actions. The old pl_htr_a bank, test-folder banks, modified frame layouts and unsupported executable profiles retain custom ranges. The app does not infer ranges from a similar filename or frame count, and does not patch the executable for range discovery. A verified table does not supply a missing or incompatible model rig; the legacy en_ded1.mdl_ does not match the en_ded1 ANM skeleton.
 
 The default rate uses the native 60 Hz clock. Actual gameplay may alter speed and blend different upper/lower-body actions; isolated whole-rig preview does not reproduce that controller. The final frame is included. Choosing a range changes preview/export selection, not game action/event tables or bank length.
 

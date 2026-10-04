@@ -1,5 +1,25 @@
 # Troubleshooting
 
+## File dialogs forget the last folder
+
+Use 1.0.1 or later. Confirm a folder/file once; the app saves the location immediately in `file-dialogs.json` inside its Electron user-data directory, normally `%APPDATA%/silent-hill-3-tools`. The location survives restarting the app and moving to another portable release under the same Windows account. The app needs write access to that user-data directory.
+
+Game data, models, textures, projects, builds and other workflows keep separate locations. Model export and reimport share one folder. Cancelling a dialog preserves the last confirmed selection; simply browsing and cancelling does not update it. If the saved folder no longer exists, the nearest existing parent is used.
+
+## Antivirus reports a threat
+
+Keep the exact file, SHA-256, detection name and scan report. Check [Antivirus verification](ANTIVIRUS.md) before drawing a conclusion from a generic name. The reported development ZIP (identified by its exact hash in that document) was checked against upstream Electron and its source-built native plugins, but the precise Draftor trigger and vendor verdict remain unconfirmed. Do not treat rebuilding or a changed ZIP hash as proof that a detection has been resolved.
+
+## Replaced audio is silent or the wrong sound plays
+
+Rebuild AFS audio mods made with 1.0.0 using **1.0.1 or later**. The old layout could make the native game reader seek to the wrong sector after a sample replacement. Reopen the original sources and your saved project, or load the complete older build through **Merge mods**, then build again.
+
+For ASI overlay, install the complete matching `plugins` output and check `plugins/SH3Tools/SH3Tools.log`. The updated DLL requires its version 2 asset index; copying only the DLL or a WAV into an arbitrary loose folder is insufficient. For replacement-file builds, install the newly rebuilt AFS.
+
+Select the correct entry index: an AFS can contain multiple entries with the same filename. For example, the tested `sd.afs` contains two `10000.wav` entries, and the menu preloads entry 1. A replacement of entry 0 alone does not change that preloaded sound.
+
+WAV effects in `sd.afs` must fit **976,896 bytes including sector padding**. Use a shorter sample or a lower sample rate if it exceeds this native buffer. The reported 16,600 Hz PCM sample played correctly after the archive-layout fix; forcing the original sample rate was not necessary for that file. Other audio codecs and banks retain their own constraints.
+
 ## Media preview or conversion cannot start
 
 Run **Install media.cmd** from the extracted application folder and restart the app. It needs write access to that folder and an internet connection for the one-time verified download. A checksum mismatch is an error: do not replace the expected checksum with the hash of an unknown download. Developer setup uses `pnpm setup:media`.
@@ -10,7 +30,7 @@ Install Blender 4.2+ or set `SH3TOOLS_BLENDER` to the full executable path, then
 
 ## Blender Morph Tools is missing or still shows an older version
 
-The application includes the add-on file but does not install it into Blender. In 1.0.0, **Get Blender morph add-on…** exports version 1.3.2. Replace the old `sh3_morph_transfer.py` through Blender's Add-ons preferences, enable **Silent Hill 3 Morph Transfer**, restart Blender and open **3D View → Sidebar → SH3 Tools → Pose Morph Transfer → 1. Meshes**. The application card appears only on models with native morphs. See the [installation and morph guide](BLENDER-MORPH-TOOLS.md).
+The application includes the add-on file but does not install it into Blender. In 1.0.x, **Get Blender morph add-on…** exports version 1.3.2. Replace the old `sh3_morph_transfer.py` through Blender's Add-ons preferences, enable **Silent Hill 3 Morph Transfer**, restart Blender and open **3D View → Sidebar → SH3 Tools → Pose Morph Transfer → 1. Meshes**. The application card appears only on models with native morphs. See the [installation and morph guide](BLENDER-MORPH-TOOLS.md).
 
 ## “Skeleton edits are not supported by this import mode”
 
@@ -84,3 +104,11 @@ Use **Reload sources** in the offered dialog, the refresh button beside Sources,
 ## No action ranges appear for an animation bank
 
 Automatic discovery currently covers the 11 main 1763-frame Heather gameplay banks and a verified PC executable profile. Open the data folder with sh3.exe beside it; test banks and other animation layouts still use custom ranges. The app displays the reason when discovery is unavailable. Action IDs are native identifiers, not movement names. Rates are defaults from the game tables; gameplay state can adjust them.
+
+## Valid modded MDL reports Zero skin weights
+
+Use 1.0.1 or later. The PC vertex layout stores three explicit weights and four palette indices; the game calculates the fourth weight as `1 - (w0 + w1 + w2)`. Earlier readers incorrectly rejected three zero stored weights. This can occur in collapsed parts used to hide original geometry. The reader now preserves the native fourth influence rather than inventing a first-bone weight. Invalid palette references still produce an error naming the mesh, vertex and influence.
+
+## Actions are missing on a character or enemy
+
+Open the complete game data folder, with the supported sh3.exe in its parent directory, then select a compatible ANM in **Clips & tools**. Verified banks appear first and show their Action count. Heather costumes share her normal gameplay banks; rchh reflection models also need a matching chhaa.mdl hierarchy in the loaded library. Memory of Alessa uses en_shb.anm. Legacy pl_htr_a/test banks and changed frame layouts retain custom ranges. An unknown executable's tables are not guessed.

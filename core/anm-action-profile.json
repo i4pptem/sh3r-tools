@@ -1,0 +1,458 @@
+{
+  "schemaVersion": 1,
+  "executableSha256": "a51f956bd5be21fd704c4d19cf0674a175d002081da43b1d377be83226c36e5e",
+  "familySignatures": {
+    "enemy": [
+      {
+        "address": 5297904,
+        "length": 48,
+        "sha256": "7c485e00e111e2ff1aac168259c0e72aa569b6842fe3a0d47adcbc23235ab593"
+      },
+      {
+        "address": 5473232,
+        "length": 48,
+        "sha256": "0ca30e41e43e9c8ea0115b49f37ba51fcb2eac5b70fc49d6efbe3ddcb795da7a"
+      },
+      {
+        "address": 5888192,
+        "length": 96,
+        "sha256": "907042f49682d9b3676be4903b61d9e4f3b6a1e4dbdb51caaa3c5334af3fa4f4"
+      }
+    ],
+    "splitWormGameover": [
+      {
+        "address": 4871712,
+        "length": 160,
+        "sha256": "63dea5f6f1340e7cb3336747671e9d9ee5ee6df064c6a7a80d4ef65d3575a6b2"
+      },
+      {
+        "address": 4871872,
+        "length": 32,
+        "sha256": "6018b60f46ff86e1f0dc02e791144ee5d3c96df461a5a3a7beb03e7d43a3c3d9"
+      },
+      {
+        "address": 4629712,
+        "length": 160,
+        "sha256": "a31223cf00742b75dd4ede6d9319a5db7be26dca7c6600f6840f2ee461dcd633"
+      }
+    ],
+    "heatherGameover": [
+      {
+        "address": 5005216,
+        "length": 64,
+        "sha256": "e0b4bb121e57973e7a7a9ef967e3e0bec523e866babd368648f6bbc90e57a155"
+      },
+      {
+        "address": 5012059,
+        "length": 47,
+        "sha256": "a0403b38c0fffc96e8a2a895ca93b78f65f788fd298c5e18c3089572fbce4448"
+      },
+      {
+        "address": 5884795,
+        "length": 74,
+        "sha256": "c058c83fa01d9261168de392658e0ca5368c0e9c6499a84786fba4f34e93251f"
+      }
+    ],
+    "backgroundZbb": [
+      {
+        "address": 4856544,
+        "length": 224,
+        "sha256": "e7e4feeb175d7fe1b5807cfbe5dd67ad03e7e3e65b142029558d40acbf0b37fd"
+      }
+    ]
+  },
+  "banks": [
+    {
+      "bankName": "en_one.anm",
+      "modelId": 512,
+      "frameCount": 1208,
+      "firstId": 5000,
+      "lastId": 5036,
+      "tableAddress": 7455880,
+      "resourceRowAddress": 7410136,
+      "resourceNameIndex": 36,
+      "resourceName": "data/chr/en/en_one.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_ckn.anm",
+      "modelId": 513,
+      "frameCount": 1106,
+      "firstId": 5037,
+      "lastId": 5065,
+      "tableAddress": 7456324,
+      "resourceRowAddress": 7410224,
+      "resourceNameIndex": 50,
+      "resourceName": "data/chr/en/en_ckn.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_aid.anm",
+      "modelId": 514,
+      "frameCount": 880,
+      "firstId": 5066,
+      "lastId": 5089,
+      "tableAddress": 7456672,
+      "resourceRowAddress": 7410152,
+      "resourceNameIndex": 42,
+      "resourceName": "data/chr/en/en_aid.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_nse.anm",
+      "modelId": 515,
+      "frameCount": 1433,
+      "firstId": 5090,
+      "lastId": 5122,
+      "tableAddress": 7456960,
+      "resourceRowAddress": 7410240,
+      "resourceNameIndex": 56,
+      "resourceName": "data/chr/en/en_nse.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_deb.anm",
+      "modelId": 516,
+      "frameCount": 893,
+      "firstId": 5123,
+      "lastId": 5158,
+      "tableAddress": 7457356,
+      "resourceRowAddress": 7410232,
+      "resourceNameIndex": 53,
+      "resourceName": "data/chr/en/en_deb.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_fly.anm",
+      "modelId": 517,
+      "frameCount": 1072,
+      "firstId": 5159,
+      "lastId": 5188,
+      "tableAddress": 7457788,
+      "resourceRowAddress": 7410216,
+      "resourceNameIndex": 47,
+      "resourceName": "data/chr/en/en_fly.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_rod.anm",
+      "modelId": 519,
+      "frameCount": 100,
+      "firstId": 5189,
+      "lastId": 5189,
+      "tableAddress": 7458148,
+      "resourceRowAddress": 7410264,
+      "resourceNameIndex": 65,
+      "resourceName": "data/chr/en/en_rod.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_ded1.anm",
+      "modelId": 520,
+      "frameCount": 280,
+      "firstId": 5190,
+      "lastId": 5192,
+      "tableAddress": 7458160,
+      "resourceRowAddress": 7410304,
+      "resourceNameIndex": 78,
+      "resourceName": "data/chr/en/en_ded1.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_mry.anm",
+      "modelId": 521,
+      "frameCount": 76,
+      "firstId": 5193,
+      "lastId": 5195,
+      "tableAddress": 7458196,
+      "resourceRowAddress": 7410288,
+      "resourceNameIndex": 72,
+      "resourceName": "data/chr/en/en_mry.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_lie.anm",
+      "modelId": 522,
+      "frameCount": 615,
+      "firstId": 5196,
+      "lastId": 5231,
+      "tableAddress": 7458232,
+      "resourceRowAddress": 7410312,
+      "resourceNameIndex": 80,
+      "resourceName": "data/chr/en/en_lie.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_lix.anm",
+      "modelId": 523,
+      "frameCount": 615,
+      "firstId": 5196,
+      "lastId": 5231,
+      "tableAddress": 7458232,
+      "resourceRowAddress": 7410320,
+      "resourceNameIndex": 83,
+      "resourceName": "data/chr/en/en_lix.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_smb.anm",
+      "modelId": 528,
+      "frameCount": 1980,
+      "firstId": 5232,
+      "lastId": 5274,
+      "tableAddress": 7458664,
+      "resourceRowAddress": 7410144,
+      "resourceNameIndex": 39,
+      "resourceName": "data/chr/en/en_smb.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_ap2.anm",
+      "modelId": 518,
+      "frameCount": 1477,
+      "firstId": 5275,
+      "lastId": 5314,
+      "tableAddress": 7459180,
+      "resourceRowAddress": 7410256,
+      "resourceNameIndex": 62,
+      "resourceName": "data/chr/en/en_ap2.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_apb.anm",
+      "modelId": 529,
+      "frameCount": 1477,
+      "firstId": 5275,
+      "lastId": 5314,
+      "tableAddress": 7459180,
+      "resourceRowAddress": 7410248,
+      "resourceNameIndex": 59,
+      "resourceName": "data/chr/en/en_apb.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_hpb.anm",
+      "modelId": 531,
+      "frameCount": 1728,
+      "firstId": 5315,
+      "lastId": 5352,
+      "tableAddress": 7459660,
+      "resourceRowAddress": 7410272,
+      "resourceNameIndex": 67,
+      "resourceName": "data/chr/en/en_hpb.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_shb.anm",
+      "modelId": 532,
+      "frameCount": 713,
+      "firstId": 5353,
+      "lastId": 5371,
+      "tableAddress": 7460116,
+      "resourceRowAddress": 7410280,
+      "resourceNameIndex": 70,
+      "resourceName": "data/chr/en/en_shb.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "en_bhr.anm",
+      "modelId": 533,
+      "frameCount": 1237,
+      "firstId": 5372,
+      "lastId": 5408,
+      "tableAddress": 7460344,
+      "resourceRowAddress": 7410296,
+      "resourceNameIndex": 75,
+      "resourceName": "data/chr/en/en_bhr.anm",
+      "family": "enemy"
+    },
+    {
+      "bankName": "spi_gameover_none.anm",
+      "modelId": 530,
+      "frameCount": 996,
+      "firstId": 2000,
+      "lastId": 2001,
+      "tableAddress": 7117096,
+      "resourceRowAddress": 7410168,
+      "resourceNameIndex": 216,
+      "resourceName": "data/chr/en/spi_gameover_none.anm",
+      "playerBankSelectors": [],
+      "family": "splitWormGameover"
+    },
+    {
+      "bankName": "spi_gameover_mach.anm",
+      "modelId": 530,
+      "frameCount": 996,
+      "firstId": 2000,
+      "lastId": 2001,
+      "tableAddress": 7117096,
+      "resourceRowAddress": 7410176,
+      "resourceNameIndex": 217,
+      "resourceName": "data/chr/en/spi_gameover_mach.anm",
+      "playerBankSelectors": [],
+      "family": "splitWormGameover"
+    },
+    {
+      "bankName": "spi_gameover_shot.anm",
+      "modelId": 530,
+      "frameCount": 996,
+      "firstId": 2000,
+      "lastId": 2001,
+      "tableAddress": 7117096,
+      "resourceRowAddress": 7410184,
+      "resourceNameIndex": 218,
+      "resourceName": "data/chr/en/spi_gameover_shot.anm",
+      "playerBankSelectors": [],
+      "family": "splitWormGameover"
+    },
+    {
+      "bankName": "spi_gameover_pipe.anm",
+      "modelId": 530,
+      "frameCount": 996,
+      "firstId": 2000,
+      "lastId": 2001,
+      "tableAddress": 7117096,
+      "resourceRowAddress": 7410192,
+      "resourceNameIndex": 219,
+      "resourceName": "data/chr/en/spi_gameover_pipe.anm",
+      "playerBankSelectors": [],
+      "family": "splitWormGameover"
+    },
+    {
+      "bankName": "spi_gameover_hamm.anm",
+      "modelId": 530,
+      "frameCount": 996,
+      "firstId": 2000,
+      "lastId": 2001,
+      "tableAddress": 7117096,
+      "resourceRowAddress": 7410200,
+      "resourceNameIndex": 220,
+      "resourceName": "data/chr/en/spi_gameover_hamm.anm",
+      "playerBankSelectors": [],
+      "family": "splitWormGameover"
+    },
+    {
+      "bankName": "spi_gameover_blad.anm",
+      "modelId": 530,
+      "frameCount": 996,
+      "firstId": 2000,
+      "lastId": 2001,
+      "tableAddress": 7117096,
+      "resourceRowAddress": 7410208,
+      "resourceNameIndex": 221,
+      "resourceName": "data/chr/en/spi_gameover_blad.anm",
+      "playerBankSelectors": [],
+      "family": "splitWormGameover"
+    },
+    {
+      "bankName": "htr_gameover_none.anm",
+      "modelId": 256,
+      "frameCount": 996,
+      "firstId": 539,
+      "lastId": 540,
+      "tableAddress": 7143016,
+      "resourceRowAddress": null,
+      "resourceNameIndex": 210,
+      "resourceName": "data/chr/pl/htr_gameover_none.anm",
+      "playerBankSelectors": [
+        7411734,
+        7411736,
+        7411752,
+        7411754
+      ],
+      "family": "heatherGameover"
+    },
+    {
+      "bankName": "htr_gameover_mach.anm",
+      "modelId": 256,
+      "frameCount": 996,
+      "firstId": 539,
+      "lastId": 540,
+      "tableAddress": 7143016,
+      "resourceRowAddress": null,
+      "resourceNameIndex": 211,
+      "resourceName": "data/chr/pl/htr_gameover_mach.anm",
+      "playerBankSelectors": [
+        7411746,
+        7411758,
+        7411760
+      ],
+      "family": "heatherGameover"
+    },
+    {
+      "bankName": "htr_gameover_shot.anm",
+      "modelId": 256,
+      "frameCount": 996,
+      "firstId": 539,
+      "lastId": 540,
+      "tableAddress": 7143016,
+      "resourceRowAddress": null,
+      "resourceNameIndex": 212,
+      "resourceName": "data/chr/pl/htr_gameover_shot.anm",
+      "playerBankSelectors": [
+        7411756
+      ],
+      "family": "heatherGameover"
+    },
+    {
+      "bankName": "htr_gameover_pipe.anm",
+      "modelId": 256,
+      "frameCount": 996,
+      "firstId": 539,
+      "lastId": 540,
+      "tableAddress": 7143016,
+      "resourceRowAddress": null,
+      "resourceNameIndex": 213,
+      "resourceName": "data/chr/pl/htr_gameover_pipe.anm",
+      "playerBankSelectors": [
+        7411738,
+        7411748,
+        7411750
+      ],
+      "family": "heatherGameover"
+    },
+    {
+      "bankName": "htr_gameover_hamm.anm",
+      "modelId": 256,
+      "frameCount": 996,
+      "firstId": 539,
+      "lastId": 540,
+      "tableAddress": 7143016,
+      "resourceRowAddress": null,
+      "resourceNameIndex": 214,
+      "resourceName": "data/chr/pl/htr_gameover_hamm.anm",
+      "playerBankSelectors": [
+        7411740
+      ],
+      "family": "heatherGameover"
+    },
+    {
+      "bankName": "htr_gameover_blad.anm",
+      "modelId": 256,
+      "frameCount": 996,
+      "firstId": 539,
+      "lastId": 540,
+      "tableAddress": 7143016,
+      "resourceRowAddress": null,
+      "resourceNameIndex": 215,
+      "resourceName": "data/chr/pl/htr_gameover_blad.anm",
+      "playerBankSelectors": [
+        7411742,
+        7411744
+      ],
+      "family": "heatherGameover"
+    },
+    {
+      "bankName": "en_zbb.anm",
+      "modelId": 4157,
+      "frameCount": 38,
+      "firstId": 10012,
+      "lastId": 10012,
+      "tableAddress": 7116616,
+      "resourceRowAddress": 7410816,
+      "resourceNameIndex": 186,
+      "resourceName": "data/chr/bg/en_zbb.anm",
+      "family": "backgroundZbb"
+    }
+  ]
+}

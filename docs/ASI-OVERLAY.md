@@ -18,7 +18,7 @@ Game/
       runtime-buffers.json
       data/
         pcchr/...               changed ARC assets at native paths
-        demo_afs/name.afs.entries/entry_00000.pack
+        sound/demo_afs/name.afs.entries/entry_00000.pack
         movie/...               loose replacements
         pic/...
         sound/...
@@ -36,6 +36,10 @@ Game/
 ## Compact assets and compatibility
 
 Only changed ARC/AFS entries are distributed. ARC replacements follow their native paths; AFS payloads use a separate `.afs.entries` directory so the archive itself remains available. The native reader combines original archive bytes, changed directory entries, padding and replacement payloads as needed. No complete original archive or catalog is copied or materialized.
+
+AFS entries follow their original index order on 2,048-byte boundaries. The game derives their addresses from the first sector and the rounded entry lengths, so changing only a later directory offset is insufficient. Both build modes use this layout; compact overlays read untouched entries from their original source offsets even when a changed payload shifts the virtual positions.
+
+**Upgrading from 1.0.0:** 1.0.1 uses compact asset index version 2. Rebuild the mod from its saved project, or import a complete older build through **Merge mods** against matching original sources, then build again. Install the generated DLL, asset index and payloads together. Replacing only the DLL in a version 1 package is not supported.
 
 Source archive/catalog checksums and replacement hashes are verified on startup. A mod requires the same original archives used to build it. Compact mods cannot coexist with whole-archive overlays for the same archive. Merge changes in the tool first. Merge mods accepts the current layout and manifests from older `update` builds.
 

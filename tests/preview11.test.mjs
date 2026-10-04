@@ -31,7 +31,7 @@ for(const format of ['ARC','AFS'])test(`${format} compact package contains chang
 });
 test('virtual AFS is byte-equivalent across header, original, padding, new payload and EOF reads',t=>{
   const root=fixture(t),source=archive(root,'AFS'),base=fs.readFileSync(source.file),payloads=new Map([[0,Buffer.alloc(9001,0x76)]]),report=writeCompactArchive(source,payloads,path.join(root,'mod'));
-  const all=readVirtualAfs(base,report,payloads,0,report.virtualSize);assert.equal(all.readUInt32LE(8),4096);assert.equal(all.readUInt32LE(12),9001);assert.deepEqual(all.subarray(4096,13097),payloads.get(0));
+  const all=readVirtualAfs(base,report,payloads,0,report.virtualSize);assert.equal(all.readUInt32LE(8),2048);assert.equal(all.readUInt32LE(12),9001);assert.deepEqual(all.subarray(2048,11049),payloads.get(0));
   for(const start of [0,8,10,4090,4096,8190,13090,report.virtualSize-1,report.virtualSize+1])assert.deepEqual(readVirtualAfs(base,report,payloads,start,4096),all.subarray(start,start+4096));
 });
 test('ordinary ARC reserves a raw block table for every 64KiB of an enlarged entry',t=>{

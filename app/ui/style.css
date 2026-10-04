@@ -385,3 +385,23 @@ main{flex:1;min-width:0;position:relative}
 .model-review-host canvas{display:block;width:100%;height:100%}.review-dialog .hint{font-size:12px;color:var(--muted);line-height:1.5;margin:10px 0}.review-dialog h3{margin:18px 0 10px}.review-dialog .review-content>p{margin-bottom:12px}.review-dialog .model-review-views strong{display:block;margin-bottom:6px}
 
 .review-patch{padding:8px 0}.review-patch details button{display:block;margin:6px 0;text-align:left;white-space:normal}
+
+.batch-dialog {width:min(1050px,94vw)}
+.batch-dialog form {min-width:0}
+.batch-settings {display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:12px;margin:16px 0}
+.batch-settings label {display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.batch-settings select {min-width:0;width:100%}
+.batch-folder {overflow-wrap:anywhere}
+.batch-review-tools,.batch-pages {display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0}
+.batch-review-tools label {display:flex;align-items:center;gap:8px}
+.batch-list {max-height:36vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.batch-row {display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:start;gap:10px;padding:11px;border-bottom:1px solid var(--line)}
+.batch-row:last-child {border-bottom:0}
+.batch-row>div {display:flex;flex-direction:column;gap:5px;overflow-wrap:anywhere}
+.batch-row strong {font-size:12px}.batch-row span,.batch-row small {font-size:11px;color:var(--muted)}
+.batch-badge {padding:3px 7px;border:1px solid var(--line);border-radius:5px;text-transform:capitalize}
+.batch-badge.ready {color:#beca9e}.batch-badge.error,.batch-badge.conflict {color:#e6a697}
+.batch-error {color:#e6a697;white-space:pre-wrap}.batch-error:empty,.batch-folder:empty {display:none}
+.batch-dialog details {font-size:12px;max-height:120px;overflow:auto}
+@media(max-width:800px){.batch-settings{grid-template-columns:1fr}.batch-list{max-height:28vh}}
+.batch-settings label[hidden] {display:none}

@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.0.1 — Audio fixes, batch replacement and more Actions
+
+### Audio replacement
+
+- Fix silent or incorrect AFS replacements in both **Replace game files** and **ASI overlay** builds ([#2](https://github.com/i4pptem/sh3r-tools/issues/2)). Rebuild entries in the sector order expected by the native audio reader.
+- Preserve untouched sounds when a replacement grows or shrinks. Compact overlays distribute changed payloads and remap original archive bytes without bundling the full sound archive.
+- Validate the native `sd.afs` WAV buffer limit before staging oversized samples.
+- Update the compact overlay index to version 2. Rebuild older AFS mods and install the complete generated output; the DLL and asset index must come from the same build.
+
+### Batch replacement and remembered folders
+
+- Add **Replace from folder** for textures and audio, with archive-aware matching, selectable validation results, progress and atomic staging.
+- Import PNGs into supported standalone, MDL/MAP and font slots. Combine multiple slot changes within the same asset while retaining Fit / Full size restrictions.
+- Match native WAV/ADX/AIX and numbered AFS entries; import AIX/HD+BD WAV tracks through the existing converters and duration rules.
+- Report ambiguous names, overlapping inputs, unsupported formats, unchanged files, stale reviews and resource limits before staging.
+- Remember confirmed file-dialog locations across restarts. **Open data folder** retains its own location; related model, animation, texture, map and cutscene import/export actions share folders. Project and build locations remain separate.
+- Preserve folder history on cancellation and use an existing parent when a saved directory has been removed.
+
+### Models and animation
+
+- Add verified **Action ranges** for enemy ANM banks, including Memory of Alessa, and the separate Heather / Split Worm Game Over banks. Use each bank's native frame bounds, loop flag and default playback rate.
+- Enable Heather ANM playback on reflection models after matching their hierarchy to the loaded canonical Heather. Compatible costumes retain her gameplay Actions.
+- Show Action counts in the animation-bank selector and list verified banks first. Unverified layouts keep manual frame ranges; discovery does not modify the executable or animation lengths.
+- Fix **Zero skin weights** when opening valid third-party MDLs. Decode the native fourth influence as the remainder of the first three weights, including zero-filled collapsed parts, and preserve it in preview and GLB export.
+
+Blender Morph Tools **1.3.2** remains included. The complete suite passed **394/394 tests**, with additional real-asset, packaged UI and native-reader checks. The reported menu WAV was confirmed audible in game. See [release notes](docs/releases/1.0.1.md), [validation](docs/VALIDATION.md) and the [batch workflow](docs/BATCH-REPLACE.md).
+
+The antivirus investigation records the reported native-plugin detections and reproducible component hashes; their vendor classification remains unresolved. This release does not claim an antivirus signature fix. See [antivirus verification](docs/ANTIVIRUS.md).
+
 ## 1.0.0 — Asset authoring and compact mods
 
 Changes since **0.9.0**, including the intermediate development previews. See the [illustrated release notes](docs/releases/1.0.0.md) for screenshots, installation and the full feature tour.

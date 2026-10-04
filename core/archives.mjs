@@ -1,3 +1,4 @@
+import {writeAfsLayout} from './afs-layout.mjs';
 import {assertSources} from './source-state.mjs';
 import {assetFormat} from './asset-format.mjs';
 import fs from 'node:fs';
@@ -102,29 +103,32 @@ function extendRawDirectory(archive, replacements, output) {
   return archive.size + growth;
 }
 
-/** Preserve opaque data and untouched payloads; redirect changed entries to appended, aligned payloads. */
+/** Rebuild sector-ordered AFS entries or append ARC entries, preserving untouched payloads. */
 export function buildArchive(archive, replacements, output, progress = () => {}) {
   assertSources([archive]);
   requireThat(!fs.existsSync(output), 'Build output already exists.');
-  fs.copyFileSync(archive.file, output, fs.constants.COPYFILE_EXCL);
-  const handle = fs.openSync(output, 'r+');
-  try {
-    let cursor = archive.format === 'ARC' && replacements.size ? extendRawDirectory(archive, replacements, handle) : archive.size;
-    for (const [index, replacement] of replacements) {
-      const entry = archive.entries[index]; requireThat(entry, 'Unknown replacement entry.');
-      requireThat(archive.format !== 'ARC' || entry.size === entry.size2, 'Compressed ARC entries cannot be replaced yet.');
-      cursor = align(cursor, archive.format === 'AFS' ? 2048 : 16);
-      requireThat(cursor + replacement.length <= 0xffffffff, 'Patched archive exceeds the 4 GiB format limit.');
-      fs.writeSync(handle, replacement, 0, replacement.length, cursor);
-      const value = Buffer.alloc(4); value.writeUInt32LE(cursor);
-      fs.writeSync(handle, value, 0, 4, entry.tableOffset);
-      value.writeUInt32LE(replacement.length);
-      fs.writeSync(handle, value, 0, 4, entry.tableOffset + (archive.format === 'ARC' ? 8 : 4));
-      if (archive.format === 'ARC') fs.writeSync(handle, value, 0, 4, entry.tableOffset + 12);
-      cursor += replacement.length;
-    }
-    fs.fsyncSync(handle);
-  } finally { fs.closeSync(handle); }
+  if (archive.format === 'AFS' && replacements.size) writeAfsLayout(archive, replacements, output);
+  else {
+    fs.copyFileSync(archive.file, output, fs.constants.COPYFILE_EXCL);
+    const handle = fs.openSync(output, 'r+');
+    try {
+      let cursor = archive.format === 'ARC' && replacements.size ? extendRawDirectory(archive, replacements, handle) : archive.size;
+      for (const [index, replacement] of replacements) {
+        const entry = archive.entries[index]; requireThat(entry, 'Unknown replacement entry.');
+        requireThat(archive.format !== 'ARC' || entry.size === entry.size2, 'Compressed ARC entries cannot be replaced yet.');
+        cursor = align(cursor, archive.format === 'AFS' ? 2048 : 16);
+        requireThat(cursor + replacement.length <= 0xffffffff, 'Patched archive exceeds the 4 GiB format limit.');
+        fs.writeSync(handle, replacement, 0, replacement.length, cursor);
+        const value = Buffer.alloc(4); value.writeUInt32LE(cursor);
+        fs.writeSync(handle, value, 0, 4, entry.tableOffset);
+        value.writeUInt32LE(replacement.length);
+        fs.writeSync(handle, value, 0, 4, entry.tableOffset + (archive.format === 'ARC' ? 8 : 4));
+        if (archive.format === 'ARC') fs.writeSync(handle, value, 0, 4, entry.tableOffset + 12);
+        cursor += replacement.length;
+      }
+      fs.fsyncSync(handle);
+    } finally { fs.closeSync(handle); }
+  }
   const verified = openArchive(output, archive.entries);
   for (const original of archive.entries) {
     const expected = replacements.get(original.index) ?? entryBytes(archive, original.index);

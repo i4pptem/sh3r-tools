@@ -7,7 +7,7 @@ The repository and artifacts are prepared locally first. No tool script pushes G
 1. Review README, credits, license, screenshots and the supported-feature boundaries.
 2. Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm check:repo` and `pnpm build` from the standalone repository.
 3. Run `pnpm package`, then `pnpm release:zip`. Existing output archives are preserved; move old candidates aside before intentionally rebuilding the same version.
-4. Verify the bundled `resources/app/tools/blender/sh3_morph_transfer.py` matches the source and reports version 1.3.2 for application 1.0.0. Run the [Blender checks](DEVELOPMENT.md#blender-checks).
+4. Verify the bundled `resources/app/tools/blender/sh3_morph_transfer.py` matches the source and reports version 1.3.2 for application 1.0.x. Run the [Blender checks](DEVELOPMENT.md#blender-checks).
 5. Extract the portable ZIP into a fresh folder. Launch it, run **Install media.cmd**, verify media conversion and exercise the editing workflows relevant to the release. Optional Blender workflows need an installed Blender.
 6. Inspect ZIP inventories. No game EXE, ARC/AFS, extracted game assets, user projects, research, local paths, credentials or `node_modules` development tree belong in the source archive. The portable contains Electron's executable, not the game's executable.
 7. Commit the reviewed public source, create/push the tag matching `package.json` (prefix `v`), then publish a GitHub Release using the matching section of [CHANGELOG](../CHANGELOG.md) as the starting point for release notes.

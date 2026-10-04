@@ -1,6 +1,6 @@
 {
   "name": "silent-hill-3-tools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local archive and asset workbench for Silent Hill 3 PC",
   "private": true,
   "type": "module",

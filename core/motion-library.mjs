@@ -15,15 +15,26 @@ export class MotionLibrary {
   }
   model(key) {
     const data = this.workbench.bytes(key), h = modelLayout(data);
-    return {modelId: data.readUInt32LE(4), morphCount: h.morphCount,
+    const result = {modelId: data.readUInt32LE(4), morphCount: h.morphCount,
       parents: Array.from({length: h.boneCount}, (_, i) => data.readInt8(h.parentOffset + i))};
+    if (result.modelId === 0x180 && result.parents.length === 73) {
+      const canonical = this.workbench.snapshot().entries.find(entry => /(?:^|\/)chhaa\.mdl$/i.test(entry.name));
+      if (canonical) {
+        const reference = this.workbench.bytes(canonical.key), layout = modelLayout(reference);
+        if (reference.readUInt32LE(4) === 0x100 && layout.boneCount === result.parents.length &&
+            result.parents.every((parent, i) => parent === reference.readInt8(layout.parentOffset + i))) result.anmModelId = 0x100;
+      }
+    }
+    return result;
   }
   compatible(model, clip) {
-    return clip.modelId === model.modelId && (clip.type !== 'morph' || clip.targetCount === model.morphCount) &&
+    const modelId = clip.sourceFormat !== 'pack' && clip.type !== 'morph' ? model.anmModelId ?? model.modelId : model.modelId;
+    return clip.modelId === modelId && (clip.type !== 'morph' || clip.targetCount === model.morphCount) &&
       (clip.boneCount === undefined || clip.boneCount === model.parents.length);
   }
   metadata(clip, id = clip.id) {
-    return {id, name: clip.name, type: clip.type, modelId: clip.modelId, frameCount: clip.frameCount,
+    const actionCount = clip.type === 'skeletal' && clip.sourceFormat !== 'pack' ? this.actionRanges(clip, clip.name).ranges.length : 0;
+    return {id, name: clip.name, type: clip.type, modelId: clip.modelId, frameCount: clip.frameCount, actionCount,
       sourceFormat: clip.sourceFormat || 'anm', sceneId: clip.sceneId, assetKey: clip.assetKey, sectionIndex: clip.sectionIndex, fps: 30};
   }
   source(key, label, read, version, assetKey) {

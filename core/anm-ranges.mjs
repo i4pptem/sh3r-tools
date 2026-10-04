@@ -1,3 +1,5 @@
+import profile from './anm-action-profile.json' with {type: 'json'};
+import {readActionTable} from './anm-action-table.mjs';
 import {actionName} from './world-action-names.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -60,60 +62,63 @@ function peReader(buffer) {
   };
 }
 
-function descriptor(read, address, expectedId) {
-  const bytes = read(address, 12);
-  const id = bytes.readUInt16LE(0), nominalFrames = bytes.readUInt16LE(2);
-  const speed = bytes.readInt16LE(4), start = bytes.readUInt16LE(6), end = bytes.readUInt16LE(8);
-  const loop = bytes[10];
-  if (id !== expectedId || start > end || end >= FRAME_COUNT || loop > 1 || speed < 0 || speed > 16384) {
-    throw new Error('Unsupported or invalid animation descriptor table.');
-  }
-  // Zero-length descriptors are placeholders, including action 341's one-frame range.
-  if (!nominalFrames || !speed) return null;
-  return { id, label: `Action ${id}`, start, end, loop: loop === 1,
-    fps: speed * 60 / 4096, nativeSpeed: speed, nominalFrames,
-    sourceAddress: `0x${address.toString(16).toUpperCase()}` };
-}
-
-/** Extract verified Heather action descriptors from a user-supplied PC executable. */
-export function readHeatherAnimationRanges(buffer) {
-  const read = peReader(buffer);
-  for (const [address, size, expected] of SIGNATURES) {
+function verifySignatures(read, signatures) {
+  for (const [address, size, expected] of signatures) {
     if (createHash('sha256').update(read(address, size)).digest('hex') !== expected) {
       throw new Error('This executable has an unsupported animation-code profile.');
     }
   }
-  const common = [];
-  for (let id = 101; id <= 148; id++) {
-    const clip = descriptor(read, 0x6cfe80 + (id - 100) * 12, id);
-    if (clip) common.push(clip);
+}
+
+function verifyResourceName(read, fileId, expectedName) {
+  const address = read(0x710c90 + fileId * 4, 4).readUInt32LE(0);
+  if (read(address, expectedName.length + 1).toString('ascii') !== `${expectedName}\0`) {
+    throw new Error('Unsupported animation-bank filename mapping.');
   }
-  for (let id = 500; id <= 537; id++) {
-    const clip = descriptor(read, 0x6cfca0 + (id - 500) * 12, id);
-    if (clip) common.push(clip);
+}
+
+function heatherRanges(read, name) {
+  verifySignatures(read, SIGNATURES);
+  const weaponClass = WEAPONS.findIndex(([bank]) => bank === name), [, firstId, lastId] = WEAPONS[weaponClass];
+  if (read(0x6bddb0 + weaponClass * 2, 2).readUInt16LE(0) !== 0x800 + weaponClass) {
+    throw new Error('Unsupported weapon-class mapping.');
   }
-  const banks = new Map();
-  for (const [weaponClass, [name, first, last]] of WEAPONS.entries()) {
-    if (read(0x6bddb0 + weaponClass * 2, 2).readUInt16LE(0) !== 0x800 + weaponClass) {
-      throw new Error('Unsupported weapon-class mapping.');
+  const bankIndex = read(0x6bdd24 + weaponClass * 2, 2).readUInt16LE(0);
+  if (bankIndex >= 14) throw new Error('Unsupported animation-bank index.');
+  const fileId = read(0x7117f8 + bankIndex * 2, 2).readUInt16LE(0);
+  if (!fileId || fileId > 0xff) throw new Error('Unsupported animation file ID.');
+  verifyResourceName(read, fileId, `data/chr/pl/${name}`);
+  return [
+    ...readActionTable(read, {tableAddress: 0x6cfe80 + 12, firstId: 101, lastId: 148}, FRAME_COUNT),
+    ...readActionTable(read, {tableAddress: 0x6d00d0 + (firstId - 200) * 12, firstId, lastId}, FRAME_COUNT),
+    ...readActionTable(read, {tableAddress: 0x6cfca0, firstId: 500, lastId: 537}, FRAME_COUNT),
+  ];
+}
+
+const bankBasename = name => String(name || '').replaceAll('\\', '/').toLowerCase().split('/').at(-1);
+function bankProfile(name) {
+  if (WEAPONS.some(([bank]) => bank === name)) return {modelId: 0x100, frameCount: FRAME_COUNT, family: 'heather'};
+  return profile.banks.find(bank => bank.bankName === name);
+}
+
+/** Read a verified bank's descriptors from the user's executable, without modifying it. */
+export function readAnimationRanges(buffer, bankName) {
+  const read = peReader(buffer), name = bankBasename(bankName), bank = bankProfile(name);
+  if (!bank) throw new Error('No verified action table for this bank.');
+  if (bank.family === 'heather') return heatherRanges(read, name);
+  verifySignatures(read, profile.familySignatures[bank.family].map(s => [s.address, s.length, s.sha256]));
+  verifySignatures(read, [SIGNATURES.at(-1)]);
+  if (bank.resourceRowAddress !== null) {
+    const row = read(bank.resourceRowAddress, 8);
+    if (row.readUInt16LE(0) !== bank.modelId || row.readUInt16LE(4) !== bank.resourceNameIndex) {
+      throw new Error('Unsupported model-to-animation resource mapping.');
     }
-    const bankIndex = read(0x6bdd24 + weaponClass * 2, 2).readUInt16LE(0);
-    if (bankIndex >= 14) throw new Error('Unsupported animation-bank index.');
-    const fileId = read(0x7117f8 + bankIndex * 2, 2).readUInt16LE(0);
-    if (!fileId || fileId > 0xff) throw new Error('Unsupported animation file ID.');
-    const nameAddress = read(0x710c90 + fileId * 4, 4).readUInt32LE(0);
-    const expectedName = `data/chr/pl/${name}`;
-    if (read(nameAddress, expectedName.length + 1).toString('ascii') !== `${expectedName}\0`) {
-      throw new Error('Unsupported animation-bank filename mapping.');
-    }
-    const specific = [];
-    for (let id = first; id <= last; id++) {
-      const clip = descriptor(read, 0x6d00d0 + (id - 200) * 12, id);
-      if (clip) specific.push(clip);
-    }
-    banks.set(name, [...common.filter(c => c.id < 500), ...specific, ...common.filter(c => c.id >= 500)]);
   }
-  return banks;
+  for (const address of bank.playerBankSelectors || []) {
+    if (read(address, 2).readUInt16LE(0) !== bank.resourceNameIndex) throw new Error('Unsupported player animation-bank mapping.');
+  }
+  verifyResourceName(read, bank.resourceNameIndex, bank.resourceName);
+  return readActionTable(read, bank, bank.frameCount);
 }
 
 /** Cache native clip metadata by executable identity; never cache missing files permanently. */
@@ -122,9 +127,9 @@ export class AnimationRangeCatalog {
 
   forBank({ dataRoot, executablePath, bankName, modelId, frameCount }) {
     const normalized = String(bankName || '').replaceAll('\\', '/').toLowerCase();
-    const basename = normalized.split('/').at(-1);
-    if (!WEAPONS.some(([name]) => name === basename) || normalized.includes('/test/')) return unsupported('No verified action table for this bank. Set a custom frame range.');
-    if (modelId !== 0x100 || frameCount !== FRAME_COUNT) return unsupported('Native action ranges require the original 1763-frame Heather gameplay bank layout.');
+    const basename = bankBasename(normalized), bank = bankProfile(basename);
+    if (!bank || normalized.split('/').includes('test')) return unsupported('No verified action table for this bank. Set a custom frame range.');
+    if (modelId !== bank.modelId || frameCount !== bank.frameCount) return unsupported(`Native action ranges require ${basename} with model ID 0x${bank.modelId.toString(16)} and its original ${bank.frameCount}-frame layout.`);
     const exe = executablePath || (dataRoot ? path.resolve(dataRoot, '..', 'sh3.exe') : null);
     if (!exe) return unsupported('Open the game data folder to read action ranges from its sh3.exe.');
     let stat;
@@ -137,14 +142,17 @@ export class AnimationRangeCatalog {
     const stamp = `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
     let cached = this.#cache.get(exe);
     if (!cached || cached.stamp !== stamp) {
-      const buffer = fs.readFileSync(exe);
-      try { cached = { stamp, banks: readHeatherAnimationRanges(buffer) }; }
-      catch (error) { cached = { stamp, message: error.message }; }
+      cached = {stamp, buffer: fs.readFileSync(exe), banks: new Map()};
       this.#cache.set(exe, cached);
     }
-    if (!cached.banks) return unsupported(`Action ranges are unavailable: ${cached.message}`);
+    if (!cached.banks.has(basename)) {
+      try {cached.banks.set(basename, {ranges: readAnimationRanges(cached.buffer, basename)});}
+      catch (error) {cached.banks.set(basename, {message: error.message});}
+    }
+    const result = cached.banks.get(basename);
+    if (!result.ranges) return unsupported(`Action ranges are unavailable: ${result.message}`);
     return {
-      ranges: cached.banks.get(basename).map(clip => ({ ...clip, name:actionName(clip.id,basename) })),
+      ranges: result.ranges.map(clip => ({ ...clip, name: bank.modelId === 0x100 ? actionName(clip.id, basename) : null })),
       rangeSource: 'Native sh3.exe action table',
       rangeNote: 'Inclusive frame ranges. Default rate uses the native 60 Hz clock; gameplay may adjust speed and blend upper/lower-body actions. Names are shown only for verified native states; other actions keep their IDs.',
     };

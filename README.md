@@ -12,7 +12,7 @@
   <a href="CREDITS.md">Credits</a>
 </p>
 
-**Silent Hill 3 Tools 1.0.0** brings archive browsing, asset previews, model and animation exchange, map editing and mod building into one Windows application. Open the game's `data` folder, inspect its resources, stage your changes and build a separate mod folder. Developed by **[i4pptem](https://github.com/i4pptem)**.
+**Silent Hill 3 Tools 1.0.1** brings archive browsing, asset previews, model and animation exchange, map editing and mod building into one Windows application. Open the game's `data` folder, inspect its resources, stage your changes and build a separate mod folder. Developed by **[i4pptem](https://github.com/i4pptem)**.
 
 This is an independent modding project for the **PC version** of Silent Hill 3. It is separate from [Silent Hill 3 Remix](https://github.com/i4pptem/sh3r-rtx); RTX Remix is not required. The application interface is in English.
 
@@ -26,6 +26,7 @@ This is an independent modding project for the **PC version** of Silent Hill 3. 
 | **Models and morphs** | Export GLB, FBX or `.blend`; import GLB, GLTF, FBX or `.blend` with base-color textures. Replace topology against the original rig, map shape keys to game morph slots, and compare the serialized replacement with the original before staging. |
 | **Blender Morph Tools 1.3.2** | Transfer expressions to replacement meshes using paired landmarks, protected lip/eyelid regions, smoothing, local motion constraints and per-morph depth adjustments. Preview individual morphs before creating all keys. Hair and cloth templates are included. |
 | **Animation** | Play ANM and cutscene skeletal/facial motion. Exchange ranges through Blender or FBX, bake evaluated IK/FK, ignore helper bones, and transfer between compatible banks. See writable channels per bone and verified Heather Action names/ranges. |
+| **Batch replacement** | Replace textures and sounds from a folder, with archive-aware matching, slot/track validation, selectable results and atomic staging. [Naming and supported formats](docs/BATCH-REPLACE.md). |
 | **Texture Inspector** | Find standalone textures, embedded MDL/MAP images, font atlases and supported pictures together. Zoom, pan, export PNG and stage replacements. Shared map textures show their referencing maps. |
 | **World Inspector** | Find MAPs by verified area and edit geometry, materials and textures. Exchange whole maps or individual parts, including new topology. Overlay and edit CLD/CAM, transform multiple selections, simplify bound collision and undo room edits together. |
 | **Cutscene Inspector** | Play complete scenes with cameras, characters, morphs, environment, moving objects and sound. Export a scene to Blender and reimport its existing motion, morph, camera, light and prop channels. |
@@ -33,13 +34,13 @@ This is an independent modding project for the **PC version** of Silent Hill 3. 
 | **Shadows and mod composition** | Rebuild or inspect/edit character KG1 proxies through GLB. Merge changes to different assets, review file conflicts, save projects and exchange portable mod packages. |
 | **Build Mod** | Review changed assets, errors, warnings and required runtime patches. Build replacement game files or a compact DLL/ASI overlay that loads changed assets while retaining original files. |
 
-Collapse the library or Inspector to enlarge the viewport. Animation and Room editor controls can be moved and resized. Map navigation uses WASD and X/C; E/R/T select move/rotate/scale, and Ctrl+Z undoes room edits. Long exports show progress inside the export dialog.
+Collapse the library or Inspector to enlarge the viewport. Animation and Room editor controls can be moved and resized. Map navigation uses WASD and X/C; E/R/T select move/rotate/scale, and Ctrl+Z undoes room edits. Long exports show progress inside the export dialog. File dialogs remember confirmed locations across restarts, with separate folders for game data, models, textures, projects and builds. Related import/export actions share their folder.
 
 See [supported formats](docs/FORMATS.md) for the exact editing scope of each format. Unknown variants remain available for native export/replacement where supported.
 
 ## Get started
 
-1. Download `Silent-Hill-3-Tools-1.0.0-win-x64.zip` from [Releases](https://github.com/i4pptem/sh3r-tools/releases) and extract the **entire folder**.
+1. Download `Silent-Hill-3-Tools-1.0.1-win-x64.zip` from [Releases](https://github.com/i4pptem/sh3r-tools/releases) and extract the **entire folder**.
 2. Run **Silent Hill 3 Tools.exe**. No Node.js installation is needed.
 3. For movie/media conversion, close the app and run **Install media.cmd** once. It downloads and verifies the pinned FFmpeg build. Normal asset processing is local.
 4. For FBX and `.blend` exchange, install **Blender 4.2+** separately; Blender 5.2.2 was used for validation. Set `SH3TOOLS_BLENDER` to `blender.exe` if detection does not find it.
@@ -82,7 +83,7 @@ Only authenticated executable layouts are supported. Extensions increase specifi
 - **Mod merging operates per asset.** Different files in the same archive combine; two variants of the same MDL/MAP require choosing one file. Internal geometry/texture merging is not implemented.
 - **Morph transfer needs artistic review.** The supplied Heather face workflow has user confirmation, but unrelated anatomy, hair and cloth still need their own checks. Test authored replacements in gameplay and cutscenes.
 
-[Validation evidence](docs/VALIDATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Post-1.0 roadmap](docs/ROADMAP.md) · [1.0.0 release notes](docs/releases/1.0.0.md)
+[Validation evidence](docs/VALIDATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Post-1.0 roadmap](docs/ROADMAP.md) · [1.0.1 release notes](docs/releases/1.0.1.md) · [1.0 feature tour](docs/releases/1.0.0.md)
 
 ## Build from source
 

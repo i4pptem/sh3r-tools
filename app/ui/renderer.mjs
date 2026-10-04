@@ -1,5 +1,6 @@
 import {reviewBuild} from './build-review.mjs';
 import {exportProgressDialog} from './operation-progress.mjs';
+import {batchReplace} from './batch-replace.mjs';
 import {mergeMods} from './mod-merge.mjs';
 import {cutsceneInspector} from './cutscene-inspector.mjs';
 import {appPrompts} from './app-prompts.mjs';
@@ -61,7 +62,7 @@ async function run(action, args = {}, label = 'Working…', onError = null) {
       updateLibrary();
       if (state.selected) await selectAsset(state.selected, 0, {preserveView: true});
       if (mapView && state.selected === mapKey) state.viewport?.restoreView(mapView);
-    } else if (result?.file || result?.folder) notify(`${action === 'build' ? `Verified ${result.changes} replacement(s) in ${result.archives} source(s).${result.mode === "overlay" ? " ASI overlay created; see INSTALL.txt. Original game files stay unchanged." : result.runtimePatch ? " Patched sh3.exe included; install it with the built data folder." : ""}` : result.converted !== undefined ? `Exported ${result.count} assets: ${result.converted} converted, ${result.native} native, ${result.failed} conversion errors. See export-report.json.` : 'Saved successfully.'}\n${result.file || result.folder}`, !result.failed);
+    } else if (!result?.rows && (result?.file || result?.folder)) notify(`${action === 'build' ? `Verified ${result.changes} replacement(s) in ${result.archives} source(s).${result.mode === "overlay" ? " ASI overlay created; see INSTALL.txt. Original game files stay unchanged." : result.runtimePatch ? " Patched sh3.exe included; install it with the built data folder." : ""}` : result.converted !== undefined ? `Exported ${result.count} assets: ${result.converted} converted, ${result.native} native, ${result.failed} conversion errors. See export-report.json.` : 'Saved successfully.'}\n${result.file || result.folder}`, !result.failed);
     if (result?.folderWarning) notify('Build saved, but the folder could not be opened: ' + result.folderWarning);
     return result;
   } catch (error) {const message=error.message.replace(/^Error invoking remote method '[^']+': Error: /, '');if(['editMap','editRoom'].includes(action)){state.mapDrafts.failure(args.key,message);state.mapRefresh?.();}onError?.(message);notify(message);}
@@ -132,6 +133,10 @@ function showArchiveMenu(archive, rect) {
   menu.append(el('strong', '', archive?.name || 'All opened archives and folders'));
   for (const [mode, title] of [['native', 'Export native files…'], ['converted', 'Export converted files…']]) {
     const action = button(title, () => {closeArchiveMenu(); run(archive ? 'exportArchive' : 'exportAllArchives', {archive: archive?.id, mode}, 'Exporting ' + (archive?.name || 'all sources') + '…');});
+    action.setAttribute('role', 'menuitem'); menu.append(action);
+  }
+  for (const [kind, title] of [['textures', 'Replace textures from folder…'], ['audio', 'Replace audio from folder…']]) {
+    const action = button(title, () => {closeArchiveMenu(); batchReplace(state.library, run, notify, {kind, ...(archive ? {archive: archive.id} : {})});});
     action.setAttribute('role', 'menuitem'); menu.append(action);
   }
   document.body.append(menu); menu.style.left = Math.max(8, Math.min(rect.left, innerWidth - menu.offsetWidth - 8)) + 'px';
@@ -357,6 +362,7 @@ function renderInspector(entry, preview) {
 }
 
 async function handleAction(action) {
+  if(action==='batchReplace') {if(state.library)batchReplace(state.library,run,notify,{kind:state.page!=='textures'&&state.section==='sound'?'audio':'textures'});return;}
   if(action==='mergeMods') {const plan=await run('prepareModMerge',{},'Comparing mod assets…');if(plan)mergeMods(plan,run,notify);return;}
   if(action==='saveProject'||action==='saveAndClose'){
     state.mapDrafts.end();
